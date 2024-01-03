@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import QAction
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .src.src.eurostat_downloader_dialog import EurostatDownloaderDialog
+from .src.eurostat_downloader_dialog import EurostatDownloaderDialog
 import os.path
 
 
