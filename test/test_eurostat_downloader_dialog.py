@@ -16,7 +16,7 @@ import unittest
 
 from qgis.PyQt.QtGui import QDialogButtonBox, QDialog
 
-from eurostat_downloader_dialog import EurostatDownloaderDialog
+from src.eurostat_downloader_dialog import EurostatDownloaderDialog
 
 from utilities import get_qgis_app
 QGIS_APP = get_qgis_app()
