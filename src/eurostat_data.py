@@ -15,7 +15,7 @@ from dataclasses import (
 # from .pyqt_utils import PandasModel
 
 
-@dataclass
+@dataclass(slots=False)
 class EstatDatabase:
 
     @cached_property
@@ -35,7 +35,8 @@ class EstatDatabase:
         return self.toc.shape[0]
     
     @staticmethod
-    def compute_string_similarity(a, b):
+    def compute_string_similarity(a: str, b: str):
+        """Computes string similarity between two strings."""
         return SequenceMatcher(None, a, b).ratio()
 
     @lru_cache(maxsize=16)
