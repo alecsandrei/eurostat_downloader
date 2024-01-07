@@ -1,5 +1,3 @@
-import inspect
-from collections import OrderedDict
 from functools import (
     cached_property,
     lru_cache
@@ -8,12 +6,14 @@ from difflib import SequenceMatcher
 
 import eurostat
 import pandas as pd
+from pandas import DataFrame
 from dataclasses import (
     dataclass,
     field
 )
 
-# from .pyqt_utils import PandasModel
+from utils import PyQtUtils
+
 
 
 @dataclass(slots=False)
@@ -63,15 +63,6 @@ class EstatDataset(EstatDatabase):
     database: EstatDatabase
     code: str
     pars: list[str] = field(init=False)
-    _units = None
-    _data = None
-    _geo_codes = None
-    _model = None
-    _date_columns = None
-    _params = None
-    _data_start = None
-    _data_end = None
-    _params_abbrs = {}
 
     @cached_property
     def title(self):
@@ -98,53 +89,17 @@ class EstatDataset(EstatDatabase):
             time_period_column = time_period_column[0]
             data = data.rename(columns={time_period_column: time_period_column.split('\\')[0]})
         return data
-
-    @cached_property
-    def units(self):
-        return pd.DataFrame(
-            eurostat.get_dic(self.code, 'unit', full=False), columns=['unit_abbr', 'unit_name']
-        )
-    
-    @cached_property
-    def geo_codes(self):
-        return (
-            pd.DataFrame(eurostat.get_dic(self.code, 'geo', full=False), columns=['unit_abbr', 'unit_name'])
-        )
     
     @cached_property
     def params(self):
         return eurostat.get_pars(self.code)
 
-    # @property
-    # def model(self):
-    #     return self._model
+
+@dataclass
+class EstatDatasetModel:
+    estat_dataset: EstatDataset
+    df: DataFrame
     
-    # @model.setter
-    # def model(self, model: PandasModel):
-    #     self._model = model
-
-    # @property
-    # def model_data(self):
-    #     if self.model is None:
-    #         return self.data
-    #     else:
-    #         return self.model._data
-
-    # @property
-    # def model_data_date_columns(self):
-    #     return self.model_data.drop(columns=self.params).columns.to_list()
-
-    def param_names_and_abbrs(self, param):
-        if param not in self._params_abbrs:
-            self._params_abbrs[param] = pd.DataFrame(eurostat
-                                               .get_dic(self.code,
-                                                        param,
-                                                        full=False),
-                                                        columns=[f'{param}_abbr',
-                                                                 f'{param}_name'])
-        return self._params_abbrs[param]
-
-    def get_country_code(self, country_name):
-        geo = self.param_names_and_abbrs('geo')
-        country_code = geo.loc[geo['geo_name'] == country_name, 'geo_abbr'].values[0]
-        return country_code
+    @cached_property
+    def model(self) -> PyQtUtils.PandasModel:
+        return PyQtUtils.PandasModel(data=self.df)

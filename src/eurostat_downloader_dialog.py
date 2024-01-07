@@ -1,13 +1,15 @@
-import os
+from pathlib import Path
 
 from qgis.PyQt import uic
-from qgis.PyQt import QtWidgets
+from qgis.PyQt.QtWidgets import (
+    QDialog,
+    QPushButton
+)
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'eurostat_downloader_dialog.ui'))
+UI = (Path(__file__).parent / 'eurostat_downloader_dialog.ui').as_posix()
 
 
-class EurostatDownloaderDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
-        super(EurostatDownloaderDialog, self).__init__(parent)
-        self.setupUi(self)
+class EurostatDownloaderDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi(UI, self)
