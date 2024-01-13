@@ -10,11 +10,12 @@
 
 from PyQt5 import (
     QtCore,
-    QtWidgets
+    QtWidgets,
+    QtGui
 )
 
 
-class UIEurostatDialog:
+class UIDialog:
     def setupUi(self, EurostatDialogBase):
         EurostatDialogBase.setObjectName("EurostatDialogBase")
         EurostatDialogBase.resize(846, 900)
@@ -66,9 +67,9 @@ class UIEurostatDialog:
         self.label_2 = QtWidgets.QLabel(self.frameMainWindowJoinData)
         self.label_2.setObjectName("label_2")
         self.verticalLayout_5.addWidget(self.label_2)
-        self.qgsComboGeoField = gui.QgsFieldComboBox(self.frameMainWindowJoinData)
-        self.qgsComboGeoField.setObjectName("qgsComboGeoField")
-        self.verticalLayout_5.addWidget(self.qgsComboGeoField)
+        self.qgsComboLayerJoinField = gui.QgsFieldComboBox(self.frameMainWindowJoinData)
+        self.qgsComboLayerJoinField.setObjectName("qgsComboLayerJoinField")
+        self.verticalLayout_5.addWidget(self.qgsComboLayerJoinField)
         self.verticalLayout_8.addLayout(self.verticalLayout_5)
         self.verticalLayout_6 = QtWidgets.QVBoxLayout()
         self.verticalLayout_6.setSpacing(0)
@@ -76,9 +77,9 @@ class UIEurostatDialog:
         self.label_3 = QtWidgets.QLabel(self.frameMainWindowJoinData)
         self.label_3.setObjectName("label_3")
         self.verticalLayout_6.addWidget(self.label_3)
-        self.qgsComboJoinField = QtWidgets.QComboBox(self.frameMainWindowJoinData)
-        self.qgsComboJoinField.setObjectName("qgsComboJoinField")
-        self.verticalLayout_6.addWidget(self.qgsComboJoinField)
+        self.comboTableJoinField = QtWidgets.QComboBox(self.frameMainWindowJoinData)
+        self.comboTableJoinField.setObjectName("comboTableJoinField")
+        self.verticalLayout_6.addWidget(self.comboTableJoinField)
         self.verticalLayout_8.addLayout(self.verticalLayout_6)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
@@ -146,7 +147,7 @@ class UIEurostatDialog:
         self.buttonAdd.setText(_translate("EurostatDialogBase", "Add table"))
 from qgis import gui
 
-class UIEurostatParameterSectionDialog:
+class UIParameterSectionDialog:
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(500, 400)
@@ -168,40 +169,23 @@ class UIEurostatParameterSectionDialog:
         self.lineSearch.setFrame(True)
         self.lineSearch.setObjectName("lineSearch")
         self.gridLayout.addWidget(self.lineSearch, 0, 0, 1, 1)
-        self.buttonOkCancel = QtWidgets.QDialogButtonBox(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.buttonOkCancel.sizePolicy().hasHeightForWidth())
-        self.buttonOkCancel.setSizePolicy(sizePolicy)
-        self.buttonOkCancel.setOrientation(QtCore.Qt.Vertical)
-        self.buttonOkCancel.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
-        self.buttonOkCancel.setObjectName("buttonOkCancel")
-        self.gridLayout.addWidget(self.buttonOkCancel, 0, 1, 2, 1)
         self.listItems = QtWidgets.QListWidget(Dialog)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.listItems.sizePolicy().hasHeightForWidth())
         self.listItems.setSizePolicy(sizePolicy)
-        self.listItems.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.listItems.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.listItems.setObjectName("listItems")
         self.gridLayout.addWidget(self.listItems, 1, 0, 2, 1)
-        self.frameExtra = QtWidgets.QFrame(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.frameExtra.sizePolicy().hasHeightForWidth())
-        self.frameExtra.setSizePolicy(sizePolicy)
-        self.frameExtra.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.frameExtra.setObjectName("frameExtra")
-        self.gridLayout.addWidget(self.frameExtra, 2, 1, 1, 1)
+        self.buttonReset = QtWidgets.QPushButton(Dialog)
+        self.buttonReset.setObjectName("buttonReset")
+        self.gridLayout.addWidget(self.buttonReset, 3, 0, 1, 1)
 
         self.retranslateUi(Dialog)
-        self.buttonOkCancel.accepted.connect(Dialog.accept) # type: ignore
-        self.buttonOkCancel.rejected.connect(Dialog.reject) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Edit section"))
+        self.buttonReset.setText(_translate("Dialog", "Reset selection"))

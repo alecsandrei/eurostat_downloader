@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import QAction
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .src.eurostat_downloader import EurostatDialog
+from .src.eurostat_downloader import Dialog
 import os.path
 
 
@@ -187,7 +187,7 @@ class EurostatDownloader:
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
-            self.dlg = EurostatDialog()
+            self.dlg = Dialog()
 
         # show the dialog
         self.dlg.show()

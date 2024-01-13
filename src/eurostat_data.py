@@ -1,6 +1,7 @@
 from typing import Union
 from functools import (
     cached_property,
+    cache,
     lru_cache
 )
 from difflib import SequenceMatcher
@@ -13,9 +14,8 @@ import eurostat
 import pandas as pd
 
 
-
-@dataclass
-class EstatDatabase:
+@dataclass(frozen=True, eq=True)
+class Database:
 
     @cached_property
     def toc(self):
@@ -61,36 +61,59 @@ class EstatDatabase:
         return subset['code']
 
 
-@dataclass
-class EstatDataset(EstatDatabase):
+@dataclass(frozen=True, eq=True)
+class Dataset:
     """
     TODO: fix this
     Class to represent a specific dataset from Eurostat.
     """
-    database: EstatDatabase
+    db: Database
     code: str
-    pars: list[str] = field(init=False)
-
-    @cached_property
-    def title(self):
-        return self.toc.loc[self.toc['code'] == self.code, 'title']
-
-    # @cached_property
-    # def data_start(self):
-    #     return self.date_columns[0]
-
-    # @cached_property
-    # def data_end(self):
-    #     return self.date_columns[-1]
-    
-    # @cached_property
-    # def date_columns(self):
-    #     return self.data.columns[len(self.params):]
 
     @cached_property
     def df(self) -> pd.DataFrame:
-        return eurostat.get_data_df(code=self.code)
+        df = eurostat.get_data_df(code=self.code)
+        self.fix_df_columns(df=df)
+        return df
+
+    @staticmethod
+    def fix_df_columns(df: pd.DataFrame):
+        """At the time of writing the current code, in the eurostat package,
+        a returned dataset dataframe from the 'get_data_df' method has '\\TIME PERIOD' added
+        to it's last 'params' column (like this for example: 'GEO\\TIME_PERIOD').
+        This function fixes that. """
+        df.columns = [col.replace(r'\TIME_PERIOD', '') for col in df.columns]
+
+    @cached_property
+    def title(self):
+        return self.db.toc.loc[self.db.toc['code'] == self.code, 'title']
+
+    @cached_property
+    def data_start(self):
+        return self.date_columns[0]
+
+    @cached_property
+    def data_end(self):
+        return self.date_columns[-1]
     
+    @cached_property
+    def date_columns(self):
+        return self.df.columns[len(self.params):]
+
     @cached_property
     def params(self):
         return eurostat.get_pars(self.code)
+
+    @cache
+    def geo_codes(self, param: str) -> Union[pd.Series, pd.DataFrame]:
+        """This assumes that 'get_dic' returns a list of tuples of two strings.
+        If this changes in the future in the eurostat package, this is going to need
+        to be changed."""
+        mapper = eurostat.get_dic(code=self.code, par=param, full=False, frmt='list')
+        df = pd.DataFrame(data=mapper)
+        name_col_idx = df.apply(lambda row: row.str.len().idxmax(), axis=1).mode().iloc[0]
+        df = (df
+              .set_index(name_col_idx)
+              .rename_axis('name')
+              .rename(columns={0: 'code'}))
+        return df
