@@ -16,7 +16,13 @@ from qgis.PyQt import (
     QtCore,
     QtWidgets
 )
-
+from qgis.core import (
+    QgsVectorLayer,
+    QgsField,
+    QgsFeature,
+    QgsProject,
+    QgsVectorLayerJoinInfo
+)
 from .ui import (
     UIDialog,
     UIParameterSectionDialog,
@@ -37,10 +43,16 @@ class Dialog(QtWidgets.QDialog):
     subset: pd.DataFrame = field(init=False)
     model: DatasetModel = field(init=False)
     filterer: DataFilterer = field(init=False)
+    join_handler: JoinHandler = field(init=False)
+    exporter: Exporter = field(init=False)
+    converter: QgsConverter = field(init=False)
     
     def __init__(self):
         super().__init__()
         self.database = Database()
+        self.join_handler = JoinHandler(base=self)
+        self.exporter = Exporter(base=self)
+        self.converter = QgsConverter(base=self)
 
         # Init GUI
         self.ui = UIDialog()
@@ -52,6 +64,8 @@ class Dialog(QtWidgets.QDialog):
         self.ui.listDatabase.itemSelectionChanged.connect(self.set_table_join_fields)
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(self.open_section_ui)
         self.ui.buttonReset.clicked.connect(self.reset_dataset_table)
+        self.ui.checkExport.clicked.connect(self.display_export_widgets)
+        self.ui.buttonAdd.clicked.connect(self.exporter.add_table)
         
     def populate_list(self):
         self.ui.listDatabase.clear()
@@ -91,6 +105,10 @@ class Dialog(QtWidgets.QDialog):
         self.filterer.remove_row_filters()
         self.filterer.set_column_filters()
         self.update_model()
+    
+    def display_export_widgets(self):
+        checked = self.ui.checkExport.isChecked()
+        self.ui.qgsFile.setEnabled(checked)
 
 
 @dataclass(init=False)
@@ -154,6 +172,7 @@ class ParameterSectionDialog(QtWidgets.QDialog):
 
 @dataclass(init=False)
 class GeoParameterSectionDialog:
+    # TODO: maybe add different behaviour for the GEO column later?
     def __init__(self, section_dialog: ParameterSectionDialog, name: str):
         self.section_dialog = section_dialog
         self.name = name
@@ -178,6 +197,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
 
     def get_time_types(self):
         freq = self.base.dataset.frequency.lower()
+        # NOTE: this would have been a great match case spot but idk if qgis users have python >= 3.10
         if freq == 'a':
             return ['Year']
         elif freq == 's':
@@ -189,7 +209,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
         elif freq == 'd':
             return ['Year', 'Month', 'Day']
         else:
-            raise Exception('No frequency column was found')
+            raise ValueError(f'No frequency column was found. Unknown {freq}.')
     
     def add_labels_to_frames(self, time: str):
         time = time.capitalize()
@@ -316,7 +336,7 @@ class DataFilterer:
         return self.dataset.df
 
     @property
-    def date_columns(self):
+    def date_columns(self) -> Union[list[str], list]:
         return np.setdiff1d(self.column, self.dataset.params).tolist()
 
     def __post_init__(self):
@@ -402,3 +422,69 @@ class PandasModel(QtCore.QAbstractTableModel):
 
 def get_combobox_items(combobox: QtWidgets.QComboBox) -> list[str]:
     return [combobox.itemText(i) for i in range(combobox.count())]
+
+
+@dataclass(init=False)
+class Exporter:
+    
+    def __init__(self, base: Dialog):
+        self.base = base
+
+    def add_table(self):
+        table = self.base.converter.table
+        table.setName(self.base.dataset.code)
+        QgsProject.instance().addMapLayer(table)
+
+
+@dataclass(init=False)
+class JoinHandler:
+    
+    def __init__(self, base: Dialog):
+        self.base = base
+
+    def get_join_object(self):
+        table = self.base.converter.table
+        join_object = QgsVectorLayerJoinInfo()
+        join_object.setJoinFieldName(self.base.ui.comboTableJoinField.currentText())
+        join_object.setTargetFieldName(self.base.ui.qgsComboLayerJoinField.currentText())
+        join_object.setJoinLayerId(table.id())
+        join_object.setUsingMemoryCache(True)
+        join_object.setJoinLayer(table)
+        join_object.setPrefix(self.base.ui.linePrefix.text())
+
+    def join_table_to_layer(self):
+        pass
+
+
+@dataclass(init=False)
+class QgsConverter:
+
+    def __init__(self, base: Dialog):
+        self.base = base
+
+    @property
+    def table(self):
+        return self.from_dataframe(self.base.model.pandas._data)
+    
+    @staticmethod
+    def from_dataframe(df: pd.DataFrame):
+        """Method to convert a pandas dataframe to a qgis table layer."""
+        temp = QgsVectorLayer('none', 'table', 'memory')
+        temp_data = temp.dataProvider()
+        temp.startEditing()
+        attributes = []
+        for head in df:
+            if pd.api.types.is_numeric_dtype(df[head]):
+                attributes.append(QgsField(head, QtCore.QVariant.Type.Double))
+            else:
+                attributes.append(QgsField(head, QtCore.QVariant.Type.String))
+        temp_data.addAttributes(attributes)
+        temp.updateFields()
+        rows = []
+        for row in df.itertuples():
+            f = QgsFeature()
+            f.setAttributes([row[i] for i in range(1, len(row))])
+            rows.append(f)
+        temp_data.addFeatures(rows)
+        temp.commitChanges()
+        return temp
