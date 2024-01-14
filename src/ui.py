@@ -147,6 +147,7 @@ class UIDialog:
         self.buttonAdd.setText(_translate("EurostatDialogBase", "Add table"))
 from qgis import gui
 
+
 class UIParameterSectionDialog:
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
@@ -189,3 +190,74 @@ class UIParameterSectionDialog:
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Edit section"))
         self.buttonReset.setText(_translate("Dialog", "Reset selection"))
+
+
+class UITimePeriodDialog:
+    def setupUi(self, SelectTimePeriod):
+        SelectTimePeriod.setObjectName("SelectTimePeriod")
+        SelectTimePeriod.resize(440, 130)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(SelectTimePeriod.sizePolicy().hasHeightForWidth())
+        SelectTimePeriod.setSizePolicy(sizePolicy)
+        self.verticalLayout = QtWidgets.QVBoxLayout(SelectTimePeriod)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.frameStart = QtWidgets.QFrame(SelectTimePeriod)
+        self.frameStart.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frameStart.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frameStart.setObjectName("frameStart")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.frameStart)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.labelStart = QtWidgets.QLabel(self.frameStart)
+        self.labelStart.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
+        self.labelStart.setObjectName("labelStart")
+        self.verticalLayout_2.addWidget(self.labelStart)
+        self.verticalLayout.addWidget(self.frameStart)
+        self.frameEnd = QtWidgets.QFrame(SelectTimePeriod)
+        self.frameEnd.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frameEnd.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frameEnd.setObjectName("frameEnd")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.frameEnd)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.labelEnd = QtWidgets.QLabel(self.frameEnd)
+        self.labelEnd.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
+        self.labelEnd.setObjectName("labelEnd")
+        self.verticalLayout_3.addWidget(self.labelEnd)
+        self.verticalLayout.addWidget(self.frameEnd)
+        self.buttonReset = QtWidgets.QPushButton(SelectTimePeriod)
+        self.buttonReset.setObjectName("buttonReset")
+        self.verticalLayout.addWidget(self.buttonReset)
+
+        self.retranslateUi(SelectTimePeriod)
+        QtCore.QMetaObject.connectSlotsByName(SelectTimePeriod)
+
+    def retranslateUi(self, SelectTimePeriod):
+        _translate = QtCore.QCoreApplication.translate
+        SelectTimePeriod.setWindowTitle(_translate("SelectTimePeriod", "Select time period"))
+        self.labelStart.setText(_translate("SelectTimePeriod", "Select start time"))
+        self.labelEnd.setText(_translate("SelectTimePeriod", "Select end time"))
+        self.buttonReset.setText(_translate("SelectTimePeriod", "Reset values"))
+    
+    def add_combobox_to_frames(self, object_name: str):
+        for frame in (self.frameStart, self.frameEnd):
+            widget = QComboboxCompleter(parent=frame)
+            widget.setObjectName(object_name)
+            frame.layout().addWidget(widget)
+            setattr(frame, object_name, widget)
+    
+    def add_label_to_frames(self, object_name: str, text: str):
+        for frame in (self.frameStart, self.frameEnd):
+            widget = QtWidgets.QLabel(parent=frame, text=text)
+            widget.setObjectName(object_name)
+            frame.layout().addWidget(widget)
+            setattr(frame, object_name, widget)
+
+
+class QComboboxCompleter(QtWidgets.QComboBox):
+    
+    def __init__(self, parent):
+        super().__init__(parent=parent)
+        self.setEditable(True)
+        self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
