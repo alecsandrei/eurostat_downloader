@@ -9,6 +9,7 @@ from typing import (
     Iterable,
     Any,
 )
+from enum import Enum
 
 import numpy as np
 import pandas as pd
@@ -21,7 +22,8 @@ from qgis.core import (
     QgsField,
     QgsFeature,
     QgsProject,
-    QgsVectorLayerJoinInfo
+    QgsVectorLayerJoinInfo,
+    QgsMapLayer
 )
 from .ui import (
     UIDialog,
@@ -49,24 +51,38 @@ class Dialog(QtWidgets.QDialog):
     
     def __init__(self):
         super().__init__()
+
+        # Init GUI
+        self.ui = UIDialog()
+        self.ui.setupUi(self)
+        self.set_layer_join_fields()
+
+        # Instantiate objects
         self.database = Database()
         self.join_handler = JoinHandler(base=self)
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
 
-        # Init GUI
-        self.ui = UIDialog()
-        self.ui.setupUi(self)
-
         # Signals
+        self.ui.qgsComboLayer.layerChanged.connect(self.set_layer_join_fields)
+        self.ui.qgsComboLayer.layerChanged.connect(self.set_layer_join_field_default)
         self.ui.buttonSearch.clicked.connect(self.populate_list)
         self.ui.listDatabase.itemSelectionChanged.connect(self.set_dataset_table)
         self.ui.listDatabase.itemSelectionChanged.connect(self.set_table_join_fields)
+        self.ui.listDatabase.itemSelectionChanged.connect(self.set_table_join_field_default)
+        self.ui.listDatabase.itemSelectionChanged.connect(self.set_layer_join_field_default)
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(self.open_section_ui)
         self.ui.buttonReset.clicked.connect(self.reset_dataset_table)
         self.ui.checkExport.clicked.connect(self.display_export_widgets)
         self.ui.buttonAdd.clicked.connect(self.exporter.add_table)
-        
+        self.ui.buttonJoin.clicked.connect(self.join_handler.join_table_to_layer)
+
+    def set_layer_join_fields(self):
+        layer = self.ui.qgsComboLayer.currentLayer()
+        if not layer:
+            return
+        self.ui.qgsComboLayerJoinField.setLayer(layer=layer)
+
     def populate_list(self):
         self.ui.listDatabase.clear()
         self.subset = self.database.get_subset(keyword=self.ui.lineSearch.text())
@@ -84,6 +100,31 @@ class Dialog(QtWidgets.QDialog):
     def set_table_join_fields(self):
         self.ui.comboTableJoinField.clear()
         self.ui.comboTableJoinField.addItems(self.dataset.params)
+
+    def set_table_join_field_default(self):
+        items = get_combobox_items(self.ui.comboTableJoinField)
+        for idx, item in enumerate(items):
+            if item in CommonGeoSectionNames:
+                self.ui.comboTableJoinField.setCurrentIndex(idx)
+
+    def infer_join_field_idx_from_layer(self, layer: QgsMapLayer):
+        if layer.featureCount() > 100_000:
+            # Don't infer join field if there are more than 100k features.
+            return
+        df = self.converter.to_dataframe(layer=layer)
+        geo = self.ui.comboTableJoinField.currentText()
+        unique_values = self.model.pandas._data[geo].unique()
+        columns = df.columns[df.isin(unique_values).any()]
+        if not columns.empty:
+            idx = df.columns.to_list().index(columns[-1]) # Select the last matching column, by default.
+            return idx
+
+    def set_layer_join_field_default(self):
+        if not hasattr(self, 'model'):
+            return
+        if layer := self.ui.qgsComboLayer.currentLayer():
+            if idx := self.infer_join_field_idx_from_layer(layer=layer):
+                self.ui.qgsComboLayerJoinField.setCurrentIndex(idx)
 
     def set_dataset_table(self):
         self.dataset = Dataset(db=self.database, code=self.get_selected_dataset_code())
@@ -176,6 +217,14 @@ class GeoParameterSectionDialog:
     def __init__(self, section_dialog: ParameterSectionDialog, name: str):
         self.section_dialog = section_dialog
         self.name = name
+
+class CommonGeoSectionNames(Enum):
+    """Enumerates the common fields which describe geographic areas."""
+    # NOTE: Feel free to expand this enum
+    GEO = 'geo'
+    REP_MAP = 'rep_mar'
+    METROREG = 'metroreg'
+    
 
 
 @dataclass(init=False)
@@ -421,7 +470,7 @@ class PandasModel(QtCore.QAbstractTableModel):
         return None
 
 def get_combobox_items(combobox: QtWidgets.QComboBox) -> list[str]:
-    return [combobox.itemText(i) for i in range(combobox.count())]
+    return [combobox.itemText(idx) for idx in range(combobox.count())]
 
 
 @dataclass(init=False)
@@ -442,18 +491,24 @@ class JoinHandler:
     def __init__(self, base: Dialog):
         self.base = base
 
-    def get_join_object(self):
+    @property
+    def join_info(self):
+        return self.get_join_info()
+
+    def get_join_info(self):
         table = self.base.converter.table
-        join_object = QgsVectorLayerJoinInfo()
-        join_object.setJoinFieldName(self.base.ui.comboTableJoinField.currentText())
-        join_object.setTargetFieldName(self.base.ui.qgsComboLayerJoinField.currentText())
-        join_object.setJoinLayerId(table.id())
-        join_object.setUsingMemoryCache(True)
-        join_object.setJoinLayer(table)
-        join_object.setPrefix(self.base.ui.linePrefix.text())
+        QgsProject.instance().addMapLayer(table)
+        join_info = QgsVectorLayerJoinInfo()
+        join_info.setJoinFieldName(self.base.ui.comboTableJoinField.currentText())
+        join_info.setTargetFieldName(self.base.ui.qgsComboLayerJoinField.currentText())
+        join_info.setJoinLayerId(table.id())
+        join_info.setUsingMemoryCache(True)
+        join_info.setJoinLayer(table)
+        join_info.setPrefix(self.base.ui.linePrefix.text())
+        return join_info
 
     def join_table_to_layer(self):
-        pass
+        self.base.ui.qgsComboLayer.currentLayer().addJoin(self.join_info)
 
 
 @dataclass(init=False)
@@ -465,25 +520,43 @@ class QgsConverter:
     @property
     def table(self):
         return self.from_dataframe(self.base.model.pandas._data)
-    
+
     @staticmethod
-    def from_dataframe(df: pd.DataFrame):
+    def dtype_mapper(series: pd.Series):
+        dtype = series.dtype
+        if pd.api.types.is_float_dtype(dtype):
+            return QtCore.QVariant.Type.Double
+        elif pd.api.types.is_integer_dtype(dtype):
+            return QtCore.QVariant.Type.Int
+        elif pd.api.types.is_datetime64_any_dtype(dtype):
+            return QtCore.QVariant.Type.DateTime
+        elif pd.api.types.is_bool_dtype(dtype):
+            return QtCore.QVariant.Type.Bool
+        else:
+            return QtCore.QVariant.Type.String
+
+    @staticmethod
+    def to_dataframe(layer: QgsVectorLayer):
+        # Source code: https://stackoverflow.com/a/76153082
+        return (
+            pd.DataFrame([feat.attributes() for feat in layer.getFeatures()],
+                          columns=[field.name() for field in layer.fields()])
+        )
+
+    def from_dataframe(self, df: pd.DataFrame) -> QgsVectorLayer:
         """Method to convert a pandas dataframe to a qgis table layer."""
         temp = QgsVectorLayer('none', 'table', 'memory')
         temp_data = temp.dataProvider()
         temp.startEditing()
         attributes = []
-        for head in df:
-            if pd.api.types.is_numeric_dtype(df[head]):
-                attributes.append(QgsField(head, QtCore.QVariant.Type.Double))
-            else:
-                attributes.append(QgsField(head, QtCore.QVariant.Type.String))
+        for head in df.columns:
+            attributes.append(QgsField(head, self.dtype_mapper(series=df[head])))
         temp_data.addAttributes(attributes)
         temp.updateFields()
         rows = []
         for row in df.itertuples():
             f = QgsFeature()
-            f.setAttributes([row[i] for i in range(1, len(row))])
+            f.setAttributes([row[idx] for idx in range(1, len(row))])
             rows.append(f)
         temp_data.addFeatures(rows)
         temp.commitChanges()

@@ -12,7 +12,10 @@ from PyQt5 import (
     QtCore,
     QtWidgets
 )
-from qgis import gui
+from qgis import (
+    gui,
+    core
+)
 
 
 
@@ -59,6 +62,7 @@ class UIDialog:
         self.qgsComboLayer = gui.QgsMapLayerComboBox(self.frameMainWindowJoinData)
         self.qgsComboLayer.setAllowEmptyLayer(True)
         self.qgsComboLayer.setShowCrs(True)
+        self.qgsComboLayer.setFilters(core.Qgis.LayerFilter.PointLayer|core.Qgis.LayerFilter.LineLayer|core.Qgis.LayerFilter.NoGeometry|core.Qgis.LayerFilter.PolygonLayer)
         self.qgsComboLayer.setObjectName("qgsComboLayer")
         self.verticalLayout_3.addWidget(self.qgsComboLayer)
         self.verticalLayout_7.addLayout(self.verticalLayout_3)
