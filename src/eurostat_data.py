@@ -103,13 +103,6 @@ class Dataset:
     def params(self):
         return eurostat.get_pars(self.code)
 
-    @lru_cache(maxsize=16)
-    def get_parameter_codelist(self, param: str) -> Union[pd.Series, pd.DataFrame]:
-        mapper = eurostat.get_dic(code=self.code, par=param, full=False, frmt='list')
-        df = pd.DataFrame(data=mapper)
-        name_col_idx = df.apply(lambda row: row.str.len().idxmax(), axis=1).mode().iloc[0]
-        df = (df
-              .set_index(name_col_idx)
-              .rename_axis('name')
-              .rename(columns={0: 'code'}))
-        return df
+    @lru_cache(maxsize=100)
+    def get_param_full_name(self, param: str):
+        return eurostat.get_dic(code=self.code, par=param, full=False)

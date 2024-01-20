@@ -23,7 +23,7 @@ from qgis.core import (
     QgsFeature,
     QgsProject,
     QgsVectorLayerJoinInfo,
-    QgsMapLayer
+    QgsMapLayer,
 )
 from .ui import (
     UIDialog,
@@ -176,26 +176,32 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         self.ui.listItems.clearSelection()
 
     def populate_list(self):
-        self.ui.listItems.addItems(self.base.dataset.df[self.name].unique())
+        string = '{abbrev} [{name}]'
+        items = [string.format(abbrev=abbrev, name=name) for abbrev, name in
+                 self.base.dataset.get_param_full_name(param=self.name)]
+        self.ui.listItems.addItems(items)
+
+    def get_listitem_text_abbrev(self, item: QtWidgets.QListWidgetItem):
+        return item.text().split(' [')[0] # The string variable inside populate_list.
 
     def select_based_on_filterer(self):
         if self.name in self.base.filterer.row:
             for row in range(self.ui.listItems.count()):
                 item = self.ui.listItems.item(row)
-                item.setSelected(item.text() in self.base.filterer.row[self.name])
+                item.setSelected(self.get_listitem_text_abbrev(item) in self.base.filterer.row[self.name])
 
     def get_line_search_text(self):
         return self.ui.lineSearch.text()
 
     def filter_list_items(self):
-        search_text = self.get_line_search_text()
+        search_text = self.get_line_search_text().lower()
         for row in range(self.ui.listItems.count()):
             item = self.ui.listItems.item(row)
             item_text = item.text().lower()
             item.setHidden(search_text not in item_text)
 
     def get_selected_items(self):
-        return [item.text() for item in self.ui.listItems.selectedItems()]
+        return [self.get_listitem_text_abbrev(item) for item in self.ui.listItems.selectedItems()]
 
     def section_type_handler(self):
         if self.name == (geo_field := self.base.get_current_table_join_field()):
@@ -222,7 +228,7 @@ class CommonGeoSectionNames(Enum):
     """Enumerates the common fields which describe geographic areas."""
     # NOTE: Feel free to expand this enum
     GEO = 'geo'
-    REP_MAP = 'rep_mar'
+    REP_MAR = 'rep_mar'
     METROREG = 'metroreg'
     
 
