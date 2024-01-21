@@ -66,14 +66,13 @@ class Dialog(QtWidgets.QDialog):
         # Signals
         self.ui.qgsComboLayer.layerChanged.connect(self.set_layer_join_fields)
         self.ui.qgsComboLayer.layerChanged.connect(self.set_layer_join_field_default)
-        self.ui.buttonSearch.clicked.connect(self.populate_list)
+        self.ui.lineSearch.textChanged.connect(self.populate_list)
         self.ui.listDatabase.itemSelectionChanged.connect(self.set_dataset_table)
         self.ui.listDatabase.itemSelectionChanged.connect(self.set_table_join_fields)
         self.ui.listDatabase.itemSelectionChanged.connect(self.set_table_join_field_default)
         self.ui.listDatabase.itemSelectionChanged.connect(self.set_layer_join_field_default)
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(self.open_section_ui)
         self.ui.buttonReset.clicked.connect(self.reset_dataset_table)
-        self.ui.checkExport.clicked.connect(self.display_export_widgets)
         self.ui.buttonAdd.clicked.connect(self.exporter.add_table)
         self.ui.buttonJoin.clicked.connect(self.join_handler.join_table_to_layer)
 
@@ -88,7 +87,8 @@ class Dialog(QtWidgets.QDialog):
         self.subset = self.database.get_subset(keyword=self.ui.lineSearch.text())
         titles = self.database.get_titles(subset=self.subset)
         codes = self.database.get_codes(subset=self.subset)
-        self.ui.listDatabase.addItems('[' + codes + '] ' + titles)
+        items = '[' + codes + '] ' + titles
+        self.ui.listDatabase.addItems(items)
 
     def get_selected_dataset_code(self):
         row = self.ui.listDatabase.currentRow()
@@ -146,10 +146,6 @@ class Dialog(QtWidgets.QDialog):
         self.filterer.remove_row_filters()
         self.filterer.set_column_filters()
         self.update_model()
-    
-    def display_export_widgets(self):
-        checked = self.ui.checkExport.isChecked()
-        self.ui.qgsFile.setEnabled(checked)
 
 
 @dataclass(init=False)
@@ -224,14 +220,19 @@ class GeoParameterSectionDialog:
         self.section_dialog = section_dialog
         self.name = name
 
+
 class CommonGeoSectionNames(Enum):
     """Enumerates the common fields which describe geographic areas."""
     # NOTE: Feel free to expand this enum
     GEO = 'geo'
     REP_MAR = 'rep_mar'
     METROREG = 'metroreg'
-    
 
+
+class FrequencyTypes(Enum):
+    """Enumerates the frequency types associated with a dataset."""
+    ANNUALLY = 'a'
+    
 
 @dataclass(init=False)
 class TimeSectionDialog(QtWidgets.QDialog):

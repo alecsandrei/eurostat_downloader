@@ -3,11 +3,17 @@ from functools import (
     cached_property,
     lru_cache
 )
-from difflib import SequenceMatcher
+from enum import Enum
 from dataclasses import dataclass
 
 import eurostat
 import pandas as pd
+
+
+class TOCColumns(Enum):
+    """Enumerates the table of contents column names."""
+    TITLE = 'title'
+    CODE = 'code'
 
 
 @dataclass(frozen=True, eq=True)
@@ -16,45 +22,41 @@ class Database:
     @cached_property
     def toc(self):
         return eurostat.get_toc_df()
-    
-    @cached_property
-    def units(self):
-        return eurostat.get_dic(self.toc.iloc[0].code, 'unit')
 
     @property
     def toc_titles(self):
-        return self.toc['title']
+        return self.toc[TOCColumns.TITLE.value]
     
     @property
     def toc_size(self):
         return self.toc.shape[0]
-    
-    @staticmethod
-    def compute_string_similarity(a: str, b: str):
-        """Computes string similarity between two strings."""
-        return SequenceMatcher(None, a, b).ratio()
 
+    @lru_cache(maxsize=100)
     def get_subset(self, keyword: str):
-        """Creates a subset of the toc. Uses SequenceMatcher to sort the results."""
+        """Creates a subset of the toc."""
         if not keyword:
             return self.toc
         keyword = keyword.lower()
-        self.toc['match_ratio_title'] = self.toc['title'].apply(lambda x: self.compute_string_similarity(keyword, x.lower()))
-        self.toc['match_ratio_code'] = self.toc['code'].apply(lambda x: self.compute_string_similarity(keyword, x.lower()))
-        self.toc['match_ratio'] = self.toc['match_ratio_title'] + self.toc['match_ratio_code']
-        subset = self.toc.loc[self.toc['match_ratio'] > 0.5].sort_values(by='match_ratio', ascending=False)
-        self.toc.drop(columns=['match_ratio_title', 'match_ratio_code', 'match_ratio'], inplace=True)
+        # Check if keyword is in code.
+        code_mask = self.toc[TOCColumns.CODE.value].str.contains(pat=keyword, case=False)
+        code_subset = self.toc[code_mask]
+        # Check if keyword is in title.
+        title_mask = self.toc[TOCColumns.TITLE.value].str.contains(pat=keyword, case=False)
+        title_subset = self.toc[title_mask]
+        # Concat the dataframes
+        subset = pd.concat([code_subset, title_subset], axis='index').drop_duplicates(keep='first')
+        subset.sort_values(by=TOCColumns.TITLE.value, inplace=True)
         return subset
 
     def get_titles(self, subset: Union[None, pd.DataFrame] = None):
         if subset is None:
             subset = self.toc
-        return subset['title']
+        return subset[TOCColumns.TITLE.value]
     
     def get_codes(self, subset: Union[None, pd.DataFrame, pd.Series] = None):
         if subset is None:
             subset = self.toc
-        return subset['code']
+        return subset[TOCColumns.CODE.value]
 
 
 @dataclass(frozen=True, eq=True)
@@ -79,7 +81,7 @@ class Dataset:
 
     @cached_property
     def title(self):
-        return self.db.toc.loc[self.db.toc['code'] == self.code, 'title']
+        return self.db.toc.loc[self.db.toc[TOCColumns.CODE.value] == self.code, TOCColumns.TITLE.value]
     
     @cached_property
     def frequency(self):
