@@ -40,15 +40,15 @@ from .eurostat_data import (
 
 @define(slots=False, init=False)
 class Dialog(QtWidgets.QDialog):
-    ui: UIDialog = field(init=False)
-    database: Database = field(init=False)
-    dataset: Dataset = field(init=False)
-    subset: pd.DataFrame = field(init=False)
-    model: DatasetModel = field(init=False)
-    filterer: DataFilterer = field(init=False)
-    join_handler: JoinHandler = field(init=False)
-    exporter: Exporter = field(init=False)
-    converter: QgsConverter = field(init=False)
+    ui: UIDialog
+    database: Database
+    dataset: Dataset
+    subset: pd.DataFrame
+    model: DatasetModel
+    filterer: DataFilterer
+    join_handler: JoinHandler
+    exporter: Exporter
+    converter: QgsConverter
     
     def __init__(self):
         super().__init__()
@@ -169,6 +169,9 @@ class Dialog(QtWidgets.QDialog):
 
 @define(init=False)
 class ParameterSectionDialog(QtWidgets.QDialog):
+    base: Dialog
+    name: str
+    ui: UIParameterSectionDialog
     
     def __init__(self, base: Dialog, name: str):
         super().__init__()
@@ -235,6 +238,8 @@ class ParameterSectionDialog(QtWidgets.QDialog):
 @define(init=False)
 class GeoParameterSectionDialog:
     # TODO: maybe add different behaviour for the GEO column later?
+    section_dialog: ParameterSectionDialog
+    name: str
     def __init__(self, section_dialog: ParameterSectionDialog, name: str):
         self.section_dialog = section_dialog
         self.name = name
@@ -255,6 +260,9 @@ class FrequencyTypes(Enum):
 
 @define(init=False)
 class TimeSectionDialog(QtWidgets.QDialog):
+    base: Dialog
+    name: str
+    ui: UITimePeriodDialog
     def __init__(self, base: Dialog, name: str):
         super().__init__()
         self.base = base

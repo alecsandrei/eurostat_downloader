@@ -10,7 +10,10 @@ from enum import Enum
 
 import eurostat
 import pandas as pd
-from attrs import define
+from attrs import (
+    define,
+    field
+)
 
 
 class TOCColumns(Enum):
@@ -73,7 +76,7 @@ class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database
     code: str
-    lang: Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]
+    lang: Union[Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN], None] = field(default=None)
 
     def set_language(self, lang: Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]):
         object.__setattr__(self, 'lang', lang)
@@ -118,6 +121,12 @@ class Dataset:
     def params(self):
         return eurostat.get_pars(self.code)
 
+    def get_dic_kwargs(self):
+        kwargs = {}
+        if self.lang is not None:
+            kwargs['lang'] = self.lang.value
+        return kwargs
+
     @lru_cache(maxsize=100)
     def get_param_full_name(self, param: str):
-        return eurostat.get_dic(code=self.code, par=param, full=False, lang=self.lang.value)
+        return eurostat.get_dic(code=self.code, par=param, full=False, **self.get_dic_kwargs())
