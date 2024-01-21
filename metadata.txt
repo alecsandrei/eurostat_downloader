@@ -6,7 +6,7 @@
 name=Eurostat Downloader
 qgisMinimumVersion=3.0
 description=This plugin can be used to join data from the Eurostat API with a local vector layer.
-version=0.1
+version=0.0.1
 author=Cuvuliuc Alex-Andrei
 email=cuvuliucalexandrei@gmail.com
 
