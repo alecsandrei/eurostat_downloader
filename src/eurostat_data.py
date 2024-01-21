@@ -1,4 +1,7 @@
-from typing import Union
+from typing import (
+    Union,
+    Literal
+)
 from functools import (
     cached_property,
     lru_cache
@@ -59,11 +62,21 @@ class Database:
         return subset[TOCColumns.CODE.value]
 
 
+class Language(Enum):
+    ENGLISH = 'en'
+    FRENCH = 'fr'
+    GERMAN = 'de'
+
+
 @dataclass(frozen=True, eq=True)
 class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database
     code: str
+    lang: Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]
+
+    def set_language(self, lang: Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]):
+        object.__setattr__(self, 'lang', lang)
 
     @cached_property
     def df(self) -> pd.DataFrame:
@@ -107,4 +120,4 @@ class Dataset:
 
     @lru_cache(maxsize=100)
     def get_param_full_name(self, param: str):
-        return eurostat.get_dic(code=self.code, par=param, full=False)
+        return eurostat.get_dic(code=self.code, par=param, full=False, lang=self.lang.value)

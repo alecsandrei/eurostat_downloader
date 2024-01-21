@@ -32,7 +32,8 @@ from .ui import (
 )
 from .eurostat_data import (
     Database,
-    Dataset
+    Dataset,
+    Language
 )
 
 
@@ -75,6 +76,8 @@ class Dialog(QtWidgets.QDialog):
         self.ui.buttonReset.clicked.connect(self.reset_dataset_table)
         self.ui.buttonAdd.clicked.connect(self.exporter.add_table)
         self.ui.buttonJoin.clicked.connect(self.join_handler.join_table_to_layer)
+        for language_check in (self.ui.checkEnglish, self.ui.checkGerman, self.ui.checkFrench):
+            language_check.stateChanged.connect(self.update_language_check)
 
     def set_layer_join_fields(self):
         layer = self.ui.qgsComboLayer.currentLayer()
@@ -96,6 +99,22 @@ class Dialog(QtWidgets.QDialog):
 
     def get_current_table_join_field(self):
         return self.ui.comboTableJoinField.currentText()
+
+    def update_language_check(self):
+        language_checks = [self.ui.checkEnglish, self.ui.checkFrench, self.ui.checkGerman]
+        if self.sender().isChecked():
+            language_checks.remove(self.sender())
+            for check in language_checks:
+                check.setChecked(False)
+        self.dataset.set_language(lang=self.get_selected_language())
+
+    def get_selected_language(self):
+        if self.ui.checkEnglish.isChecked():
+            return Language.ENGLISH
+        elif self.ui.checkFrench.isChecked():
+            return Language.FRENCH
+        elif self.ui.checkGerman.isChecked():
+            return Language.GERMAN
 
     def set_table_join_fields(self):
         self.ui.comboTableJoinField.clear()
@@ -127,7 +146,7 @@ class Dialog(QtWidgets.QDialog):
                 self.ui.qgsComboLayerJoinField.setCurrentIndex(idx)
 
     def set_dataset_table(self):
-        self.dataset = Dataset(db=self.database, code=self.get_selected_dataset_code())
+        self.dataset = Dataset(db=self.database, code=self.get_selected_dataset_code(), lang=self.get_selected_language())
         self.filterer = DataFilterer(dataset=self.dataset)
         self.update_model()
 

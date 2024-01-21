@@ -12,11 +12,15 @@ from PyQt5 import (
     QtCore,
     QtWidgets
 )
-from qgis import (
-    gui,
-    core
+from qgis.gui import (
+    QgsMapLayerComboBox,
+    QgsFieldComboBox
+)
+from qgis.core import (
+    Qgis
 )
 
+from ..resources import *
 
 
 
@@ -26,8 +30,6 @@ class UIDialog:
         EurostatDialogBase.resize(1342, 802)
         self.gridLayout = QtWidgets.QGridLayout(EurostatDialogBase)
         self.gridLayout.setObjectName("gridLayout")
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -57,10 +59,10 @@ class UIDialog:
         self.label = QtWidgets.QLabel(self.frameMainWindowJoinData)
         self.label.setObjectName("label")
         self.verticalLayout_3.addWidget(self.label)
-        self.qgsComboLayer = gui.QgsMapLayerComboBox(self.frameMainWindowJoinData)
+        self.qgsComboLayer = QgsMapLayerComboBox(self.frameMainWindowJoinData)
         self.qgsComboLayer.setAllowEmptyLayer(True)
         self.qgsComboLayer.setShowCrs(True)
-        self.qgsComboLayer.setFilters(core.Qgis.LayerFilter.PointLayer|core.Qgis.LayerFilter.LineLayer|core.Qgis.LayerFilter.NoGeometry|core.Qgis.LayerFilter.PolygonLayer)
+        self.qgsComboLayer.setFilters(Qgis.LayerFilter.PointLayer|Qgis.LayerFilter.LineLayer|Qgis.LayerFilter.NoGeometry|Qgis.LayerFilter.PolygonLayer)
         self.qgsComboLayer.setObjectName("qgsComboLayer")
         self.verticalLayout_3.addWidget(self.qgsComboLayer)
         self.verticalLayout_7.addLayout(self.verticalLayout_3)
@@ -70,7 +72,7 @@ class UIDialog:
         self.label_2 = QtWidgets.QLabel(self.frameMainWindowJoinData)
         self.label_2.setObjectName("label_2")
         self.verticalLayout_5.addWidget(self.label_2)
-        self.qgsComboLayerJoinField = gui.QgsFieldComboBox(self.frameMainWindowJoinData)
+        self.qgsComboLayerJoinField = QgsFieldComboBox(self.frameMainWindowJoinData)
         self.qgsComboLayerJoinField.setObjectName("qgsComboLayerJoinField")
         self.verticalLayout_5.addWidget(self.qgsComboLayerJoinField)
         self.verticalLayout_7.addLayout(self.verticalLayout_5)
@@ -110,13 +112,50 @@ class UIDialog:
         self.tableDataset.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.tableDataset.setObjectName("tableDataset")
         self.horizontalLayout_2.addWidget(self.tableDataset)
-        self.verticalLayout_4.addLayout(self.horizontalLayout_2)
+        self.gridLayout.addLayout(self.horizontalLayout_2, 0, 0, 1, 2)
+        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.label_4 = QtWidgets.QLabel(EurostatDialogBase)
+        self.label_4.setObjectName("label_4")
+        self.horizontalLayout_4.addWidget(self.label_4)
+        self.checkEnglish = QtWidgets.QCheckBox(EurostatDialogBase)
+        self.checkEnglish.setText("")
+        self.checkEnglish.setChecked(True)
+        self.checkEnglish.setObjectName("checkEnglish")
+        self.horizontalLayout_4.addWidget(self.checkEnglish)
+        self.horizontalLayout_7.addLayout(self.horizontalLayout_4)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_7.addItem(spacerItem)
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.label_6 = QtWidgets.QLabel(EurostatDialogBase)
+        self.label_6.setObjectName("label_6")
+        self.horizontalLayout_5.addWidget(self.label_6)
+        self.checkGerman = QtWidgets.QCheckBox(EurostatDialogBase)
+        self.checkGerman.setText("")
+        self.checkGerman.setObjectName("checkGerman")
+        self.horizontalLayout_5.addWidget(self.checkGerman)
+        self.horizontalLayout_7.addLayout(self.horizontalLayout_5)
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_7.addItem(spacerItem1)
+        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
+        self.label_5 = QtWidgets.QLabel(EurostatDialogBase)
+        self.label_5.setObjectName("label_5")
+        self.horizontalLayout_6.addWidget(self.label_5)
+        self.checkFrench = QtWidgets.QCheckBox(EurostatDialogBase)
+        self.checkFrench.setText("")
+        self.checkFrench.setObjectName("checkFrench")
+        self.horizontalLayout_6.addWidget(self.checkFrench)
+        self.horizontalLayout_7.addLayout(self.horizontalLayout_6)
+        self.gridLayout.addLayout(self.horizontalLayout_7, 1, 0, 1, 1)
         self.button_box = QtWidgets.QDialogButtonBox(EurostatDialogBase)
         self.button_box.setOrientation(QtCore.Qt.Horizontal)
         self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.button_box.setObjectName("button_box")
-        self.verticalLayout_4.addWidget(self.button_box)
-        self.gridLayout.addLayout(self.verticalLayout_4, 0, 0, 1, 1)
+        self.gridLayout.addWidget(self.button_box, 1, 1, 1, 1)
 
         self.retranslateUi(EurostatDialogBase)
         self.button_box.accepted.connect(EurostatDialogBase.accept) # type: ignore
@@ -133,7 +172,9 @@ class UIDialog:
         self.labelEnterPrefix.setText(_translate("EurostatDialogBase", "Add prefix to joined fields"))
         self.buttonJoin.setText(_translate("EurostatDialogBase", "Join data"))
         self.buttonAdd.setText(_translate("EurostatDialogBase", "Add table"))
-
+        self.label_4.setText(_translate("EurostatDialogBase", "<html><head/><body><p><img src=\":/plugins/eurostat_downloader/assets/uk.png\"/></p></body></html>"))
+        self.label_6.setText(_translate("EurostatDialogBase", "<html><head/><body><p><img src=\":/plugins/eurostat_downloader/assets/germany.png\"/></p></body></html>"))
+        self.label_5.setText(_translate("EurostatDialogBase", "<html><head/><body><p><img src=\":/plugins/eurostat_downloader/assets/france.png\"/></p></body></html>"))
 
 
 class UIParameterSectionDialog:

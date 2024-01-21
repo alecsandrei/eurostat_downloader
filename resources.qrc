@@ -1,5 +1,8 @@
 <RCC>
-    <qresource prefix="/plugins/eurostat_downloader" >
-        <file>icon.png</file>
-    </qresource>
+  <qresource prefix="/plugins/eurostat_downloader">
+    <file>assets/uk.png</file>
+    <file>assets/germany.png</file>
+    <file>assets/france.png</file>
+    <file>icon.png</file>
+  </qresource>
 </RCC>
