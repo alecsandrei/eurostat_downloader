@@ -7,10 +7,10 @@ from functools import (
     lru_cache
 )
 from enum import Enum
-from dataclasses import dataclass
 
 import eurostat
 import pandas as pd
+from attrs import define
 
 
 class TOCColumns(Enum):
@@ -19,7 +19,7 @@ class TOCColumns(Enum):
     CODE = 'code'
 
 
-@dataclass(frozen=True, eq=True)
+@define(frozen=True, eq=True)
 class Database:
 
     @cached_property
@@ -68,7 +68,7 @@ class Language(Enum):
     GERMAN = 'de'
 
 
-@dataclass(frozen=True, eq=True)
+@define(frozen=True, eq=True)
 class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database

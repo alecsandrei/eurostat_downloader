@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import (
-    dataclass,
-    field
-)
 from typing import (
     Union,
     Iterable,
@@ -13,6 +9,10 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
+from attrs import (
+    define,
+    field
+)
 from qgis.PyQt import (
     QtCore,
     QtWidgets
@@ -38,7 +38,7 @@ from .eurostat_data import (
 
 
 
-@dataclass(slots=False, init=False)
+@define(slots=False, init=False)
 class Dialog(QtWidgets.QDialog):
     ui: UIDialog = field(init=False)
     database: Database = field(init=False)
@@ -167,7 +167,7 @@ class Dialog(QtWidgets.QDialog):
         self.update_model()
 
 
-@dataclass(init=False)
+@define(init=False)
 class ParameterSectionDialog(QtWidgets.QDialog):
     
     def __init__(self, base: Dialog, name: str):
@@ -232,7 +232,7 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         self.base.update_model()
 
 
-@dataclass(init=False)
+@define(init=False)
 class GeoParameterSectionDialog:
     # TODO: maybe add different behaviour for the GEO column later?
     def __init__(self, section_dialog: ParameterSectionDialog, name: str):
@@ -253,7 +253,7 @@ class FrequencyTypes(Enum):
     ANNUALLY = 'a'
     
 
-@dataclass(init=False)
+@define(init=False)
 class TimeSectionDialog(QtWidgets.QDialog):
     def __init__(self, base: Dialog, name: str):
         super().__init__()
@@ -400,11 +400,11 @@ class TimeSectionDialog(QtWidgets.QDialog):
         self.restore_end_combobox()
 
 
-@dataclass
+@define
 class DataFilterer:
     dataset: Dataset
-    row: dict[str, list[Any]] = field(init=False, default_factory=dict)
-    column: list[str] = field(init=False, default_factory=list)
+    row: dict[str, list[Any]] = field(init=False, factory=dict)
+    column: list[str] = field(init=False, factory=list)
 
     @property
     def df(self):
@@ -414,7 +414,7 @@ class DataFilterer:
     def date_columns(self) -> Union[list[str], list]:
         return np.setdiff1d(self.column, self.dataset.params).tolist()
 
-    def __post_init__(self):
+    def __attrs_post_init__(self):
         self.column = self.dataset.df.columns.to_list()
 
     def apply_filters(self):
@@ -462,7 +462,7 @@ class DataFilterer:
                 self.column.remove(filter_)
 
 
-@dataclass
+@define
 class DatasetModel:
     estat_dataset: Dataset
     filterer: DataFilterer
@@ -495,12 +495,14 @@ class PandasModel(QtCore.QAbstractTableModel):
             return self._data.columns[col]
         return None
 
+
 def get_combobox_items(combobox: QtWidgets.QComboBox) -> list[str]:
     return [combobox.itemText(idx) for idx in range(combobox.count())]
 
 
-@dataclass(init=False)
+@define(init=False)
 class Exporter:
+    base: Dialog
     
     def __init__(self, base: Dialog):
         self.base = base
@@ -511,8 +513,9 @@ class Exporter:
         QgsProject.instance().addMapLayer(table)
 
 
-@dataclass(init=False)
+@define(init=False)
 class JoinHandler:
+    base: Dialog
     
     def __init__(self, base: Dialog):
         self.base = base
@@ -537,8 +540,9 @@ class JoinHandler:
         self.base.ui.qgsComboLayer.currentLayer().addJoin(self.join_info)
 
 
-@dataclass(init=False)
+@define(init=False)
 class QgsConverter:
+    base: Dialog
 
     def __init__(self, base: Dialog):
         self.base = base
