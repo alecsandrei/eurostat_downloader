@@ -571,7 +571,7 @@ class QgsConverter:
 
     def from_dataframe(self, df: pd.DataFrame) -> QgsVectorLayer:
         """Method to convert a pandas dataframe to a qgis table layer."""
-        temp = QgsVectorLayer('none', 'table', 'memory')
+        temp = QgsVectorLayer('none', self.base.dataset.code, 'memory')
         temp_data = temp.dataProvider()
         temp.startEditing()
         attributes = []

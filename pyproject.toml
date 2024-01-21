@@ -1,0 +1,7 @@
+[tool.qgis_plugin_dev_tools]
+plugin_package_name = "eurostat_downloader"
+runtime_requires = [
+    "eurostat"
+]
+auto_add_recursive_runtime_dependencies = true
+version_number_source = "0.0.1"
