@@ -1,8 +1,31 @@
 [tool.qgis_plugin_dev_tools]
 plugin_package_name = "eurostat_downloader"
 runtime_requires = [
+    "attrs",
+    "eurostat",
+]
+auto_add_recursive_runtime_dependencies = true
+
+[project]
+name = "eurostat_downloader"
+version = "0.0.1"
+dependencies = [
     "eurostat",
     "attrs",
 ]
-auto_add_recursive_runtime_dependencies = true
-version_number_source = "changelog"
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.poetry]
+name="eurostat_downloader"
+version = "0.0.1"
+description = "Eurostat qgis plugin."
+authors = ["Cuvuliuc Alex-Andrei"]
+
+[tool.poetry.extras]
+# Define an extra section, for example, 'plugin_deps'
+plugin_deps = [
+    "eurostat",
+    "attrs",
+]

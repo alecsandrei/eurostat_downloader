@@ -38,17 +38,7 @@ from .eurostat_data import (
 
 
 
-@define(slots=False, init=False)
 class Dialog(QtWidgets.QDialog):
-    ui: UIDialog
-    database: Database
-    dataset: Dataset
-    subset: pd.DataFrame
-    model: DatasetModel
-    filterer: DataFilterer
-    join_handler: JoinHandler
-    exporter: Exporter
-    converter: QgsConverter
     
     def __init__(self):
         super().__init__()
@@ -63,6 +53,7 @@ class Dialog(QtWidgets.QDialog):
         self.join_handler = JoinHandler(base=self)
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
+        self.dataset = None
 
         # Signals
         self.ui.qgsComboLayer.layerChanged.connect(self.set_layer_join_fields)
@@ -101,12 +92,16 @@ class Dialog(QtWidgets.QDialog):
         return self.ui.comboTableJoinField.currentText()
 
     def update_language_check(self):
+        # TODO: fix checkbox behaviour. Maybe allow no option to be checked and if no option
+        # is checked then no translation is made? No translation his will make the plugin run
+        # faster since no API calls.
         language_checks = [self.ui.checkEnglish, self.ui.checkFrench, self.ui.checkGerman]
         if self.sender().isChecked():
             language_checks.remove(self.sender())
             for check in language_checks:
                 check.setChecked(False)
-        self.dataset.set_language(lang=self.get_selected_language())
+        if self.dataset is not None:
+            self.dataset.set_language(lang=self.get_selected_language())
 
     def get_selected_language(self):
         if self.ui.checkEnglish.isChecked():
@@ -162,16 +157,13 @@ class Dialog(QtWidgets.QDialog):
             TimeSectionDialog(base=self, name=section_name)
             
     def reset_dataset_table(self):
-        self.filterer.remove_row_filters()
-        self.filterer.set_column_filters()
-        self.update_model()
+        if self.dataset is not None:
+            self.filterer.remove_row_filters()
+            self.filterer.set_column_filters()
+            self.update_model()
 
 
-@define(init=False)
 class ParameterSectionDialog(QtWidgets.QDialog):
-    base: Dialog
-    name: str
-    ui: UIParameterSectionDialog
     
     def __init__(self, base: Dialog, name: str):
         super().__init__()
@@ -194,9 +186,12 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         self.ui.listItems.clearSelection()
 
     def populate_list(self):
-        string = '{abbrev} [{name}]'
-        items = [string.format(abbrev=abbrev, name=name) for abbrev, name in
-                 self.base.dataset.get_param_full_name(param=self.name)]
+        if self.base.dataset.lang is not None:
+            string = '{abbrev} [{name}]'
+            items = [string.format(abbrev=abbrev, name=name) for abbrev, name in
+                    self.base.dataset.get_param_full_name(param=self.name)]
+        else:
+            items = self.base.dataset.df[self.name].unique()
         self.ui.listItems.addItems(items)
 
     def get_listitem_text_abbrev(self, item: QtWidgets.QListWidgetItem):
@@ -235,11 +230,8 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         self.base.update_model()
 
 
-@define(init=False)
 class GeoParameterSectionDialog:
     # TODO: maybe add different behaviour for the GEO column later?
-    section_dialog: ParameterSectionDialog
-    name: str
     def __init__(self, section_dialog: ParameterSectionDialog, name: str):
         self.section_dialog = section_dialog
         self.name = name
@@ -258,11 +250,7 @@ class FrequencyTypes(Enum):
     ANNUALLY = 'a'
     
 
-@define(init=False)
 class TimeSectionDialog(QtWidgets.QDialog):
-    base: Dialog
-    name: str
-    ui: UITimePeriodDialog
     def __init__(self, base: Dialog, name: str):
         super().__init__()
         self.base = base
@@ -508,7 +496,6 @@ def get_combobox_items(combobox: QtWidgets.QComboBox) -> list[str]:
     return [combobox.itemText(idx) for idx in range(combobox.count())]
 
 
-@define(init=False)
 class Exporter:
     base: Dialog
     
@@ -521,7 +508,6 @@ class Exporter:
         QgsProject.instance().addMapLayer(table)
 
 
-@define(init=False)
 class JoinHandler:
     base: Dialog
     
@@ -548,7 +534,6 @@ class JoinHandler:
         self.base.ui.qgsComboLayer.currentLayer().addJoin(self.join_info)
 
 
-@define(init=False)
 class QgsConverter:
     base: Dialog
 

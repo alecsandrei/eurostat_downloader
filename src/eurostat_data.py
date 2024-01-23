@@ -1,6 +1,7 @@
 from typing import (
     Union,
-    Literal
+    Literal,
+    Optional
 )
 from functools import (
     cached_property,
@@ -76,7 +77,7 @@ class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database
     code: str
-    lang: Union[Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN], None] = field(default=None)
+    lang: Optional[Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]] = field(default=None)
 
     def set_language(self, lang: Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]):
         object.__setattr__(self, 'lang', lang)
