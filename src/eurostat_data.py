@@ -11,8 +11,8 @@ from enum import Enum
 
 import eurostat
 import pandas as pd
-from attrs import (
-    define,
+from dataclasses import (
+    dataclass,
     field
 )
 
@@ -23,7 +23,7 @@ class TOCColumns(Enum):
     CODE = 'code'
 
 
-@define(frozen=True, eq=True)
+@dataclass(frozen=True, eq=True)
 class Database:
 
     @cached_property
@@ -38,10 +38,10 @@ class Database:
     def toc_size(self):
         return self.toc.shape[0]
 
-    @lru_cache(maxsize=100)
+    # @lru_cache(maxsize=100)
     def get_subset(self, keyword: str):
         """Creates a subset of the toc."""
-        if not keyword:
+        if not keyword.strip():
             return self.toc
         keyword = keyword.lower()
         # Check if keyword is in code.
@@ -72,7 +72,7 @@ class Language(Enum):
     GERMAN = 'de'
 
 
-@define(frozen=True, eq=True)
+@dataclass(frozen=True, eq=True)
 class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database

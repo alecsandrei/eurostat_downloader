@@ -2,7 +2,7 @@
 **/.vscode
 README.html
 /ui
-deps/
+extlibs*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

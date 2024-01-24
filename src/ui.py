@@ -14,10 +14,10 @@ from qgis.PyQt import (
 )
 from qgis.gui import (
     QgsMapLayerComboBox,
-    QgsFieldComboBox
+    QgsFieldComboBox,
 )
 from qgis.core import (
-    Qgis
+    QgsMapLayerProxyModel
 )
 
 from ..resources import *
@@ -62,7 +62,7 @@ class UIDialog:
         self.qgsComboLayer = QgsMapLayerComboBox(self.frameMainWindowJoinData)
         self.qgsComboLayer.setAllowEmptyLayer(True)
         self.qgsComboLayer.setShowCrs(True)
-        self.qgsComboLayer.setFilters(Qgis.LayerFilter.PointLayer|Qgis.LayerFilter.LineLayer|Qgis.LayerFilter.NoGeometry|Qgis.LayerFilter.PolygonLayer)
+        self.qgsComboLayer.setFilters(QgsMapLayerProxyModel.VectorLayer)
         self.qgsComboLayer.setObjectName("qgsComboLayer")
         self.verticalLayout_3.addWidget(self.qgsComboLayer)
         self.verticalLayout_7.addLayout(self.verticalLayout_3)

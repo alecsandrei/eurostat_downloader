@@ -9,8 +9,8 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
-from attrs import (
-    define,
+from dataclasses import (
+    dataclass,
     field
 )
 from qgis.PyQt import (
@@ -118,7 +118,8 @@ class Dialog(QtWidgets.QDialog):
     def set_table_join_field_default(self):
         items = get_combobox_items(self.ui.comboTableJoinField)
         for idx, item in enumerate(items):
-            if item in CommonGeoSectionNames:
+            # Is this supposed to be this weird to iterate through an Enum?
+            if item in CommonGeoSectionNames._value2member_map_: 
                 self.ui.comboTableJoinField.setCurrentIndex(idx)
 
     def infer_join_field_idx_from_layer(self, layer: QgsMapLayer):
@@ -248,7 +249,11 @@ class CommonGeoSectionNames(Enum):
 class FrequencyTypes(Enum):
     """Enumerates the frequency types associated with a dataset."""
     ANNUALLY = 'a'
-    
+    SEMESTERLY = 's'
+    QUARTERLY = 'q'
+    MONTHLY = 'm'
+    DAILY = 'd'
+
 
 class TimeSectionDialog(QtWidgets.QDialog):
     def __init__(self, base: Dialog, name: str):
@@ -269,15 +274,15 @@ class TimeSectionDialog(QtWidgets.QDialog):
     def get_time_types(self):
         freq = self.base.dataset.frequency.lower()
         # NOTE: this would have been a great match case spot but idk if qgis users have python >= 3.10
-        if freq == 'a':
+        if freq == FrequencyTypes.ANNUALLY.value:
             return ['Year']
-        elif freq == 's':
-            return ['Year', 'Season']
-        elif freq == 'q':
+        elif freq == FrequencyTypes.SEMESTERLY.value:
+            return ['Year', 'Semester']
+        elif freq == FrequencyTypes.QUARTERLY.value:
             return ['Year', 'Quarter']
-        elif freq == 'm':
+        elif freq == FrequencyTypes.MONTHLY.value:
             return ['Year', 'Month']
-        elif freq == 'd':
+        elif freq == FrequencyTypes.DAILY.value:
             return ['Year', 'Month', 'Day']
         else:
             raise ValueError(f'No frequency column was found. Unknown {freq}.')
@@ -396,11 +401,14 @@ class TimeSectionDialog(QtWidgets.QDialog):
         self.restore_end_combobox()
 
 
-@define
+@dataclass
 class DataFilterer:
     dataset: Dataset
-    row: dict[str, list[Any]] = field(init=False, factory=dict)
-    column: list[str] = field(init=False, factory=list)
+    row: dict[str, list[Any]] = field(init=False, default_factory=dict)
+    column: list[str] = field(init=False, default_factory=list)
+
+    def __post_init__(self):
+        self.column = self.dataset.df.columns.to_list()
 
     @property
     def df(self):
@@ -409,9 +417,6 @@ class DataFilterer:
     @property
     def date_columns(self) -> Union[list[str], list]:
         return np.setdiff1d(self.column, self.dataset.params).tolist()
-
-    def __attrs_post_init__(self):
-        self.column = self.dataset.df.columns.to_list()
 
     def apply_filters(self):
         """Source: https://stackoverflow.com/questions/34157811/filter-a-pandas-dataframe-using-values-from-a-dict"""
@@ -458,7 +463,7 @@ class DataFilterer:
                 self.column.remove(filter_)
 
 
-@define
+@dataclass
 class DatasetModel:
     estat_dataset: Dataset
     filterer: DataFilterer
