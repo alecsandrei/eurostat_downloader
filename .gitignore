@@ -3,6 +3,8 @@
 README.html
 /ui
 extlibs*
+*zip
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
