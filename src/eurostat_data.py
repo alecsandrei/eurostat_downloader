@@ -17,13 +17,14 @@ from dataclasses import (
 )
 
 
+
 class TOCColumns(Enum):
     """Enumerates the table of contents column names."""
     TITLE = 'title'
     CODE = 'code'
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass
 class Database:
 
     @cached_property
@@ -45,10 +46,10 @@ class Database:
             return self.toc
         keyword = keyword.lower()
         # Check if keyword is in code.
-        code_mask = self.toc[TOCColumns.CODE.value].str.contains(pat=keyword, case=False)
+        code_mask = self.toc[TOCColumns.CODE.value].str.contains(pat=keyword, case=False, regex=False)
         code_subset = self.toc[code_mask]
         # Check if keyword is in title.
-        title_mask = self.toc[TOCColumns.TITLE.value].str.contains(pat=keyword, case=False)
+        title_mask = self.toc[TOCColumns.TITLE.value].str.contains(pat=keyword, case=False, regex=False)
         title_subset = self.toc[title_mask]
         # Concat the dataframes
         subset = pd.concat([code_subset, title_subset], axis='index').drop_duplicates(keep='first')

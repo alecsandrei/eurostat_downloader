@@ -122,7 +122,6 @@ class UIDialog:
         self.horizontalLayout_4.addWidget(self.label_4)
         self.checkEnglish = QtWidgets.QCheckBox(EurostatDialogBase)
         self.checkEnglish.setText("")
-        self.checkEnglish.setChecked(True)
         self.checkEnglish.setObjectName("checkEnglish")
         self.horizontalLayout_4.addWidget(self.checkEnglish)
         self.horizontalLayout_7.addLayout(self.horizontalLayout_4)

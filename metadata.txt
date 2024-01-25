@@ -1,47 +1,36 @@
-# This file contains metadata for your plugin.
-
-# This file should be included when you package your plugin.# Mandatory items:
-
 [general]
 name=Eurostat Downloader
 qgisMinimumVersion=3.0
-description=This plugin can be used to join data from the Eurostat API with a local vector layer.
+qgisMaximumVersion=3.99
 version=0.0.1
 author=Cuvuliuc Alex-Andrei
 email=cuvuliucalexandrei@gmail.com
-
-about=This plugin can be used to join data from the Eurostat API with a local vector layer.
-
+description=This plugin can be used to get data using the Eurostat API.
+about=This plugin can be used to join data from the Eurostat API with a local vector layer, or just fetch the data as a table.
 tracker=https://github.com/alecsandrei/eurostat_downloader/issues
 repository=https://github.com/alecsandrei/eurostat_downloader
-# End of mandatory metadata
-
-# Recommended items:
-
-hasProcessingProvider=no
-# Uncomment the following line and add your changelog:
-# changelog=
-
-# Tags are comma separated with spaces allowed
-tags=python
-
 homepage=https://github.com/alecsandrei/eurostat_downloader
 category=Plugins
 icon=icon.png
-# experimental flag
 experimental=True
-
-# deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
-
-# Since QGIS 3.8, a comma separated list of plugins to be installed
-# (or upgraded) can be specified.
-# Check the documentation for more information.
+tags=python, eurostat, database, vector, table
+category=Database
+hasProcessingProvider=no
+server=False
 # plugin_dependencies=
 
-Category of the plugin: Raster, Vector, Database or Web
-# category=
+changelog=
+      0.0.1
+        * Initial release
 
-# If the plugin can run on QGIS Server.
-server=False
+
+
+
+
+
+
+
+
+
 

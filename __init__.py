@@ -31,8 +31,8 @@ def pre_init_plugin():
     # Taken from ee_plugin: https://github.com/gee-community/qgis-earthengine-plugin.
     if platform.system() == "Windows":
         extlib_path = "extlibs_windows"
-    if platform.system() == "Darwin":
-        extlib_path = "extlibs_darwin"
+#    if platform.system() == "Darwin":
+#        extlib_path = "extlibs_darwin"
     if platform.system() == "Linux":
         extlib_path = "extlibs_linux"
     extra_libs_path = os.path.abspath(
