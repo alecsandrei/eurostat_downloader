@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# This script was fully taken from the ee_plugin: https://github.com/gee-community/qgis-earthengine-plugin.
+# This script file was fully taken from the ee_plugin: https://github.com/gee-community/qgis-earthengine-plugin.
 
 import os
 import platform
@@ -64,9 +64,9 @@ def install(options):
     src = path(__file__).dirname()
     if platform.system() == "Windows":
         dst = path('~/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins').expanduser() / plugin_name
-    if platform.system() == "Darwin":
-        dst = path(
-            '~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins').expanduser() / plugin_name
+    # if platform.system() == "Darwin":
+    #     dst = path(
+    #         '~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins').expanduser() / plugin_name
     if platform.system() == "Linux":
         dst = path('~/.local/share/QGIS/QGIS3/profiles/default/python/plugins').expanduser() / plugin_name
     src = src.abspath()

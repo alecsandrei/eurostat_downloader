@@ -3,6 +3,6 @@
     <file>assets/uk.png</file>
     <file>assets/germany.png</file>
     <file>assets/france.png</file>
-    <file>icon.png</file>
+    <file>assets/icon.png</file>
   </qresource>
 </RCC>

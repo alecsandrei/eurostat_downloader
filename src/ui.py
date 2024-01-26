@@ -38,6 +38,7 @@ class UIDialog:
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.lineSearch = QtWidgets.QLineEdit(EurostatDialogBase)
         self.lineSearch.setObjectName("lineSearch")
+        self.lineSearch.setPlaceholderText("Explore the table of contents")
         self.horizontalLayout.addWidget(self.lineSearch)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.listDatabase = QtWidgets.QListWidget(EurostatDialogBase)
