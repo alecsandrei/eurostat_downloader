@@ -24,7 +24,7 @@ class TOCColumns(Enum):
     CODE = 'code'
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class Database:
 
     @cached_property

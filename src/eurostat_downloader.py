@@ -424,6 +424,7 @@ class DataFilterer:
         for col, vals in self.row.items():
             if not vals:
                 continue
+            # TODO: Fix the following line of code. It gives a Pandas FutureWarning.
             ind = ind & (self.df[col].isin(vals))
         return self.df.loc[ind, self.column]
     

@@ -1,36 +1,33 @@
 [general]
-name=Eurostat Downloader
-qgisMinimumVersion=3.0
+name=Eurostat downloader
+qgisMinimumVersion=3.00
 qgisMaximumVersion=3.99
+description=This plugin can be used to get data using the Eurostat API.
+about=This plugin can be used to join data from the Eurostat API with a local vector layer, or just fetch the data as a table.
 version=0.0.1
 author=Cuvuliuc Alex-Andrei
 email=cuvuliucalexandrei@gmail.com
-description=This plugin can be used to get data using the Eurostat API.
-about=This plugin can be used to join data from the Eurostat API with a local vector layer, or just fetch the data as a table.
-tracker=https://github.com/alecsandrei/eurostat_downloader/issues
-repository=https://github.com/alecsandrei/eurostat_downloader
-homepage=https://github.com/alecsandrei/eurostat_downloader
-category=Plugins
-icon=icon.png
-experimental=True
-deprecated=False
-tags=python, eurostat, database, vector, table
-category=Database
-hasProcessingProvider=no
-server=False
-# plugin_dependencies=
 
+
+# End of mandatory metadata
+
+# Optional items:
+
+# Uncomment the following line and add your changelog:
 changelog=
       0.0.1
         * Initial release
 
+# Tags are comma separated with spaces allowed
+tags=eurostat, python, pandas, database, api
 
+homepage=https://github.com/alecsandrei/eurostat_downloader
+tracker=https://github.com/alecsandrei/eurostat_downloader/issues
+repository=https://github.com/alecsandrei/eurostat_downloader
+icon=icons/mapservices.png
+# experimental flag
+experimental=True
 
-
-
-
-
-
-
-
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
 
