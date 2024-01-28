@@ -5,6 +5,7 @@ import os
 import platform
 import fnmatch
 import zipfile
+import shutil
 
 from paver.easy import *
 
@@ -56,6 +57,8 @@ def setup():
             sh('pip install -U -t "{ext_libs}" "{dep}"'.format(ext_libs=ext_libs.abspath(), dep=req))
         else:
             sh('pip3 install -U -t "{ext_libs}" "{dep}"'.format(ext_libs=ext_libs.abspath(), dep=req))
+    remove_numpy()
+
 
 @task
 def install(options):
@@ -84,12 +87,24 @@ def read_requirements():
         return [l.strip('\n') for l in f if l.strip('\n') and not l.startswith('#')]
 
 
+def remove_numpy():
+    """Numpy comes by default with QGIS so it doesnt have to be installed."""
+    ext_libs = options.plugin.ext_libs
+    for entry in os.listdir(ext_libs):
+        if entry.startswith('numpy'):
+            entry_path = os.path.join(ext_libs, entry)
+            if os.path.isdir(entry_path):
+                shutil.rmtree(entry_path)
+            else:
+                os.remove(entry_path)
+
+
 @task
 @cmdopts([('tests', 't', 'Package tests with plugin')])
 def package(options):
     '''create package for plugin'''
     package_file = options.plugin.package_dir / ('%s.zip' % options.plugin.name)
-    with zipfile.ZipFile(package_file, "w", zipfile.ZIP_DEFLATED) as f:
+    with zipfile.ZipFile(package_file, "w", zipfile.ZIP_LZMA) as f:
         if not hasattr(options.package, 'tests'):
             options.plugin.excludes.extend(options.plugin.tests)
         make_zip(f, options)
