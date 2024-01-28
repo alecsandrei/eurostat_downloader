@@ -273,7 +273,6 @@ class TimeSectionDialog(QtWidgets.QDialog):
 
     def get_time_types(self):
         freq = self.base.dataset.frequency.lower()
-        # NOTE: this would have been a great match case spot but idk if qgis users have python >= 3.10
         if freq == FrequencyTypes.ANNUALLY.value:
             return ['Year']
         elif freq == FrequencyTypes.SEMESTERLY.value:
@@ -306,10 +305,8 @@ class TimeSectionDialog(QtWidgets.QDialog):
         for idx, time in enumerate(self.get_time_types()):
             widget = self.ui.frameStart.findChild(QtWidgets.QComboBox, ''.join(['combo', time]))
             widget.addItems(self.base.dataset.date_columns
-                            .str
-                            .split('-')
-                            .str
-                            .get(idx)
+                            .str.split('-')
+                            .str.get(idx)
                             .unique())
 
     def add_items_to_end_combobox(self):
@@ -351,7 +348,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
         try:
             end = cols.index(self.get_end_time_combobox())
         except ValueError:
-            end = len(cols)-1
+            end = len(cols) - 1
         cols_filtered = cols[start:end+1]
         cols = self.base.dataset.params + cols_filtered
         self.base.filterer.set_column_filters(filters=cols)
@@ -553,10 +550,10 @@ class QgsConverter:
     @staticmethod
     def dtype_mapper(series: pd.Series):
         dtype = series.dtype
-        if pd.api.types.is_float_dtype(dtype):
-            return QtCore.QVariant.Type.Double
-        elif pd.api.types.is_integer_dtype(dtype):
+        if pd.api.types.is_integer_dtype(dtype):
             return QtCore.QVariant.Type.Int
+        elif pd.api.types.is_float_dtype(dtype):
+            return QtCore.QVariant.Type.Double
         elif pd.api.types.is_datetime64_any_dtype(dtype):
             return QtCore.QVariant.Type.DateTime
         elif pd.api.types.is_bool_dtype(dtype):

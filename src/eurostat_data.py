@@ -51,7 +51,7 @@ class Database:
         # Check if keyword is in title.
         title_mask = self.toc[TOCColumns.TITLE.value].str.contains(pat=keyword, case=False, regex=False)
         title_subset = self.toc[title_mask]
-        # Concat the dataframes
+        # Concat the dataframes and drop duplicates.
         subset = pd.concat([code_subset, title_subset], axis='index').drop_duplicates(keep='first')
         subset.sort_values(by=TOCColumns.TITLE.value, inplace=True)
         return subset
@@ -129,6 +129,6 @@ class Dataset:
             kwargs['lang'] = self.lang.value
         return kwargs
 
-    @lru_cache(maxsize=100)
+    @lru_cache(maxsize=128)
     def get_param_full_name(self, param: str):
         return eurostat.get_dic(code=self.code, par=param, full=False, **self.get_dic_kwargs())
