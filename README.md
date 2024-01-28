@@ -9,16 +9,20 @@ It can be used to add Eurostat datasets as tables in QGIS and join them with vec
 
 In order for this plugin to run properly, the [eurostat python package](https://pypi.org/project/eurostat/) needs to be installed. It is available via PyPi.
 
-### Installing dependencies on Linux and Windows
+## Installing dependencies on Linux and Windows
 
 Users of these two platforms are not required to do anything. The external dependencies are already provided inside the plugin folder. If issues appear regarding plugin dependencies, please contact me and let me know.
 
-### Installing dependencies on macOS
+## Installing dependencies on macOS
 
 For macOS users, check tutorials online on how to handle the installation of external python packages. The [eurostat python package](https://pypi.org/project/eurostat/) needs to be installed.
 
 - https://gis.stackexchange.com/questions/351280/installing-python-modules-for-qgis-3-on-mac
 - https://gis.stackexchange.com/questions/419975/pip-install-inside-qgis-fails
+
+# How to install the plugin
+
+Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and download the zip file associated with the latest release. After that, in QGIS, go to Plugins -> Manage and Install Plugins -> Install from zip and select the downloaded zip file.
 
 # How to use the plugin
 
