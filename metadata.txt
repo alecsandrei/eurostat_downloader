@@ -4,7 +4,7 @@ qgisMinimumVersion=3.00
 qgisMaximumVersion=3.99
 description=This plugin can be used to get data using the Eurostat API.
 about=Eurostat Downloader can be used to add Eurostat datasets as tables in QGIS and join them with vector layers. For a guide on how to use the package, check the homepage.
-version=0.0.1
+version=0.1.0
 author=Cuvuliuc Alex-Andrei
 email=cuvuliucalexandrei@gmail.com
 
@@ -15,7 +15,7 @@ email=cuvuliucalexandrei@gmail.com
 
 # Uncomment the following line and add your changelog:
 changelog=
-      0.0.1
+      0.1.0
         * Initial release
 
 # Tags are comma separated with spaces allowed
