@@ -6,13 +6,13 @@ from typing import (
     Any,
 )
 from enum import Enum
-
-import numpy as np
-import pandas as pd
 from dataclasses import (
     dataclass,
     field
 )
+
+import numpy as np
+import pandas as pd
 from qgis.PyQt import (
     QtCore,
     QtWidgets
@@ -25,6 +25,7 @@ from qgis.core import (
     QgsVectorLayerJoinInfo,
     QgsMapLayer,
 )
+
 from .ui import (
     UIDialog,
     UIParameterSectionDialog,

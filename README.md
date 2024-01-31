@@ -24,6 +24,8 @@ For macOS users, check tutorials online on how to handle the installation of ext
 
 Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and download the zip file associated with the latest release (eurostat_downloader.zip). After that, in QGIS, go to Plugins -> Manage and Install Plugins -> Install from zip and select the downloaded zip file.
 
+The plugin is also available in the [QGIS plugin repository](https://plugins.qgis.org/plugins/eurostat_downloader/). It is currently flagged as an experimental plugin, so you will have enable the *Show also experimental* plugins setting in order to download it from within QGIS.
+
 # How to use the plugin
 
 ## Selecting a dataset from the Eurostat database

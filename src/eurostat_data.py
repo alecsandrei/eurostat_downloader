@@ -8,13 +8,14 @@ from functools import (
     lru_cache
 )
 from enum import Enum
-
-import eurostat
-import pandas as pd
 from dataclasses import (
     dataclass,
     field
 )
+
+import eurostat
+import pandas as pd
+
 
 
 

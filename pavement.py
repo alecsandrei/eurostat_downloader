@@ -13,8 +13,8 @@ from paver.easy import *
 def get_extlibs():
     if platform.system() == "Windows":
         return 'extlibs_windows'
-    if platform.system() == "Darwin":
-        return 'extlibs_macos'
+    # if platform.system() == "Darwin":
+    #     return 'extlibs_macos'
     if platform.system() == "Linux":
         return 'extlibs_linux'
 
