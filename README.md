@@ -22,9 +22,13 @@ For macOS users, check tutorials online on how to handle the installation of ext
 
 # How to install the plugin
 
-Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and download the zip file associated with the latest release (eurostat_downloader.zip). After that, in QGIS, go to Plugins -> Manage and Install Plugins -> Install from zip and select the downloaded zip file.
+## Option 1: from the QGIS plugin repository
 
-The plugin is also available in the [QGIS plugin repository](https://plugins.qgis.org/plugins/eurostat_downloader/). It is currently flagged as an experimental plugin, so you will have enable the *Show also experimental* plugins setting in order to download it from within QGIS.
+The plugin is available in the [QGIS plugin repository](https://plugins.qgis.org/plugins/eurostat_downloader/). It is currently flagged as an experimental plugin, so you will have enable the *Show also experimental* plugins setting by going to *Plugins -> Manage and install plugins -> Settings*. After enabling this setting, you can find the plugin by searching for in the *All* tab. 
+
+## Option 2: manually, from the releases page
+
+Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and download the zip file associated with the latest release (eurostat_downloader.zip). After that, in QGIS, go to *Plugins -> Manage and Install Plugins -> Install* from zip and select the downloaded zip file.
 
 # How to use the plugin
 
