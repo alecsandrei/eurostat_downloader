@@ -55,3 +55,7 @@ Now that we applied the filters, if we just want to export the table for further
 We can also join the data to the vector layer we downloaded earlier. By default, the plugin tries to infer both the column with the geographic codes from the Eurostat dataset and the field from the vector layer that matches the values from that Eurostat dataset column. In my case, the plugin selected FID for the layer join field and geo for the table (Eurostat data) join field by default. Make sure to check if the join fields were correctly selected. Now, we can just join the data by clicking on the **Join data** button. **Be careful!** The joined data is temporary. You will now need to export the vector layer in order to keep the joined data.
 
 ![Alt text](assets/how_to_use_the_plugin_4.png "Title")
+
+# Disclaimer
+
+This plugin, Eurostat Downloader, is an independent project created by Cuvuliuc Alex-Andrei. It is not an official product of Eurostat, and Cuvuliuc Alex-Andrei is not affiliated, associated, authorized, endorsed by, or in any way officially connected with Eurostat or any of its subsidiaries or its affiliates.
