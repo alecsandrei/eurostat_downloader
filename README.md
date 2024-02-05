@@ -24,7 +24,7 @@ For macOS users, check tutorials online on how to handle the installation of ext
 
 ## Option 1: from the QGIS plugin repository
 
-The plugin is available in the [QGIS plugin repository](https://plugins.qgis.org/plugins/eurostat_downloader/). It is currently flagged as an experimental plugin, so you will have enable the *Show also experimental* plugins setting by going to *Plugins -> Manage and install plugins -> Settings*. After enabling this setting, you can find the plugin by searching for in the *All* tab. 
+The plugin is available in the [QGIS plugin repository](https://plugins.qgis.org/plugins/eurostat_downloader/). It is currently flagged as an experimental plugin, so you will have enable the *Show also experimental* plugins setting by going to *Plugins -> Manage and install plugins -> Settings*. After enabling this setting, you can find the plugin by searching for it in the *All* tab. 
 
 ## Option 2: manually, from the releases page
 
