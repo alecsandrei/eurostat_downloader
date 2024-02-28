@@ -32,6 +32,8 @@ Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and
 
 # How to use the plugin
 
+[Video tutorial](https://www.youtube.com/watch?v=ijo2JOL88Y0)
+
 ## Selecting a dataset from the Eurostat database
 
 Let's start by downloading a vector layer from [here](https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units/countries). I will choose [this](https://gisco-services.ec.europa.eu/distribution/v2/countries/download/ref-countries-2020-60m.shp.zip) one and add it to QGIS.
