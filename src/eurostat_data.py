@@ -3,15 +3,14 @@ from typing import (
     Literal,
     Optional
 )
-from functools import (
-    cached_property,
-    lru_cache,
-)
+from functools import cached_property
 from enum import Enum
 from dataclasses import (
     dataclass,
     field
 )
+from itertools import product
+import concurrent.futures
 
 import eurostat
 import pandas as pd
@@ -23,12 +22,17 @@ class TOCColumns(Enum):
     CODE = 'code'
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass
 class Database:
+    _toc: pd.DataFrame = field(init=False)
 
-    @cached_property
-    def toc(self):
-        return eurostat.get_toc_df()
+    def initialize_toc(self):
+        """Used to initialize the table of contents."""
+        self._toc = eurostat.get_toc_df()
+
+    @property
+    def toc(self) -> pd.DataFrame:
+        return self._toc
 
     @property
     def toc_titles(self):
@@ -53,7 +57,7 @@ class Database:
         # Concat the dataframes and drop duplicates.
         return self.toc[mask]
 
-    def get_titles(self, subset: Union[None, pd.DataFrame] = None):
+    def get_titles(self, subset: Optional[pd.DataFrame] = None):
         if subset is None:
             subset = self.toc
         return subset[TOCColumns.TITLE.value]
@@ -71,24 +75,51 @@ class Language(Enum):
 
 
 Lang = Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]
+ParamsInfo = dict[Language, dict[str, list[tuple[str, str]]]]
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass
 class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database
     code: str
     lang: Optional[Lang] = field(default=None)
+    _param_info: ParamsInfo = field(init=False, default_factory=dict)
+    _df: pd.DataFrame = field(init=False)
+    _params: list[str] = field(init=False, default_factory=list)
 
     def set_language(self, lang: Optional[Lang]):
         object.__setattr__(self, 'lang', lang)
 
-    @cached_property
+    def _set_df(self):
+        data_df = eurostat.get_data_df(code=self.code)
+        assert data_df is not None
+        self.remove_time_period_str(data_df)
+        self._df = data_df
+
+    def _set_pars(self):
+        self._params.extend(eurostat.get_pars(self.code))
+
+    def _set_param_info(self, param: str, lang: Language):
+        dic = eurostat.get_dic(
+            code=self.code, par=param, full=False, lang=lang.value
+        )
+        self._param_info.setdefault(lang, {})[param] = dic
+
+    def initialize_df(self):
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.submit(self._set_df)
+
+    def initialize_param_info(self):
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.submit(self._set_pars)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for param, lang in product(self._params, Language):
+                executor.submit(self._set_param_info, param, lang)
+
+    @property
     def df(self) -> pd.DataFrame:
-        df = eurostat.get_data_df(code=self.code)
-        assert df is not None
-        self.remove_time_period_str(df=df)
-        return df
+        return self._df
 
     @staticmethod
     def remove_time_period_str(df: pd.DataFrame):
@@ -96,34 +127,38 @@ class Dataset:
             return col.replace(r'\TIME_PERIOD', '')
         df.columns = df.columns.map(replace)
 
-    @cached_property
+    @property
     def title(self):
         return self.db.toc.loc[
             self.db.toc[TOCColumns.CODE.value]
             == self.code, TOCColumns.TITLE.value
         ]
 
-    @cached_property
+    @property
     def frequency(self) -> str:
         """Assumes that the first column contains the frequency,
         and that all the values inside the column are all unique."""
         return self.df.iloc[0].values[0]
 
-    @cached_property
+    @property
     def data_start(self):
         return self.date_columns[0]
 
-    @cached_property
+    @property
     def data_end(self):
         return self.date_columns[-1]
 
-    @cached_property
+    @property
     def date_columns(self):
         return self.df.columns[len(self.params):]
 
-    @cached_property
+    @property
     def params(self) -> list[str]:
-        return eurostat.get_pars(self.code)
+        return self._params
+
+    @property
+    def params_info(self) -> ParamsInfo:
+        return self._param_info
 
     def get_dic_kwargs(self):
         kwargs = {}
@@ -131,8 +166,8 @@ class Dataset:
             kwargs['lang'] = self.lang.value
         return kwargs
 
-    @lru_cache(maxsize=128)
-    def get_param_full_name(self, param: str) -> list[tuple[str, str]]:
-        return eurostat.get_dic(
-            code=self.code, par=param, full=False, **self.get_dic_kwargs()
-        )  # type: ignore
+    # @lru_cache(maxsize=128)
+    # def get_param_full_name(self, param: str) -> list[tuple[str, str]]:
+    #     return eurostat.get_dic(
+    #         code=self.code, par=param, full=False, **self.get_dic_kwargs()
+    #     )  # type: ignore

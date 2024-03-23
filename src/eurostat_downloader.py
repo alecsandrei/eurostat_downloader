@@ -10,12 +10,16 @@ from dataclasses import (
     dataclass,
     field
 )
+import threading
+import itertools
+from functools import partial
 
 import numpy as np
 import pandas as pd
 from qgis.PyQt import (
     QtCore,
-    QtWidgets
+    QtWidgets,
+    QtGui
 )
 from qgis.core import (
     QgsVectorLayer,
@@ -54,23 +58,27 @@ class Dialog(QtWidgets.QDialog):
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
         self.dataset = None
+        self.subset = None
+
+        # Init table of contents
+        QtCore.QTimer.singleShot(1, self.initialize_database)
 
         # Signals
         self.ui.qgsComboLayer.layerChanged.connect(self.set_layer_join_fields)
         self.ui.qgsComboLayer.layerChanged.connect(
             self.set_layer_join_field_default
         )
-        self.ui.lineSearch.textChanged.connect(self.populate_list)
-        self.ui.listDatabase.itemSelectionChanged.connect(
+        self.ui.lineSearch.textChanged.connect(self.filter_toc)
+        self.ui.listDatabase.itemPressed.connect(
             self.set_dataset_table
         )
-        self.ui.listDatabase.itemSelectionChanged.connect(
+        self.ui.listDatabase.itemPressed.connect(
             self.set_table_join_fields
         )
-        self.ui.listDatabase.itemSelectionChanged.connect(
+        self.ui.listDatabase.itemPressed.connect(
             self.set_table_join_field_default
         )
-        self.ui.listDatabase.itemSelectionChanged.connect(
+        self.ui.listDatabase.itemPressed.connect(
             self.set_layer_join_field_default
         )
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(
@@ -92,9 +100,31 @@ class Dialog(QtWidgets.QDialog):
             return
         self.ui.qgsComboLayerJoinField.setLayer(layer=layer)
 
-    def populate_list(self):
+    def initialize_database(self):
         self.ui.listDatabase.clear()
-        self.subset = self.database.get_subset(self.ui.lineSearch.text())
+        initializer = DatabaseInitializer(self)
+        event = loading_label(self, 'initializing the table of contents')
+
+        def set_gui_state(state: bool):
+            for obj in self.children():
+                if isinstance(obj, QtWidgets.QWidget):
+                    obj.setEnabled(state)
+        initializer.started.connect(
+            partial(set_gui_state, False)
+        )
+        initializer.finished.connect(
+            partial(set_gui_state, True)
+        )
+        initializer.finished.connect(
+            event.set
+        )
+        initializer.start()
+
+    def filter_toc(self):
+        self.ui.listDatabase.clear()
+        self.subset = self.database.get_subset(
+            self.ui.lineSearch.text()
+        )
         titles = self.database.get_titles(subset=self.subset)
         codes = self.database.get_codes(subset=self.subset)
         items = '[' + codes + '] ' + titles
@@ -102,6 +132,8 @@ class Dialog(QtWidgets.QDialog):
 
     def get_selected_dataset_code(self):
         row = self.ui.listDatabase.currentRow()
+        if self.subset is None:
+            self.subset = self.database.toc
         return self.database.get_codes(subset=self.subset).iloc[row]
 
     def get_current_table_join_field(self):
@@ -167,8 +199,24 @@ class Dialog(QtWidgets.QDialog):
             code=self.get_selected_dataset_code(),
             lang=self.get_selected_language()
         )
-        self.filterer = DataFilterer(dataset=self.dataset)
-        self.update_model()
+        initializer = DatasetInitializer(self)
+        event = loading_label(self, 'initializing dataset')
+
+        def set_gui_state(state: bool):
+            for obj in self.children():
+                if isinstance(obj, QtWidgets.QWidget):
+                    obj.setEnabled(state)
+
+        initializer.started.connect(
+            partial(set_gui_state, False)
+        )
+        initializer.finished.connect(
+            partial(set_gui_state, True)
+        )
+        initializer.finished.connect(
+            event.set
+        )
+        initializer.start()
 
     def update_model(self):
         assert self.dataset is not None
@@ -192,6 +240,61 @@ class Dialog(QtWidgets.QDialog):
             self.update_model()
 
 
+class DatabaseInitializer(QtCore.QThread):
+    def __init__(self, base: Dialog):
+        self.base = base
+        super().__init__(self.base)
+
+    def run(self):
+        self.base.ui.listDatabase.clear()
+        self.base.database.initialize_toc()
+        titles = self.base.database.get_titles()
+        codes = self.base.database.get_codes()
+        items = '[' + codes + '] ' + titles
+        self.base.ui.listDatabase.addItems(items)
+
+
+class DatasetInitializer(QtCore.QThread):
+    def __init__(self, base: Dialog):
+        self.base = base
+        super().__init__(self.base)
+
+    def run(self):
+        assert self.base.dataset is not None
+        self.base.dataset.initialize_df()
+        self.base.filterer = DataFilterer(dataset=self.base.dataset)
+        self.base.update_model()
+        self.base.dataset.initialize_param_info()
+
+
+def loading_label(
+    base: QtWidgets.QDialog,
+    label: str
+) -> threading.Event:
+    dialog = QtWidgets.QDialog(base)
+    dialog.setWindowTitle(' ')
+    dialog.setLayout(QtWidgets.QVBoxLayout())
+    qlabel = QtWidgets.QLabel()
+    qlabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+    qlabel.setFont(QtGui.QFont(qlabel.font().family(), 15))
+    dialog.layout().addWidget(qlabel)
+
+    def spin(done: threading.Event):
+        for char in itertools.cycle('🌏🌍🌎'):
+            qlabel.setText(f'{label}\n{char}  ')
+            if done.wait(.5):
+                break
+        dialog.close()
+
+    done = threading.Event()
+    spinner = threading.Thread(
+        target=spin, args={done}
+    )
+    dialog.show()
+    spinner.start()
+    return done
+
+
 class ParameterSectionDialog(QtWidgets.QDialog):
 
     def __init__(self, base: Dialog, name: str):
@@ -200,7 +303,7 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         self.name = name
         self.ui = UIParameterSectionDialog()
         self.ui.setupUi(self)
-        self.populate_list()
+        self.filter_toc()
         self.select_based_on_filterer()
         self.section_type_handler()
 
@@ -214,10 +317,14 @@ class ParameterSectionDialog(QtWidgets.QDialog):
     def reset_selection(self):
         self.ui.listItems.clearSelection()
 
-    def populate_list(self):
+    def filter_toc(self):
         assert self.base.dataset is not None
         if self.base.dataset.lang is not None:
-            names = self.base.dataset.get_param_full_name(param=self.name)
+            names = (
+                self.base.dataset.params_info
+                [self.base.dataset.lang]
+                [self.name]
+            )
             assert names is not None
             items = [f'{abbrev} [{name}]' for abbrev, name in names]
         else:
@@ -225,7 +332,7 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         self.ui.listItems.addItems(items)
 
     def get_listitem_text_abbrev(self, item: QtWidgets.QListWidgetItem):
-        # The string variable inside populate_list.
+        # The string variable inside filter_toc.
         return item.text().split(' [')[0]
 
     def select_based_on_filterer(self):
@@ -677,3 +784,12 @@ class QgsConverter:
         temp_data.addFeatures(rows)  # type: ignore
         temp.commitChanges()
         return temp
+
+
+def display_error(err):
+    app = QtWidgets.QApplication.instance()
+    window = app.activeWindow()
+    dialog = QtWidgets.QErrorMessage(window)
+    dialog.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
+    dialog.setWindowTitle("Error")
+    dialog.showMessage(err)
