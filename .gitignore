@@ -2,6 +2,7 @@
 **/.vscode
 extlibs*
 *.zip
+ui/*.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

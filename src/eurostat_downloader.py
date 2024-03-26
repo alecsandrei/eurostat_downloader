@@ -40,6 +40,7 @@ from .eurostat_data import (
     Dataset,
     Language
 )
+from .utils import CheckableComboBox
 
 
 class Dialog(QtWidgets.QDialog):
@@ -231,6 +232,18 @@ class Dialog(QtWidgets.QDialog):
         initializer.finished.connect(self.set_table_join_fields)
         initializer.finished.connect(self.set_table_join_field_default)
         initializer.finished.connect(self.set_layer_join_field_default)
+        initializer.finished.connect(self.set_join_columns)
+
+    def set_join_columns(self):
+        checkable = CheckableComboBox()
+        self.ui.verticalLayoutColumnsToJoin.replaceWidget(self.ui.comboBoxColumnsToJoin, checkable)
+        self.ui.comboBoxColumnsToJoin.close()
+        self.ui.comboBoxColumnsToJoin = checkable
+        assert self.dataset is not None
+        self.ui.comboBoxColumnsToJoin.addItems(
+            self.dataset.params
+        )
+        self.ui.comboBoxColumnsToJoin.setCurrentIndex(-1)
 
     def update_model(self):
         assert self.dataset is not None
@@ -740,6 +753,12 @@ class JoinHandler:
         )
         join_info.setTargetFieldName(
             self.base.ui.qgsComboLayerJoinField.currentText()
+        )
+        join_info.setJoinFieldNamesSubset(
+            itertools.chain(
+                self.base.ui.comboBoxColumnsToJoin.currentData(),
+                self.base.dataset.date_columns
+            )
         )
         join_info.setJoinLayerId(table.id())
         join_info.setUsingMemoryCache(True)
