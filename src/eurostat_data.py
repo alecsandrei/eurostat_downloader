@@ -3,7 +3,6 @@ from typing import (
     Literal,
     Optional
 )
-from functools import cached_property
 from enum import Enum
 from dataclasses import (
     dataclass,
@@ -132,7 +131,7 @@ class Dataset:
         return self.db.toc.loc[
             self.db.toc[TOCColumns.CODE.value]
             == self.code, TOCColumns.TITLE.value
-        ]
+        ].iloc[0]
 
     @property
     def frequency(self) -> str:
@@ -159,15 +158,3 @@ class Dataset:
     @property
     def params_info(self) -> ParamsInfo:
         return self._param_info
-
-    def get_dic_kwargs(self):
-        kwargs = {}
-        if self.lang is not None:
-            kwargs['lang'] = self.lang.value
-        return kwargs
-
-    # @lru_cache(maxsize=128)
-    # def get_param_full_name(self, param: str) -> list[tuple[str, str]]:
-    #     return eurostat.get_dic(
-    #         code=self.code, par=param, full=False, **self.get_dic_kwargs()
-    #     )  # type: ignore

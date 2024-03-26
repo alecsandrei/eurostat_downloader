@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import (
     Union,
     Iterable,
@@ -10,7 +11,6 @@ from dataclasses import (
     dataclass,
     field
 )
-import threading
 import itertools
 from functools import partial
 
@@ -72,15 +72,6 @@ class Dialog(QtWidgets.QDialog):
         self.ui.listDatabase.itemPressed.connect(
             self.set_dataset_table
         )
-        self.ui.listDatabase.itemPressed.connect(
-            self.set_table_join_fields
-        )
-        self.ui.listDatabase.itemPressed.connect(
-            self.set_table_join_field_default
-        )
-        self.ui.listDatabase.itemPressed.connect(
-            self.set_layer_join_field_default
-        )
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(
             self.open_section_ui
         )
@@ -100,23 +91,36 @@ class Dialog(QtWidgets.QDialog):
             return
         self.ui.qgsComboLayerJoinField.setLayer(layer=layer)
 
+    def set_gui_state(self, state: bool):
+        for obj in self.children():
+            if isinstance(obj, QtWidgets.QWidget):
+                obj.setEnabled(state)
+
     def initialize_database(self):
         self.ui.listDatabase.clear()
         initializer = DatabaseInitializer(self)
-        event = loading_label(self, 'initializing the table of contents')
-
-        def set_gui_state(state: bool):
-            for obj in self.children():
-                if isinstance(obj, QtWidgets.QWidget):
-                    obj.setEnabled(state)
+        dialog = LoadingDialog(self)
+        loading_label = LoadingLabel(
+            'initializing table of contents', self
+        )
         initializer.started.connect(
-            partial(set_gui_state, False)
+            partial(self.set_gui_state, False)
+        )
+        initializer.started.connect(
+            dialog.show
+        )
+        loading_label.update_label.connect(dialog.update_loading_label)
+        initializer.started.connect(
+            loading_label.start
         )
         initializer.finished.connect(
-            partial(set_gui_state, True)
+            partial(self.set_gui_state, True)
         )
         initializer.finished.connect(
-            event.set
+            loading_label.requestInterruption
+        )
+        initializer.finished.connect(
+            dialog.close
         )
         initializer.start()
 
@@ -163,8 +167,8 @@ class Dialog(QtWidgets.QDialog):
 
     def set_table_join_fields(self):
         self.ui.comboTableJoinField.clear()
-        if self.dataset is not None:
-            self.ui.comboTableJoinField.addItems(self.dataset.params)
+        assert self.dataset is not None
+        self.ui.comboTableJoinField.addItems(self.dataset.params)
 
     def set_table_join_field_default(self):
         items = get_combobox_items(self.ui.comboTableJoinField)
@@ -200,23 +204,33 @@ class Dialog(QtWidgets.QDialog):
             lang=self.get_selected_language()
         )
         initializer = DatasetInitializer(self)
-        event = loading_label(self, 'initializing dataset')
-
-        def set_gui_state(state: bool):
-            for obj in self.children():
-                if isinstance(obj, QtWidgets.QWidget):
-                    obj.setEnabled(state)
-
+        dialog = LoadingDialog(self)
+        loading_label = LoadingLabel(
+            f'initializing dataset "{self.dataset.code}"', self
+        )
         initializer.started.connect(
-            partial(set_gui_state, False)
+            partial(self.set_gui_state, False)
+        )
+        initializer.started.connect(
+            dialog.show
+        )
+        loading_label.update_label.connect(dialog.update_loading_label)
+        initializer.started.connect(
+            loading_label.start
         )
         initializer.finished.connect(
-            partial(set_gui_state, True)
+            partial(self.set_gui_state, True)
         )
         initializer.finished.connect(
-            event.set
+            loading_label.requestInterruption
+        )
+        initializer.finished.connect(
+            dialog.close
         )
         initializer.start()
+        initializer.finished.connect(self.set_table_join_fields)
+        initializer.finished.connect(self.set_table_join_field_default)
+        initializer.finished.connect(self.set_layer_join_field_default)
 
     def update_model(self):
         assert self.dataset is not None
@@ -267,32 +281,40 @@ class DatasetInitializer(QtCore.QThread):
         self.base.dataset.initialize_param_info()
 
 
-def loading_label(
-    base: QtWidgets.QDialog,
-    label: str
-) -> threading.Event:
-    dialog = QtWidgets.QDialog(base)
-    dialog.setWindowTitle(' ')
-    dialog.setLayout(QtWidgets.QVBoxLayout())
-    qlabel = QtWidgets.QLabel()
-    qlabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-    qlabel.setFont(QtGui.QFont(qlabel.font().family(), 15))
-    dialog.layout().addWidget(qlabel)
+class LoadingLabel(QtCore.QThread):
+    update_label = QtCore.pyqtSignal(str)
 
-    def spin(done: threading.Event):
+    def __init__(self, label: str, base=None):
+        self.base = base
+        super().__init__(base)
+        self.label = label
+
+    def spin(self):
         for char in itertools.cycle('🌏🌍🌎'):
-            qlabel.setText(f'{label}\n{char}  ')
-            if done.wait(.5):
+            self.update_label.emit(f'{self.label}\n{char}  ')
+            time.sleep(0.5)
+            if self.isInterruptionRequested():
                 break
-        dialog.close()
 
-    done = threading.Event()
-    spinner = threading.Thread(
-        target=spin, args={done}
-    )
-    dialog.show()
-    spinner.start()
-    return done
+    def run(self):
+        self.spin()
+
+
+class LoadingDialog(QtWidgets.QDialog):
+    def __init__(self, base=None):
+        self.base = base
+        super().__init__(base)
+        self.setWindowTitle(' ')
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setLayout(layout)
+        self.qlabel = QtWidgets.QLabel(self)
+        self.qlabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.qlabel.setFont(QtGui.QFont(self.qlabel.font().family(), 15))
+        self.layout().addWidget(self.qlabel)
+
+    def update_loading_label(self, text: str):
+        self.qlabel.setText(text)
 
 
 class ParameterSectionDialog(QtWidgets.QDialog):
@@ -419,7 +441,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
 
         self.exec_()
 
-    def get_time_types(self):
+    def get_frequency_types(self):
         assert self.base.dataset is not None
         freq = self.base.dataset.frequency.lower()
         if freq == FrequencyTypes.ANNUALLY.value:
@@ -435,25 +457,27 @@ class TimeSectionDialog(QtWidgets.QDialog):
         else:
             raise ValueError(f'No frequency column was found. Unknown {freq}.')
 
-    def add_labels_to_frames(self, time: str):
-        time = time.capitalize()
-        label_object_name = ''.join(['label', time])
-        self.ui.add_label_to_frames(object_name=label_object_name, text=time)
+    def add_labels_to_frames(self, frequency: str):
+        frequency = frequency.capitalize()
+        label_object_name = ''.join(['label', frequency])
+        self.ui.add_label_to_frames(
+            object_name=label_object_name, text=frequency
+        )
 
-    def add_combobox_to_frames(self, time: str):
-        time = time.capitalize()
-        combo_object_name = ''.join(['combo', time])
+    def add_combobox_to_frames(self, frequency: str):
+        frequency = frequency.capitalize()
+        combo_object_name = ''.join(['combo', frequency])
         self.ui.add_combobox_to_frames(object_name=combo_object_name)
 
     def add_widgets_to_frames(self):
-        for time in self.get_time_types():
-            self.add_labels_to_frames(time=time)
-            self.add_combobox_to_frames(time=time)
+        for frequency in self.get_frequency_types():
+            self.add_labels_to_frames(frequency)
+            self.add_combobox_to_frames(frequency)
 
     def add_items_to_start_combobox(self):
-        for idx, time in enumerate(self.get_time_types()):
+        for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameStart.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
             widget.addItems(self.base.dataset.date_columns
@@ -462,9 +486,9 @@ class TimeSectionDialog(QtWidgets.QDialog):
                             .unique())
 
     def add_items_to_end_combobox(self):
-        for idx, time in enumerate(self.get_time_types()):
+        for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameEnd.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
             items = (self.base.dataset
@@ -486,18 +510,18 @@ class TimeSectionDialog(QtWidgets.QDialog):
 
     def get_start_time_combobox(self):
         times = []
-        for time in self.get_time_types():
+        for frequency in self.get_frequency_types():
             widget = self.ui.frameStart.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             times.append(widget.currentText())
         return '-'.join(times)
 
     def get_end_time_combobox(self):
         times = []
-        for time in self.get_time_types():
+        for frequency in self.get_frequency_types():
             widget = self.ui.frameEnd.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             times.append(widget.currentText())
         return '-'.join(times)
@@ -519,9 +543,9 @@ class TimeSectionDialog(QtWidgets.QDialog):
         self.base.update_model()
 
     def set_default_start_combobox(self):
-        for idx, time in enumerate(self.get_time_types()):
+        for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameStart.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
             items = self.base.dataset.date_columns.str.split('-').str.get(idx)
@@ -531,9 +555,9 @@ class TimeSectionDialog(QtWidgets.QDialog):
             widget.setCurrentIndex(default_index)
 
     def set_default_end_combobox(self):
-        for idx, time in enumerate(self.get_time_types()):
+        for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameEnd.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
             items = self.base.dataset.date_columns.str.split('-').str.get(idx)
@@ -548,9 +572,9 @@ class TimeSectionDialog(QtWidgets.QDialog):
         self.add_time_filters()
 
     def restore_start_combobox(self):
-        for idx, time in enumerate(self.get_time_types()):
+        for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameStart.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             items = get_combobox_items(combobox=widget)
             if items:
@@ -560,9 +584,9 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 widget.setCurrentIndex(idx)
 
     def restore_end_combobox(self):
-        for idx, time in enumerate(self.get_time_types()):
+        for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameEnd.findChild(
-                QtWidgets.QComboBox, ''.join(['combo', time])
+                QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             items = get_combobox_items(combobox=widget)
             if items:
@@ -784,12 +808,3 @@ class QgsConverter:
         temp_data.addFeatures(rows)  # type: ignore
         temp.commitChanges()
         return temp
-
-
-def display_error(err):
-    app = QtWidgets.QApplication.instance()
-    window = app.activeWindow()
-    dialog = QtWidgets.QErrorMessage(window)
-    dialog.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
-    dialog.setWindowTitle("Error")
-    dialog.showMessage(err)
