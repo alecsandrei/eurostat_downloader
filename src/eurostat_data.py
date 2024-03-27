@@ -41,8 +41,7 @@ class Database:
     def initialize_toc(self):
         """Used to initialize the table of contents."""
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for lang in Language:
-                executor.submit(self._set_toc, lang)
+            executor.map(self._set_toc, Language)
 
     def _set_toc(self, lang: Language):
         self._toc[lang] = eurostat.get_toc_df(lang=lang.value)
