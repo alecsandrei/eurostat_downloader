@@ -85,6 +85,7 @@ class Dialog(QtWidgets.QDialog):
             self.ui.checkEnglish, self.ui.checkGerman, self.ui.checkFrench
         ):
             language_check.stateChanged.connect(self.update_language_check)
+            language_check.stateChanged.connect(self.filter_toc)
 
     def set_layer_join_fields(self):
         layer = self.ui.qgsComboLayer.currentLayer()
@@ -157,14 +158,14 @@ class Dialog(QtWidgets.QDialog):
         selected_language = self.get_selected_language()
         if self.dataset is not None:
             self.dataset.set_language(lang=selected_language)
+        self.database.set_language(lang=selected_language)
 
     def get_selected_language(self):
-        if self.ui.checkEnglish.isChecked():
-            return Language.ENGLISH
-        elif self.ui.checkFrench.isChecked():
+        if self.ui.checkFrench.isChecked():
             return Language.FRENCH
         elif self.ui.checkGerman.isChecked():
             return Language.GERMAN
+        return Language.ENGLISH
 
     def set_table_join_fields(self):
         self.ui.comboTableJoinField.clear()

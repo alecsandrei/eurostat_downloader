@@ -1,6 +1,5 @@
 from typing import (
     Union,
-    Literal,
     Optional
 )
 from enum import Enum
@@ -21,17 +20,36 @@ class TOCColumns(Enum):
     CODE = 'code'
 
 
+class Language(Enum):
+    ENGLISH = 'en'
+    FRENCH = 'fr'
+    GERMAN = 'de'
+
+
+# Lang = Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]
+TableOfContents = dict[Language, pd.DataFrame]
+
+
 @dataclass
 class Database:
-    _toc: pd.DataFrame = field(init=False)
+    lang: Language = field(default=Language.ENGLISH)
+    _toc: TableOfContents = field(init=False, default_factory=dict)
+
+    def set_language(self, lang: Language):
+        self.lang = lang
 
     def initialize_toc(self):
         """Used to initialize the table of contents."""
-        self._toc = eurostat.get_toc_df()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for lang in Language:
+                executor.submit(self._set_toc, lang)
+
+    def _set_toc(self, lang: Language):
+        self._toc[lang] = eurostat.get_toc_df(lang=lang.value)
 
     @property
     def toc(self) -> pd.DataFrame:
-        return self._toc
+        return self._toc[self.lang]
 
     @property
     def toc_titles(self):
@@ -67,13 +85,6 @@ class Database:
         return subset[TOCColumns.CODE.value]
 
 
-class Language(Enum):
-    ENGLISH = 'en'
-    FRENCH = 'fr'
-    GERMAN = 'de'
-
-
-Lang = Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]
 ParamsInfo = dict[Language, dict[str, list[tuple[str, str]]]]
 
 
@@ -82,13 +93,13 @@ class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database
     code: str
-    lang: Optional[Lang] = field(default=None)
+    lang: Optional[Language] = field(default=None)
     _param_info: ParamsInfo = field(init=False, default_factory=dict)
     _df: pd.DataFrame = field(init=False)
     _params: list[str] = field(init=False, default_factory=list)
 
-    def set_language(self, lang: Optional[Lang]):
-        object.__setattr__(self, 'lang', lang)
+    def set_language(self, lang: Optional[Language]):
+        self.lang = lang
 
     def _set_df(self):
         data_df = eurostat.get_data_df(code=self.code)
