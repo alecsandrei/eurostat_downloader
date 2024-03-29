@@ -29,7 +29,8 @@ options(
         excludes=[
             ".vscode",
             "ui",
-            "src/__pycache__"
+            "src/__pycache__",
+            ".mypy_cache",
             "*.pyc",
             ".git",
             ".idea",

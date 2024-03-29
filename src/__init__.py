@@ -6,6 +6,7 @@ from qgis.core import QgsNetworkAccessManager
 
 SETTINGS = QSettings()
 
+
 def get_qgis_proxy(s: QSettings):
     # This function was taken from the QuickMapServices plugin.
     proxy_enabled = s.value("proxy/proxyEnabled", u"", type=unicode)
