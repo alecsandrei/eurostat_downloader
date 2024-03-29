@@ -428,6 +428,7 @@ class CommonGeoSectionNames(Enum):
     # NOTE: Feel free to expand this enum
     GEO = 'geo'
     REP_MAR = 'rep_mar'
+    PAR_MAR = 'par_mar'
     METROREG = 'metroreg'
 
 
