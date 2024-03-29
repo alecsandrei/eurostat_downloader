@@ -237,7 +237,9 @@ class Dialog(QtWidgets.QDialog):
 
     def set_join_columns(self):
         checkable = CheckableComboBox()
-        self.ui.verticalLayoutColumnsToJoin.replaceWidget(self.ui.comboBoxColumnsToJoin, checkable)
+        self.ui.verticalLayoutColumnsToJoin.replaceWidget(
+            self.ui.comboBoxColumnsToJoin, checkable
+        )
         self.ui.comboBoxColumnsToJoin.close()
         self.ui.comboBoxColumnsToJoin = checkable
         assert self.dataset is not None
@@ -292,7 +294,6 @@ class DatasetInitializer(QtCore.QThread):
         self.base.dataset.initialize_df()
         self.base.filterer = DataFilterer(dataset=self.base.dataset)
         self.base.update_model()
-        self.base.dataset.initialize_param_info()
 
 
 class LoadingLabel(QtCore.QThread):

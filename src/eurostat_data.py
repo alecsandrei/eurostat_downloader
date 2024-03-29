@@ -100,31 +100,28 @@ class Dataset:
     def set_language(self, lang: Optional[Language]):
         self.lang = lang
 
+    def _set_pars(self):
+        self._params.extend(eurostat.get_pars(self.code))
+
+    def _set_param_info(self, data: tuple[str, Language]):
+        param, lang = data[0], data[1]
+        dic = eurostat.get_dic(
+            code=self.code, par=param, full=False, lang=lang.value
+        )
+        self._param_info.setdefault(lang, {})[param] = dic
+
     def _set_df(self):
         data_df = eurostat.get_data_df(code=self.code)
         assert data_df is not None
         self.remove_time_period_str(data_df)
         self._df = data_df
 
-    def _set_pars(self):
-        self._params.extend(eurostat.get_pars(self.code))
-
-    def _set_param_info(self, param: str, lang: Language):
-        dic = eurostat.get_dic(
-            code=self.code, par=param, full=False, lang=lang.value
-        )
-        self._param_info.setdefault(lang, {})[param] = dic
-
     def initialize_df(self):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.submit(self._set_df)
-
-    def initialize_param_info(self):
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.submit(self._set_pars)
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for param, lang in product(self._params, Language):
-                executor.submit(self._set_param_info, param, lang)
+            params = executor.submit(self._set_pars)
+            concurrent.futures.wait([params])
+            executor.map(self._set_param_info, product(self._params, Language))
 
     @property
     def df(self) -> pd.DataFrame:
