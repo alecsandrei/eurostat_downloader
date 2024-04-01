@@ -32,7 +32,8 @@ Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and
 
 # How to use the plugin
 
-[Video tutorial](https://www.youtube.com/watch?v=ijo2JOL88Y0)
+[Video tutorial 1](https://www.youtube.com/watch?v=ijo2JOL88Y0)
+[Release 0.2.0 updates](https://www.youtube.com/watch?v=5cJnTPmUayI)
 
 ## Selecting a dataset from the Eurostat database
 
