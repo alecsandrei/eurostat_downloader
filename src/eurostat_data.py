@@ -13,6 +13,8 @@ import concurrent.futures
 import eurostat
 import pandas as pd
 
+from .utils import handle_ssl_error
+
 
 class TOCColumns(Enum):
     """Enumerates the table of contents column names."""
@@ -26,7 +28,6 @@ class Language(Enum):
     GERMAN = 'de'
 
 
-# Lang = Literal[Language.ENGLISH, Language.FRENCH, Language.GERMAN]
 TableOfContents = dict[Language, pd.DataFrame]
 
 
@@ -43,6 +44,7 @@ class Database:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(self._set_toc, Language)
 
+    @handle_ssl_error
     def _set_toc(self, lang: Language):
         self._toc[lang] = eurostat.get_toc_df(lang=lang.value)
 
@@ -78,7 +80,10 @@ class Database:
             subset = self.toc
         return subset[TOCColumns.TITLE.value]
 
-    def get_codes(self, subset: Union[None, pd.DataFrame, pd.Series] = None):
+    def get_codes(
+        self,
+        subset: Optional[Union[pd.DataFrame, pd.Series]] = None
+    ):
         if subset is None:
             subset = self.toc
         return subset[TOCColumns.CODE.value]
@@ -100,9 +105,11 @@ class Dataset:
     def set_language(self, lang: Optional[Language]):
         self.lang = lang
 
+    @handle_ssl_error
     def _set_pars(self):
         self._params.extend(eurostat.get_pars(self.code))
 
+    @handle_ssl_error
     def _set_param_info(self, data: tuple[str, Language]):
         param, lang = data[0], data[1]
         dic = eurostat.get_dic(
@@ -110,6 +117,7 @@ class Dataset:
         )
         self._param_info.setdefault(lang, {})[param] = dic
 
+    @handle_ssl_error
     def _set_df(self):
         data_df = eurostat.get_data_df(code=self.code)
         assert data_df is not None

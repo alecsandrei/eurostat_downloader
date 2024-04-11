@@ -1,3 +1,5 @@
+from requests.exceptions import SSLError
+import eurostat
 from qgis.PyQt import (
     QtCore,
     QtWidgets,
@@ -82,7 +84,10 @@ class CheckableComboBox(QtWidgets.QComboBox):
     def updateText(self):
         texts = []
         for i in range(self.model().rowCount()):
-            if self.model().item(i).checkState() == QtCore.Qt.CheckState.Checked:
+            if (
+                self.model().item(i).checkState()
+                == QtCore.Qt.CheckState.Checked
+            ):
                 texts.append(self.model().item(i).text())
         text = ", ".join(texts)
 
@@ -123,3 +128,13 @@ class CheckableComboBox(QtWidgets.QComboBox):
             if self.model().item(i).checkState() == QtCore.Qt.CheckState.Checked:
                 res.append(self.model().item(i).data())
         return res
+
+
+def handle_ssl_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except SSLError:
+            eurostat.set_requests_args(verify=False)
+            func(*args, **kwargs)
+    return wrapper
