@@ -64,7 +64,7 @@ We can also join the data to the vector layer we downloaded earlier. By default,
 ![Alt text](assets/how_to_use_the_plugin_4.png "Title")
 
 # TODOs
-[ ] Integrate [gisco-geodata](https://github.com/alecsandrei/gisco-geodata) into the plugin.
+- [ ] Integrate [gisco-geodata](https://github.com/alecsandrei/gisco-geodata) into the plugin.
 
 # Disclaimer
 
