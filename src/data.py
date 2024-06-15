@@ -1,7 +1,5 @@
-from typing import (
-    Union,
-    Optional
-)
+from __future__ import annotations
+
 from enum import Enum
 from dataclasses import (
     dataclass,
@@ -42,7 +40,10 @@ class Database:
     def initialize_toc(self):
         """Used to initialize the table of contents."""
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(self._set_toc, Language)
+            results = executor.map(self._set_toc, Language)
+        for result in results:
+            if result is not None:
+                result.exception()
 
     @handle_ssl_error
     def _set_toc(self, lang: Language):
@@ -53,7 +54,7 @@ class Database:
         return self._toc[self.lang]
 
     @property
-    def toc_titles(self):
+    def toc_titles(self) -> pd.Series[str]:
         return self.toc[TOCColumns.TITLE.value]
 
     @property
@@ -65,7 +66,7 @@ class Database:
         if not keyword.strip():
             return self.toc
         # Concat the code and the title.
-        concatenated = (
+        concatenated: pd.Series[str] = (
             self.toc[TOCColumns.CODE.value]
             + ' '
             + self.toc[TOCColumns.TITLE.value]
@@ -75,15 +76,15 @@ class Database:
         # Concat the dataframes and drop duplicates.
         return self.toc[mask]
 
-    def get_titles(self, subset: Optional[pd.DataFrame] = None):
+    def get_titles(self, subset: pd.DataFrame | None = None) -> pd.Series[str]:
         if subset is None:
             subset = self.toc
         return subset[TOCColumns.TITLE.value]
 
     def get_codes(
         self,
-        subset: Optional[Union[pd.DataFrame, pd.Series]] = None
-    ):
+        subset: pd.DataFrame | None = None
+    ) -> pd.Series[str]:
         if subset is None:
             subset = self.toc
         return subset[TOCColumns.CODE.value]
@@ -97,12 +98,12 @@ class Dataset:
     """Class to represent a specific dataset from Eurostat."""
     db: Database
     code: str
-    lang: Optional[Language] = field(default=None)
+    lang: Language | None = field(default=None)
     _param_info: ParamsInfo = field(init=False, default_factory=dict)
     _df: pd.DataFrame = field(init=False)
     _params: list[str] = field(init=False, default_factory=list)
 
-    def set_language(self, lang: Optional[Language]):
+    def set_language(self, lang: Language | None):
         self.lang = lang
 
     @handle_ssl_error
@@ -142,7 +143,7 @@ class Dataset:
         df.columns = df.columns.map(replace)
 
     @property
-    def title(self):
+    def title(self) -> str:
         return self.db.toc.loc[
             self.db.toc[TOCColumns.CODE.value]
             == self.code, TOCColumns.TITLE.value

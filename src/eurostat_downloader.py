@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import time
 from typing import (
-    Union,
     Iterable,
     Any,
+    Literal
 )
 from enum import Enum
 from dataclasses import (
@@ -19,7 +19,7 @@ import pandas as pd
 from qgis.PyQt import (
     QtCore,
     QtWidgets,
-    QtGui
+    QtGui,
 )
 from qgis.core import (
     QgsVectorLayer,
@@ -35,7 +35,7 @@ from .ui import (
     UIParameterSectionDialog,
     UITimePeriodDialog
 )
-from .eurostat_data import (
+from .data import (
     Database,
     Dataset,
     Language
@@ -58,8 +58,9 @@ class Dialog(QtWidgets.QDialog):
         self.join_handler = JoinHandler(base=self)
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
-        self.dataset = None
-        self.subset = None
+        self.dataset: Dataset | None = None
+        self.subset: pd.DataFrame | None = None
+        self.filterer: DataFilterer | None = None
 
         # Init table of contents
         QtCore.QTimer.singleShot(1, self.initialize_database)
@@ -124,6 +125,7 @@ class Dialog(QtWidgets.QDialog):
         initializer.finished.connect(
             dialog.close
         )
+        initializer.error_ocurred.connect(self.handle_error_ocurred)
         initializer.start()
 
     def filter_toc(self):
@@ -183,7 +185,8 @@ class Dialog(QtWidgets.QDialog):
         assert isinstance(layer, QgsVectorLayer)
         if layer.featureCount() > 100_000:
             # Don't infer join field if there are more than 100k features.
-            return
+            # NOTE: This is arbitrary, can be changed in the future.
+            return None
         df = self.converter.to_dataframe(layer=layer)
         geo = self.ui.comboTableJoinField.currentText()
         unique_values = self.model.pandas._data[geo].unique()
@@ -250,12 +253,13 @@ class Dialog(QtWidgets.QDialog):
 
     def update_model(self):
         assert self.dataset is not None
+        assert self.filterer is not None
         self.model = DatasetModel(
             estat_dataset=self.dataset, filterer=self.filterer
         )
         self.ui.tableDataset.setModel(self.model.pandas)
 
-    def open_section_ui(self, idx):
+    def open_section_ui(self, idx: int):
         assert self.dataset is not None
         section_name = self.dataset.df.columns[idx]
         if section_name in self.dataset.params:
@@ -264,24 +268,40 @@ class Dialog(QtWidgets.QDialog):
             TimeSectionDialog(base=self, name=section_name)
 
     def reset_dataset_table(self):
+        assert self.filterer is not None
         if self.dataset is not None:
             self.filterer.remove_row_filters()
             self.filterer.set_column_filters()
             self.update_model()
 
+    def handle_error_ocurred(
+        self,
+        exception: Exception,
+        action: Literal['raise', 'print'] = 'raise'
+    ):
+        if action == 'print':
+            print(exception)
+        elif action == 'raise':
+            raise exception
+
 
 class DatabaseInitializer(QtCore.QThread):
+    error_ocurred = QtCore.pyqtSignal(Exception, name="errorOcurred")
+
     def __init__(self, base: Dialog):
         self.base = base
         super().__init__(self.base)
 
     def run(self):
-        self.base.ui.listDatabase.clear()
-        self.base.database.initialize_toc()
-        titles = self.base.database.get_titles()
-        codes = self.base.database.get_codes()
-        items = '[' + codes + '] ' + titles
-        self.base.ui.listDatabase.addItems(items)
+        try:
+            self.base.ui.listDatabase.clear()
+            self.base.database.initialize_toc()
+            titles = self.base.database.get_titles()
+            codes = self.base.database.get_codes()
+            items = '[' + codes + '] ' + titles
+            self.base.ui.listDatabase.addItems(items)
+        except Exception as e:
+            self.error_ocurred.emit(e)
 
 
 class DatasetInitializer(QtCore.QThread):
@@ -630,7 +650,7 @@ class DataFilterer:
         return self.dataset.df
 
     @property
-    def date_columns(self) -> Union[list[str], list]:
+    def date_columns(self) -> list[str] | list:
         return np.setdiff1d(self.column, self.dataset.params).tolist()
 
     def apply_filters(self):
@@ -650,7 +670,7 @@ class DataFilterer:
 
     def set_column_filters(
         self,
-        filters: Union[None, str, Iterable[str]] = None
+        filters: None | str | Iterable[str] = None
     ):
         if filters is None:
             filters = self.dataset.df.columns.to_list()
@@ -660,7 +680,7 @@ class DataFilterer:
 
     def remove_row_filters(
         self,
-        filters: Union[None, str, dict[str, Iterable], Iterable[str]] = None
+        filters: None | str | dict[str, Iterable] | Iterable[str] = None
     ):
         if filters is None:
             self.row = {}
@@ -676,7 +696,7 @@ class DataFilterer:
             for filter_ in filters:
                 self.row[filter_].clear()
 
-    def remove_column_filters(self, filters: Union[str, Iterable[str]]):
+    def remove_column_filters(self, filters: str | Iterable[str]):
         if isinstance(filters, str):
             self.column.remove(filters)
         elif isinstance(filters, Iterable):
