@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-from enum import (
-    Enum,
-    auto
-)
 from dataclasses import (
     dataclass,
     field
@@ -12,54 +7,20 @@ from dataclasses import (
 from itertools import product
 import concurrent.futures
 
-from . import eurostat
 import pandas as pd
 
-if TYPE_CHECKING:
-    from .settings import ProxySettings
-
-
-class TOCColumns(Enum):
-    """Enumerates the table of contents column names."""
-    TITLE = 'title'
-    CODE = 'code'
-
-
-class Language(Enum):
-    ENGLISH = 'en'
-    FRENCH = 'fr'
-    GERMAN = 'de'
-
-
-class Agency(Enum):
-    EUROSTAT = 'EUROSTAT'
-    COMEXT = 'COMEXT'
-    COMP = 'COMP'
-    EMPL = 'EMPL'
-    GROW = 'GROW'
-
-
-class ConnectionStatus(Enum):
-    AVAILABLE = auto()
-    UNAVAILABLE = auto()
+from . import eurostat
+from .settings import GLOBAL_SETTINGS
+from .enums import (
+    Language,
+    Agency,
+    ConnectionStatus,
+    TableOfContentsColumn
+)
 
 
 TableOfContents = dict[Agency, dict[Language, pd.DataFrame]]
 AgencyStatus = dict[Agency, ConnectionStatus]
-
-
-def set_eurostat_proxy(proxy_settings: ProxySettings) -> None:
-    if proxy_settings.host and proxy_settings.port:
-        # Create a dictionary with the proxy information
-        proxy_info = {
-            'https': [
-                proxy_settings.user,
-                proxy_settings.password,
-                f'http://{proxy_settings.host}:{proxy_settings.port}'
-            ]
-        }
-        # Set the proxy for the eurostat library
-        eurostat.setproxy(proxy_info)
 
 
 @dataclass
@@ -75,7 +36,7 @@ class Database:
         """Used to initialize the table of contents."""
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = executor.map(
-                self._set_toc, product(Language, Agency)
+                self._set_toc, product(Language, GLOBAL_SETTINGS.agencies)
             )
         for result in results:
             if result is not None:
@@ -113,7 +74,7 @@ class Database:
 
     @property
     def toc_titles(self) -> pd.Series[str]:
-        return self.toc[TOCColumns.TITLE.value]
+        return self.toc[TableOfContentsColumn.TITLE.value]
 
     @property
     def toc_size(self):
@@ -125,9 +86,9 @@ class Database:
             return self.toc
         # Concat the code and the title.
         concatenated: pd.Series[str] = (
-            self.toc[TOCColumns.CODE.value]
+            self.toc[TableOfContentsColumn.CODE.value]
             + ' '
-            + self.toc[TOCColumns.TITLE.value]
+            + self.toc[TableOfContentsColumn.TITLE.value]
         )
         # Check if keyword is in series.
         mask = concatenated.str.contains(pat=keyword, case=False, regex=False)
@@ -137,7 +98,7 @@ class Database:
     def get_titles(self, subset: pd.DataFrame | None = None) -> pd.Series[str]:
         if subset is None:
             subset = self.toc
-        return subset[TOCColumns.TITLE.value]
+        return subset[TableOfContentsColumn.TITLE.value]
 
     def get_codes(
         self,
@@ -145,7 +106,7 @@ class Database:
     ) -> pd.Series[str]:
         if subset is None:
             subset = self.toc
-        return subset[TOCColumns.CODE.value]
+        return subset[TableOfContentsColumn.CODE.value]
 
 
 ParamsInfo = dict[Language, dict[str, list[tuple[str, str]]]]
@@ -200,8 +161,8 @@ class Dataset:
     @property
     def title(self) -> str:
         return self.db.toc.loc[
-            self.db.toc[TOCColumns.CODE.value]
-            == self.code, TOCColumns.TITLE.value
+            self.db.toc[TableOfContentsColumn.CODE.value]
+            == self.code, TableOfContentsColumn.TITLE.value
         ].iloc[0]
 
     @property

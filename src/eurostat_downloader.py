@@ -5,9 +5,7 @@ from typing import (
     Iterable,
     Any,
     Literal,
-    TYPE_CHECKING
 )
-from enum import Enum
 from dataclasses import (
     dataclass,
     field
@@ -29,7 +27,6 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayerJoinInfo,
     QgsMapLayer,
-    QgsSettings
 )
 
 from .ui import (
@@ -41,16 +38,22 @@ from .ui import (
 from .data import (
     Database,
     Dataset,
-    Language,
-    ConnectionStatus
 )
-from .utils import CheckableComboBox
+from .utils import (
+    CheckableComboBox,
+    QComboboxCompleter
+)
 from .settings import (
     GLOBAL_SETTINGS,
-    get_qgis_proxy,
+    ProxySettings
 )
-if TYPE_CHECKING:
-    from .settings import ProxySettings
+from .enums import (
+    Language,
+    ConnectionStatus,
+    Agency,
+    GeoSectionName,
+    FrequencyType
+)
 
 
 class Dialog(QtWidgets.QDialog):
@@ -65,7 +68,6 @@ class Dialog(QtWidgets.QDialog):
 
         # Instantiate objects
         self.database = Database()
-        self.settings = QgsSettings()
         self.join_handler = JoinHandler(base=self)
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
@@ -110,8 +112,7 @@ class Dialog(QtWidgets.QDialog):
         self.ui.labelAgencyStatus.setToolTip('\n'.join(tooltip))
 
     def open_settings_ui(self):
-        qgis_proxy = get_qgis_proxy(self.settings)
-        settings_ui = SettingsDialog(self, qgis_proxy)
+        settings_ui = SettingsDialog(self)
 
     def set_layer_join_fields(self):
         layer = self.ui.qgsComboLayer.currentLayer()
@@ -156,6 +157,8 @@ class Dialog(QtWidgets.QDialog):
         initializer.finished.connect(self.set_agency_status_tooltip)
 
     def filter_toc(self):
+        if self.database.toc.empty:
+            return None
         self.ui.listDatabase.clear()
         self.subset = self.database.get_subset(
             self.ui.lineSearch.text()
@@ -205,7 +208,7 @@ class Dialog(QtWidgets.QDialog):
         items = get_combobox_items(self.ui.comboTableJoinField)
         for idx, item in enumerate(items):
             # Is this supposed to be this weird to iterate through an Enum?
-            if item in CommonGeoSectionNames._value2member_map_:
+            if item in GeoSectionName._value2member_map_:
                 self.ui.comboTableJoinField.setCurrentIndex(idx)
 
     def infer_join_field_idx_from_layer(self, layer: QgsMapLayer):
@@ -295,7 +298,11 @@ class Dialog(QtWidgets.QDialog):
             TimeSectionDialog(base=self, name=section_name)
 
     def reset_dataset_table(self):
-        assert self.filterer is not None
+        # In case no table was filled and the user presses
+        # the "Reset table" button
+        if self.filterer is None:
+            return None
+
         if self.dataset is not None:
             self.filterer.remove_row_filters()
             self.filterer.set_column_filters()
@@ -323,6 +330,8 @@ class DatabaseInitializer(QtCore.QThread):
         try:
             self.base.ui.listDatabase.clear()
             self.base.database.initialize_toc()
+            if self.base.database.toc.empty:
+                return None
             titles = self.base.database.get_titles()
             codes = self.base.database.get_codes()
             items = '[' + codes + '] ' + titles
@@ -470,24 +479,6 @@ class GeoParameterSectionDialog:
         self.name = name
 
 
-class CommonGeoSectionNames(Enum):
-    """Enumerates the common fields which describe geographic areas."""
-    # NOTE: Feel free to expand this enum
-    GEO = 'geo'
-    REP_MAR = 'rep_mar'
-    PAR_MAR = 'par_mar'
-    METROREG = 'metroreg'
-
-
-class FrequencyTypes(Enum):
-    """Enumerates the frequency types associated with a dataset."""
-    ANNUALLY = 'a'
-    SEMESTERLY = 's'
-    QUARTERLY = 'q'
-    MONTHLY = 'm'
-    DAILY = 'd'
-
-
 class TimeSectionDialog(QtWidgets.QDialog):
     def __init__(self, base: Dialog, name: str):
         super().__init__()
@@ -507,30 +498,42 @@ class TimeSectionDialog(QtWidgets.QDialog):
     def get_frequency_types(self):
         assert self.base.dataset is not None
         freq = self.base.dataset.frequency.lower()
-        if freq == FrequencyTypes.ANNUALLY.value:
+        if freq == FrequencyType.ANNUALLY.value:
             return ['Year']
-        elif freq == FrequencyTypes.SEMESTERLY.value:
+        elif freq == FrequencyType.SEMESTERLY.value:
             return ['Year', 'Semester']
-        elif freq == FrequencyTypes.QUARTERLY.value:
+        elif freq == FrequencyType.QUARTERLY.value:
             return ['Year', 'Quarter']
-        elif freq == FrequencyTypes.MONTHLY.value:
+        elif freq == FrequencyType.MONTHLY.value:
             return ['Year', 'Month']
-        elif freq == FrequencyTypes.DAILY.value:
+        elif freq == FrequencyType.DAILY.value:
             return ['Year', 'Month', 'Day']
         else:
             raise ValueError(f'No frequency column was found. Unknown {freq}.')
 
     def add_labels_to_frames(self, frequency: str):
+        def _add_label_to_frames(object_name: str, text: str):
+            for frame in (self.ui.frameStart, self.ui.frameEnd):
+                widget = QtWidgets.QLabel(parent=frame, text=text)
+                widget.setObjectName(object_name)
+                frame.layout().addWidget(widget)
+                setattr(frame, object_name, widget)
         frequency = frequency.capitalize()
         label_object_name = ''.join(['label', frequency])
-        self.ui.add_label_to_frames(
+        _add_label_to_frames(
             object_name=label_object_name, text=frequency
         )
 
     def add_combobox_to_frames(self, frequency: str):
+        def _add_combobox_to_frames(object_name: str):
+            for frame in (self.ui.frameStart, self.ui.frameEnd):
+                widget = QComboboxCompleter(parent=frame)
+                widget.setObjectName(object_name)
+                frame.layout().addWidget(widget)
+                setattr(frame, object_name, widget)
         frequency = frequency.capitalize()
         combo_object_name = ''.join(['combo', frequency])
-        self.ui.add_combobox_to_frames(object_name=combo_object_name)
+        _add_combobox_to_frames(object_name=combo_object_name)
 
     def add_widgets_to_frames(self):
         for frequency in self.get_frequency_types():
@@ -667,37 +670,83 @@ class SettingsDialog(QtWidgets.QDialog):
     def __init__(
         self,
         base: Dialog,
-        proxy_settings: ProxySettings | None = None
     ):
         super().__init__()
         self.base = base
         self.ui = UiSettingsDialog()
         self.ui.setupUi(self)
-        self.proxy_settings = proxy_settings
-        if self.proxy_settings is not None:
-            self.set_proxy_settings_default(self.proxy_settings)
+
+        self._agencies_checkboxes: dict[Agency, QtWidgets.QCheckBox] = {
+            Agency.COMEXT: self.ui.checkBoxAgencyCOMEXT,
+            Agency.COMP: self.ui.checkBoxAgencyCOMP,
+            Agency.EMPL: self.ui.checkBoxAgencyEMPL,
+            Agency.EUROSTAT: self.ui.checkBoxAgencyEUROSTAT,
+            Agency.GROW: self.ui.checkBoxAgencyGROW,
+        }
+        assert all(
+            agency in self._agencies_checkboxes for agency in Agency
+        ), 'Update the agency global settings combobox dict'
+
+        self.restore_global_settings()
+        ok_btn = self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
+        ok_btn.clicked.connect(self.update_global_settings)
         self.exec_()
 
     def update_global_settings(self):
-        # TODO
-        dict_ = self.ui.__dict__
+
+        # Connection SSL
         GLOBAL_SETTINGS.verify_ssl = (
             self.ui.checkBoxVerifySSL.isChecked()
         )
-        
-        # We select by
-        filter_logic = partial(
-            str.startswith, prefix='checkBoxAgency'
+
+        # Agencies
+
+        # TODO: maybe make an abstraction instead of
+        # hardcoding the checkboxes?
+        # e.g. filter the self.ui__dict__ by
+        # the attributes starting with 'checkBoxAgency'
+        agencies_checkboxes_bool: dict[Agency, bool] = {
+            k: v.isChecked() for k, v in self._agencies_checkboxes.items()
+        }
+        selected_agencies = [
+            agency for agency, checked
+            in agencies_checkboxes_bool.items() if checked
+        ]
+        if not selected_agencies:
+            selected_agencies = list(Agency)
+        GLOBAL_SETTINGS.agencies = selected_agencies
+
+        # Proxy
+        host = self.ui.lineEditProxyHost.text()
+        port = self.ui.lineEditProxyPort.text()
+        user = self.ui.lineEditProxyUser.text()
+        password = self.ui.lineEditProxyPassword.text()
+        GLOBAL_SETTINGS.proxy = ProxySettings(
+            host,
+            port,
+            user,
+            password
         )
 
-    def set_proxy_settings_default(
-        self,
-        proxy_settings: ProxySettings
-    ):
-        self.ui.lineEditProxyHost.setText(proxy_settings.host)
-        self.ui.lineEditProxyPort.setText(proxy_settings.port)
-        self.ui.lineEditProxyUser.setText(proxy_settings.user)
-        self.ui.lineEditProxyPassword.setText(proxy_settings.user)
+    def restore_global_settings(self):
+        # Restore agency settings
+        if GLOBAL_SETTINGS.agencies:
+            for agency, checkbox in self._agencies_checkboxes.items():
+                if agency not in GLOBAL_SETTINGS.agencies:
+                    checkbox.setChecked(False)
+
+        # Restore SLL setting
+        self.ui.checkBoxVerifySSL.setChecked(GLOBAL_SETTINGS.verify_ssl)
+
+        # Restore proxy settings
+        if GLOBAL_SETTINGS.proxy is not None:
+            self.ui.lineEditProxyHost.setText(GLOBAL_SETTINGS.proxy.host)
+            self.ui.lineEditProxyPort.setText(GLOBAL_SETTINGS.proxy.port)
+            self.ui.lineEditProxyUser.setText(GLOBAL_SETTINGS.proxy.user)
+            self.ui.lineEditProxyPassword.setText(
+                GLOBAL_SETTINGS.proxy.password
+            )
+
 
 
 @dataclass
@@ -816,6 +865,8 @@ class Exporter:
         self.base = base
 
     def add_table(self):
+        if self.base.dataset is None:
+            return None
         table = self.base.converter.table
         table.setName(self.base.dataset.code)
         QgsProject.instance().addMapLayer(table)  # type: ignore
@@ -854,7 +905,13 @@ class JoinHandler:
         return join_info
 
     def join_table_to_layer(self):
-        self.base.ui.qgsComboLayer.currentLayer().addJoin(self.join_info)
+        current_layer = self.base.ui.qgsComboLayer.currentLayer()
+        if (
+            self.base.dataset is None
+            or current_layer is None
+        ):
+            return None
+        current_layer.addJoin(self.join_info)
 
 
 class QgsConverter:

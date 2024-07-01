@@ -289,29 +289,6 @@ class UITimePeriodDialog:
         self.labelStart.setText(_translate("SelectTimePeriod", "Select start time"))
         self.labelEnd.setText(_translate("SelectTimePeriod", "Select end time"))
         self.buttonReset.setText(_translate("SelectTimePeriod", "Reset values"))
-    
-    def add_combobox_to_frames(self, object_name: str):
-        for frame in (self.frameStart, self.frameEnd):
-            widget = QComboboxCompleter(parent=frame)
-            widget.setObjectName(object_name)
-            frame.layout().addWidget(widget)
-            setattr(frame, object_name, widget)
-    
-    def add_label_to_frames(self, object_name: str, text: str):
-        for frame in (self.frameStart, self.frameEnd):
-            widget = QtWidgets.QLabel(parent=frame, text=text)
-            widget.setObjectName(object_name)
-            frame.layout().addWidget(widget)
-            setattr(frame, object_name, widget)
-
-
-class QComboboxCompleter(QtWidgets.QComboBox):
-    
-    def __init__(self, parent):
-        super().__init__(parent=parent)
-        self.setEditable(True)
-        self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
-        self.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
 
 
 class UiSettingsDialog(object):

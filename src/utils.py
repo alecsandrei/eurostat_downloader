@@ -134,12 +134,10 @@ class CheckableComboBox(QtWidgets.QComboBox):
         return res
 
 
-def handle_ssl_error(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except SSLError:
-            eurostat.set_requests_args(verify=False)
-            func(*args, **kwargs)
-    return wrapper
+class QComboboxCompleter(QtWidgets.QComboBox):
+    
+    def __init__(self, parent):
+        super().__init__(parent=parent)
+        self.setEditable(True)
+        self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
