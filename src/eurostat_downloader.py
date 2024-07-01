@@ -4,7 +4,8 @@ import time
 from typing import (
     Iterable,
     Any,
-    Literal
+    Literal,
+    TYPE_CHECKING
 )
 from enum import Enum
 from dataclasses import (
@@ -28,19 +29,28 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayerJoinInfo,
     QgsMapLayer,
+    QgsSettings
 )
 
 from .ui import (
     UIDialog,
     UIParameterSectionDialog,
-    UITimePeriodDialog
+    UITimePeriodDialog,
+    UiSettingsDialog
 )
 from .data import (
     Database,
     Dataset,
-    Language
+    Language,
+    ConnectionStatus
 )
 from .utils import CheckableComboBox
+from .settings import (
+    GLOBAL_SETTINGS,
+    get_qgis_proxy,
+)
+if TYPE_CHECKING:
+    from .settings import ProxySettings
 
 
 class Dialog(QtWidgets.QDialog):
@@ -55,6 +65,7 @@ class Dialog(QtWidgets.QDialog):
 
         # Instantiate objects
         self.database = Database()
+        self.settings = QgsSettings()
         self.join_handler = JoinHandler(base=self)
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
@@ -62,10 +73,10 @@ class Dialog(QtWidgets.QDialog):
         self.subset: pd.DataFrame | None = None
         self.filterer: DataFilterer | None = None
 
-        # Init table of contents
-        QtCore.QTimer.singleShot(1, self.initialize_database)
-
         # Signals
+        self.ui.pushButtonInitializeTOC.clicked.connect(
+            self.initialize_database
+        )
         self.ui.qgsComboLayer.layerChanged.connect(self.set_layer_join_fields)
         self.ui.qgsComboLayer.layerChanged.connect(
             self.set_layer_join_field_default
@@ -77,6 +88,7 @@ class Dialog(QtWidgets.QDialog):
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(
             self.open_section_ui
         )
+        self.ui.toolButtonSettings.clicked.connect(self.open_settings_ui)
         self.ui.buttonReset.clicked.connect(self.reset_dataset_table)
         self.ui.buttonAdd.clicked.connect(self.exporter.add_table)
         self.ui.buttonJoin.clicked.connect(
@@ -87,6 +99,19 @@ class Dialog(QtWidgets.QDialog):
         ):
             language_check.stateChanged.connect(self.update_language_check)
             language_check.stateChanged.connect(self.filter_toc)
+
+    def set_agency_status_tooltip(self):
+        tooltip = ['Agency server accessibility']
+        for agency, status in self.database._agency_status.items():
+            mark = '✅' if status == ConnectionStatus.AVAILABLE else '❎'
+            tooltip.append(
+                f'{agency.name} {mark}'
+            )
+        self.ui.labelAgencyStatus.setToolTip('\n'.join(tooltip))
+
+    def open_settings_ui(self):
+        qgis_proxy = get_qgis_proxy(self.settings)
+        settings_ui = SettingsDialog(self, qgis_proxy)
 
     def set_layer_join_fields(self):
         layer = self.ui.qgsComboLayer.currentLayer()
@@ -127,6 +152,8 @@ class Dialog(QtWidgets.QDialog):
         )
         initializer.error_ocurred.connect(self.handle_error_ocurred)
         initializer.start()
+
+        initializer.finished.connect(self.set_agency_status_tooltip)
 
     def filter_toc(self):
         self.ui.listDatabase.clear()
@@ -634,6 +661,43 @@ class TimeSectionDialog(QtWidgets.QDialog):
     def restore(self):
         self.restore_start_combobox()
         self.restore_end_combobox()
+
+
+class SettingsDialog(QtWidgets.QDialog):
+    def __init__(
+        self,
+        base: Dialog,
+        proxy_settings: ProxySettings | None = None
+    ):
+        super().__init__()
+        self.base = base
+        self.ui = UiSettingsDialog()
+        self.ui.setupUi(self)
+        self.proxy_settings = proxy_settings
+        if self.proxy_settings is not None:
+            self.set_proxy_settings_default(self.proxy_settings)
+        self.exec_()
+
+    def update_global_settings(self):
+        # TODO
+        dict_ = self.ui.__dict__
+        GLOBAL_SETTINGS.verify_ssl = (
+            self.ui.checkBoxVerifySSL.isChecked()
+        )
+        
+        # We select by
+        filter_logic = partial(
+            str.startswith, prefix='checkBoxAgency'
+        )
+
+    def set_proxy_settings_default(
+        self,
+        proxy_settings: ProxySettings
+    ):
+        self.ui.lineEditProxyHost.setText(proxy_settings.host)
+        self.ui.lineEditProxyPort.setText(proxy_settings.port)
+        self.ui.lineEditProxyUser.setText(proxy_settings.user)
+        self.ui.lineEditProxyPassword.setText(proxy_settings.user)
 
 
 @dataclass

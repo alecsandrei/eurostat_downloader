@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from enum import Enum
+from typing import TYPE_CHECKING
+from enum import (
+    Enum,
+    auto
+)
 from dataclasses import (
     dataclass,
     field
@@ -8,10 +12,11 @@ from dataclasses import (
 from itertools import product
 import concurrent.futures
 
-import eurostat
+from . import eurostat
 import pandas as pd
 
-from .utils import handle_ssl_error
+if TYPE_CHECKING:
+    from .settings import ProxySettings
 
 
 class TOCColumns(Enum):
@@ -26,13 +31,42 @@ class Language(Enum):
     GERMAN = 'de'
 
 
-TableOfContents = dict[Language, pd.DataFrame]
+class Agency(Enum):
+    EUROSTAT = 'EUROSTAT'
+    COMEXT = 'COMEXT'
+    COMP = 'COMP'
+    EMPL = 'EMPL'
+    GROW = 'GROW'
+
+
+class ConnectionStatus(Enum):
+    AVAILABLE = auto()
+    UNAVAILABLE = auto()
+
+
+TableOfContents = dict[Agency, dict[Language, pd.DataFrame]]
+AgencyStatus = dict[Agency, ConnectionStatus]
+
+
+def set_eurostat_proxy(proxy_settings: ProxySettings) -> None:
+    if proxy_settings.host and proxy_settings.port:
+        # Create a dictionary with the proxy information
+        proxy_info = {
+            'https': [
+                proxy_settings.user,
+                proxy_settings.password,
+                f'http://{proxy_settings.host}:{proxy_settings.port}'
+            ]
+        }
+        # Set the proxy for the eurostat library
+        eurostat.setproxy(proxy_info)
 
 
 @dataclass
 class Database:
     lang: Language = field(default=Language.ENGLISH)
     _toc: TableOfContents = field(init=False, default_factory=dict)
+    _agency_status: AgencyStatus = field(init=False, default_factory=dict)
 
     def set_language(self, lang: Language):
         self.lang = lang
@@ -40,18 +74,42 @@ class Database:
     def initialize_toc(self):
         """Used to initialize the table of contents."""
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = executor.map(self._set_toc, Language)
+            results = executor.map(
+                self._set_toc, product(Language, Agency)
+            )
         for result in results:
             if result is not None:
                 result.exception()
 
-    @handle_ssl_error
-    def _set_toc(self, lang: Language):
-        self._toc[lang] = eurostat.get_toc_df(lang=lang.value)
+    def _set_toc(
+        self,
+        params: tuple[Language, Agency]
+    ):
+        lang, agency = params
+        self._toc.setdefault(agency, {})
+        # If status was for this agency was already unavailable, return
+        status = self._agency_status.get(agency, None)
+        if status is not None:
+            if status == ConnectionStatus.UNAVAILABLE:
+                return None
+        try:
+            self._toc[agency][lang] = (
+                eurostat.get_toc_df(agency=agency.value, lang=lang.value)
+            )
+            self._agency_status[agency] = ConnectionStatus.AVAILABLE
+        except ConnectionError:
+            self._agency_status[agency] = ConnectionStatus.UNAVAILABLE
+
+    def _get_toc(self, lang: Language) -> pd.DataFrame:
+        toc = pd.DataFrame()
+        for data in self._toc.values():
+            if (df := data.get(lang, None)) is not None:
+                toc = pd.concat([toc, df], ignore_index=True)
+        return toc
 
     @property
     def toc(self) -> pd.DataFrame:
-        return self._toc[self.lang]
+        return self._get_toc(self.lang)
 
     @property
     def toc_titles(self) -> pd.Series[str]:
@@ -106,11 +164,9 @@ class Dataset:
     def set_language(self, lang: Language | None):
         self.lang = lang
 
-    @handle_ssl_error
     def _set_pars(self):
         self._params.extend(eurostat.get_pars(self.code))
 
-    @handle_ssl_error
     def _set_param_info(self, data: tuple[str, Language]):
         param, lang = data[0], data[1]
         dic = eurostat.get_dic(
@@ -118,7 +174,6 @@ class Dataset:
         )
         self._param_info.setdefault(lang, {})[param] = dic
 
-    @handle_ssl_error
     def _set_df(self):
         data_df = eurostat.get_data_df(code=self.code)
         assert data_df is not None

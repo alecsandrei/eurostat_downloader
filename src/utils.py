@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+import functools
+
 from requests.exceptions import SSLError
-import eurostat
+from . import eurostat
 from qgis.PyQt import (
     QtCore,
     QtWidgets,
@@ -131,6 +135,7 @@ class CheckableComboBox(QtWidgets.QComboBox):
 
 
 def handle_ssl_error(func):
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
             func(*args, **kwargs)

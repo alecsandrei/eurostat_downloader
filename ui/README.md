@@ -1,1 +1,1 @@
-Here you can find the ui files. The code itself uses the .py conversions of these ui files.
+Here you can find the ui files. The code itself uses the .py conversions of these ui files, so these files are actually never read by the code. This might change in the future.
