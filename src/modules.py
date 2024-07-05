@@ -264,7 +264,7 @@ class MissingModulesDialog(QtWidgets.QDialog):
 
 class MissingModulesInstaller(QtCore.QThread):
 
-    subprocess_result = QtCore.pyqtSignal(int, int | None)
+    subprocess_result = QtCore.pyqtSignal(int, int)
 
     def __init__(
         self,
@@ -297,6 +297,7 @@ class MissingModulesInstaller(QtCore.QThread):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
+            # Normally, return_code should never be emitted as None
             return_code = None
             while True:
                 if completed_process.stdout is None:
@@ -328,6 +329,4 @@ class MissingModulesInstaller(QtCore.QThread):
                         ])
                         self.ui.labelLogs.setText(new_text)
                     break
-            self.subprocess_result.emit(
-                table_row, return_code
-            )
+            self.subprocess_result.emit(table_row, return_code)

@@ -525,7 +525,7 @@ class MissingModules(object):
         self.label_2.setText(_translate("MissingModules", "<html><head/><body><p><span style=\" font-size:18pt; font-weight:600;\">WARNING</span></p></body></html>"))
         self.pushButtonLetUserInstall.setText(_translate("MissingModules", "Handle the missing modules myself"))
         self.pushButtonInstall.setToolTip(_translate("MissingModules", "<html><head/><body><p>The modules will be installed in the plugin folder. It will not interfere with the QGIS default Python site package. Removing the Eurostat Downloader plugin will also remove the installed modules. This option is only available if the pip module (https://pypi.org/project/pip/) is already installed.</p></body></html>"))
-        self.pushButtonInstall.setText(_translate("MissingModules", "Let the plugin Install the missing modules for me"))
+        self.pushButtonInstall.setText(_translate("MissingModules", "Let the plugin install the missing modules for me"))
         item = self.tableWidgetModules.horizontalHeaderItem(0)
         item.setText(_translate("MissingModules", "Name"))
         item = self.tableWidgetModules.horizontalHeaderItem(1)

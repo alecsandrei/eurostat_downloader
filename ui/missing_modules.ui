@@ -57,7 +57,7 @@
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The modules will be installed in the plugin folder. It will not interfere with the QGIS default Python site package. Removing the Eurostat Downloader plugin will also remove the installed modules. This option is only available if the pip module (https://pypi.org/project/pip/) is already installed.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="text">
-      <string>Let the plugin Install the missing modules for me</string>
+      <string>Let the plugin install the missing modules for me</string>
      </property>
     </widget>
    </item>

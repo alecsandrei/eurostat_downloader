@@ -3,7 +3,7 @@ name=Eurostat downloader
 qgisMinimumVersion=3.00
 qgisMaximumVersion=3.99
 description=This plugin can be used to get data using the Eurostat API.
-about=Eurostat Downloader can be used to add Eurostat datasets as tables in QGIS and join them with vector layers. For a guide on how to use the package, check the homepage. Depends on the 'eurostat' python package.
+about=Eurostat Downloader can be used to add Eurostat datasets as tables in QGIS and join them with vector layers. For a guide on how to use the package, check the homepage. Depends on the 'eurostat' python package. After installing it, make sure to give QGIS a restart.
 version=0.3.0
 author=Cuvuliuc Alex-Andrei
 email=cuvuliucalexandrei@gmail.com
@@ -19,7 +19,7 @@ changelog=
         * The server availability for each separate agency is now shown.
         * Can now specify settings such as SSL verification, proxy and agencies to fetch data from.
         * If the 'eurostat' package is not found, a helper dialog pops up after installing the plugin (also should fix issue #3).
-        * Fix for issue #4.
+        * This release should fix issue #4.
       0.2.1
         * Added error handling for SSLError (issue #2).
       0.2.0

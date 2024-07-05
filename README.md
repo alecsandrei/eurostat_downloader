@@ -5,32 +5,29 @@ image source: *https://ec.europa.eu/eurostat*
 
 It can be used to add Eurostat datasets as tables in QGIS and join them with vector layers.
 
-# External dependencies
+# Installing external Python dependencies
 
 In order for this plugin to run properly, the [eurostat python package](https://pypi.org/project/eurostat/) needs to be installed. It is available via PyPi.
 
-## Installing dependencies on Linux and Windows
+## Installing dependencies
 
-Users of these two platforms are not required to do anything. The external dependencies are already provided inside the plugin folder. If issues appear regarding plugin dependencies, please contact me and let me know.
+If the [eurostat python package](https://pypi.org/project/eurostat/) is missing, a dialog will pop up which should assist the inexperienced user.
 
-## Installing dependencies on macOS
+![Missing modules dialog](assets/missing_modules_dialog.png)
 
-For macOS users, check tutorials online on how to handle the installation of external python packages. The [eurostat python package](https://pypi.org/project/eurostat/) needs to be installed.
-
-- https://gis.stackexchange.com/questions/351280/installing-python-modules-for-qgis-3-on-mac
-- https://gis.stackexchange.com/questions/419975/pip-install-inside-qgis-fails
+If you choose to install them this way, they will be installed in the plugin folder. Removing the Eurostat Downloader plugin will also remove the installed packages. This option is only available if pip (https://pypi.org/project/pip/) is available.
 
 # How to install the plugin
 
 ## Option 1: from the QGIS plugin repository
 
-The plugin is available in the [QGIS plugin repository](https://plugins.qgis.org/plugins/eurostat_downloader/). It is currently flagged as an experimental plugin, so you will have enable the *Show also experimental* plugins setting by going to *Plugins -> Manage and install plugins -> Settings*. After enabling this setting, you can find the plugin by searching for it in the *All* tab. 
+The plugin is available in the [QGIS plugin repository](https://plugins.qgis.org/plugins/eurostat_downloader/). The latest version might be flagged as an experimental plugin, so you will have enable the *Show also experimental* plugins setting by going to *Plugins -> Manage and install plugins -> Settings*. After enabling this setting, you can find the plugin by searching for it in the *All* tab. 
 
 ## Option 2: manually, from the releases page
 
 Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and download the zip file associated with the latest release (eurostat_downloader.zip). After that, in QGIS, go to *Plugins -> Manage and Install Plugins -> Install* from zip and select the downloaded zip file.
 
-# How to use the plugin
+# How to use the plugin (might be outdated).
 
 [Video tutorial 1](https://www.youtube.com/watch?v=ijo2JOL88Y0)
 [Release 0.2.0 updates](https://www.youtube.com/watch?v=5cJnTPmUayI)
