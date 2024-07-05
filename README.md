@@ -31,7 +31,7 @@ The plugin is available in the [QGIS plugin repository](https://plugins.qgis.org
 
 Navigate [here](https://github.com/alecsandrei/eurostat_downloader/releases) and download the zip file associated with the latest release (eurostat_downloader.zip). After that, in QGIS, go to *Plugins -> Manage and Install Plugins -> Install* from zip and select the downloaded zip file.
 
-# How to use the plugin (might be outdated).
+# How to use the plugin (might be outdated)
 
 [Video tutorial 1](https://www.youtube.com/watch?v=ijo2JOL88Y0)
 
