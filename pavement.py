@@ -27,85 +27,28 @@ options(
         package_dir=path('.'),
         tests=['test', 'tests'],
         excludes=[
-            ".vscode",
-            "ui",
-            "src/__pycache__",
-            ".mypy_cache",
-            "*.pyc",
-            ".git",
-            ".idea",
-            ".gitignore",
-            "__pycache__",
-            "media",
-            "eurostat_downloader.zip"
+            '.vscode',
+            'ui',
+            '.mypy_cache',
+            'scripts',
+            '*.pyc',
+            '.git',
+            '.idea',
+            '.gitignore',
+            '*/__pycache__',
+            'eurostat_downloader.zip',
+            'extlibs'
         ]
     ),
 )
 
 
-@task
-@cmdopts([('clean', 'c', 'clean out dependencies first')])
-def setup():
-    clean = getattr(options, 'clean', False)
-    ext_libs = options.plugin.ext_libs
-    if clean:
-        ext_libs.rmtree()
-    ext_libs.makedirs()
-    reqs = read_requirements()
-    os.environ['PYTHONPATH'] = ext_libs.abspath()
-    for req in reqs:
-        if platform.system() == "Windows":
-            sh('pip install -U -t "{ext_libs}" "{dep}"'.format(ext_libs=ext_libs.abspath(), dep=req))
-        else:
-            sh('pip3 install -U -t "{ext_libs}" "{dep}"'.format(ext_libs=ext_libs.abspath(), dep=req))
-    remove_numpy()
-
-
-@task
-def install(options):
-    '''install plugin to qgis'''
-    plugin_name = options.plugin.name
-    src = path(__file__).dirname()
-    if platform.system() == "Windows":
-        dst = path('~/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins').expanduser() / plugin_name
-    # if platform.system() == "Darwin":
-    #     dst = path(
-    #         '~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins').expanduser() / plugin_name
-    if platform.system() == "Linux":
-        dst = path('~/.local/share/QGIS/QGIS3/profiles/default/python/plugins').expanduser() / plugin_name
-    src = src.abspath()
-    dst = dst.abspath()
-    if not hasattr(os, 'symlink'):
-        dst.rmtree()
-        src.copytree(dst)
-    elif not dst.exists():
-        src.symlink(dst)
-
-
-def read_requirements():
-    '''return a list of packages in requirements file'''
-    with open('requirements.txt') as f:
-        return [l.strip('\n') for l in f if l.strip('\n') and not l.startswith('#')]
-
-
-def remove_numpy():
-    """Numpy comes by default with QGIS so it doesnt have to be installed."""
-    ext_libs = options.plugin.ext_libs
-    for entry in os.listdir(ext_libs):
-        if entry.startswith('numpy'):
-            entry_path = os.path.join(ext_libs, entry)
-            if os.path.isdir(entry_path):
-                shutil.rmtree(entry_path)
-            else:
-                os.remove(entry_path)
-
 
 @task
 @cmdopts([('tests', 't', 'Package tests with plugin')])
 def package(options):
-    '''create package for plugin'''
     package_file = options.plugin.package_dir / ('%s.zip' % options.plugin.name)
-    with zipfile.ZipFile(package_file, "w", zipfile.ZIP_LZMA) as f:
+    with zipfile.ZipFile(package_file, 'w', zipfile.ZIP_LZMA) as f:
         if not hasattr(options.package, 'tests'):
             options.plugin.excludes.extend(options.plugin.tests)
         make_zip(f, options)

@@ -13,8 +13,8 @@ from dataclasses import (
 import itertools
 from functools import partial
 
-import numpy as np
 import pandas as pd
+import numpy as np
 from qgis.PyQt import (
     QtCore,
     QtWidgets,
@@ -112,7 +112,7 @@ class Dialog(QtWidgets.QDialog):
         self.ui.labelAgencyStatus.setToolTip('\n'.join(tooltip))
 
     def open_settings_ui(self):
-        settings_ui = SettingsDialog(self)
+        SettingsDialog(self)
 
     def set_layer_join_fields(self):
         layer = self.ui.qgsComboLayer.currentLayer()
@@ -313,6 +313,7 @@ class Dialog(QtWidgets.QDialog):
         exception: Exception,
         action: Literal['raise', 'print'] = 'raise'
     ):
+        # First 'if' is for debugging reasons.
         if action == 'print':
             print(exception)
         elif action == 'raise':
@@ -357,7 +358,7 @@ class LoadingLabel(QtCore.QThread):
 
     def __init__(self, label: str, base=None):
         self.base = base
-        super().__init__(base)
+        super().__init__(self.base)
         self.label = label
 
     def spin(self):
@@ -676,6 +677,10 @@ class SettingsDialog(QtWidgets.QDialog):
         self.ui = UiSettingsDialog()
         self.ui.setupUi(self)
 
+        # TODO: maybe make an abstraction instead of
+        # hardcoding the checkboxes?
+        # e.g. filter the self.ui__dict__ by
+        # the attributes starting with 'checkBoxAgency'
         self._agencies_checkboxes: dict[Agency, QtWidgets.QCheckBox] = {
             Agency.COMEXT: self.ui.checkBoxAgencyCOMEXT,
             Agency.COMP: self.ui.checkBoxAgencyCOMP,
@@ -700,11 +705,6 @@ class SettingsDialog(QtWidgets.QDialog):
         )
 
         # Agencies
-
-        # TODO: maybe make an abstraction instead of
-        # hardcoding the checkboxes?
-        # e.g. filter the self.ui__dict__ by
-        # the attributes starting with 'checkBoxAgency'
         agencies_checkboxes_bool: dict[Agency, bool] = {
             k: v.isChecked() for k, v in self._agencies_checkboxes.items()
         }

@@ -1,1 +1,1 @@
-eurostat
+eurostat>=1.1.0

@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import functools
-
-from requests.exceptions import SSLError
-from . import eurostat
 from qgis.PyQt import (
     QtCore,
     QtWidgets,
@@ -135,7 +131,7 @@ class CheckableComboBox(QtWidgets.QComboBox):
 
 
 class QComboboxCompleter(QtWidgets.QComboBox):
-    
+
     def __init__(self, parent):
         super().__init__(parent=parent)
         self.setEditable(True)
