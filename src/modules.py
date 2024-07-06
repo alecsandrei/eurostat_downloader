@@ -285,6 +285,12 @@ class MissingModulesInstaller(QtCore.QThread):
             version = module_state.module.version
             if operator is not None and version is not None:
                 name = ''.join([name, operator.value, str(version)])
+            startupinfo = None
+            if sys.platform == 'win32':
+                startupinfo = subprocess.STARTUPINFO()  # type: ignore
+                startupinfo.dwFlags |= (
+                    subprocess.STARTF_USESHOWWINDOW  # type: ignore
+                )
             completed_process = subprocess.Popen([
                 PY_EXECUTABLE.as_posix(),
                 '-m',
@@ -295,7 +301,8 @@ class MissingModulesInstaller(QtCore.QThread):
                 name,
             ],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                startupinfo=startupinfo
             )
             # Normally, return_code should never be emitted as None
             return_code = None

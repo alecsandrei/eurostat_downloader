@@ -50,32 +50,31 @@ def classFactory(iface):
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    if pip_missing():
-        message = (
-            'Python "pip" was not found and the required packages '
-            'could not be installed. The Eurostat Downloader plugin '
-            'will not work.'
-        )
-        (iface
-         .messageBar()
-         .pushMessage('ERROR', message,
-                      level=Qgis.MessageLevel.Critical)
-         )
-    else:
-        if MODULES_INSTALL_FOLDER.as_posix() not in sys.path:
-            # sys.path.insert(-1, MODULES_INSTALL_FOLDER.as_posix())
-            site.addsitedir(MODULES_INSTALL_FOLDER.as_posix())
-        missing_modules = handle_missing_modules()
-        if missing_modules is not None:
+    if MODULES_INSTALL_FOLDER.as_posix() not in sys.path:
+        # sys.path.insert(-1, MODULES_INSTALL_FOLDER.as_posix())
+        site.addsitedir(MODULES_INSTALL_FOLDER.as_posix())
+    missing_modules = handle_missing_modules()
+    if missing_modules is not None:
+        if pip_missing():
             message = (
-                'The following packages were not found '
-                f'or could not be installed: {", ".join(missing_modules)}. '
-                'The Eurostat Downloader plugin might not work.'
+                'Python "pip" was not found and the required packages '
+                'could not be installed. The Eurostat Downloader plugin '
+                'will not work.'
             )
             (iface
             .messageBar()
             .pushMessage('ERROR', message,
                         level=Qgis.MessageLevel.Critical)
             )
+        message = (
+            'The following packages were not found '
+            f'or could not be installed: {", ".join(missing_modules)}. '
+            'The Eurostat Downloader plugin might not work.'
+        )
+        (iface
+        .messageBar()
+        .pushMessage('ERROR', message,
+                    level=Qgis.MessageLevel.Critical)
+        )
     from .eurostat_downloader import EurostatDownloader
     return EurostatDownloader(iface)
