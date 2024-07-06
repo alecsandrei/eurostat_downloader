@@ -67,6 +67,7 @@ We can also join the data to the vector layer we downloaded earlier. By default,
 
 # TODOs
 - [ ] Integrate [gisco-geodata](https://github.com/alecsandrei/gisco-geodata) into the plugin.
+- [ ] Add the possibility to filter by agency (use the information from the already existing settings dialog).
 
 # Disclaimer
 
