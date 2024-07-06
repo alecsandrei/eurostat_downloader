@@ -1,4 +1,5 @@
 ![Alt text](assets/eurostat.png "Title")
+
 image source: *https://ec.europa.eu/eurostat*
 
 # Eurostat downloader QGIS plugin
