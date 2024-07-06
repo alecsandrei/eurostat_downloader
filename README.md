@@ -17,7 +17,7 @@ If the [eurostat python package](https://pypi.org/project/eurostat/) is missing,
 
 If you choose to install them this way, they will be installed in the plugin folder. Removing the Eurostat Downloader plugin will also remove the installed packages. This option is only available if pip (https://pypi.org/project/pip/) is available.
 
-If the packages were installed correctly, they will be marked with the color red, like this.
+If the packages were installed correctly, they will be marked with the color green, like this.
 
 ![Missing modules dialog green](assets/missing_modules_dialog_green.png)
 
