@@ -306,7 +306,6 @@ class MissingModulesInstaller(QtCore.QThread):
                     startupinfo=startupinfo
                 )
             except Exception as e:
-                print(e)
                 raise e
             # Normally, return_code should never be emitted as None
             return_code = None
