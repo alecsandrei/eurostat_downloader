@@ -29,7 +29,7 @@ PY_VERSION = platform.python_version_tuple()
 if sys.platform == 'win32':
     PY_EXECUTABLE = QGS_PREFIX_PATH.parent / f'Python{PY_VERSION[0]}{PY_VERSION[1]}' / 'python.exe'  # noqa
 elif sys.platform == 'linux':
-    PY_EXECUTABLE = QGS_PREFIX_PATH / 'bin' / 'python'
+    PY_EXECUTABLE = QGS_PREFIX_PATH / 'bin' / F'python{PY_VERSION[0]}.{PY_VERSION[1]}'  # noqa
 elif sys.platform == 'darwin':
     # TODO I have no idea what to do for Mac OS here. can someone help out?
     # I will keep same as linux until someone contributes
@@ -291,19 +291,23 @@ class MissingModulesInstaller(QtCore.QThread):
                 startupinfo.dwFlags |= (
                     subprocess.STARTF_USESHOWWINDOW  # type: ignore
                 )
-            completed_process = subprocess.Popen([
-                PY_EXECUTABLE.as_posix(),
-                '-m',
-                'pip',
-                'install',
-                '-t',
-                MODULES_INSTALL_FOLDER.as_posix(),
-                name,
-            ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                startupinfo=startupinfo
-            )
+            try:
+                completed_process = subprocess.Popen([
+                    PY_EXECUTABLE.as_posix(),
+                    '-m',
+                    'pip',
+                    'install',
+                    '-t',
+                    MODULES_INSTALL_FOLDER.as_posix(),
+                    name,
+                ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    startupinfo=startupinfo
+                )
+            except Exception as e:
+                print(e)
+                raise e
             # Normally, return_code should never be emitted as None
             return_code = None
             while True:
