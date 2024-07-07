@@ -1,4 +1,6 @@
 """This script initializes the plugin, making it known to QGIS."""
+from __future__ import annotations
+
 import sys
 import site
 

@@ -34,7 +34,7 @@ elif sys.platform == 'darwin':
     # TODO I have no idea what to do for Mac OS here. can someone help out?
     # I will keep same as linux until someone contributes
     # The goal is to have PY_EXECUTABLE point to the python executable
-    PY_EXECUTABLE = QGS_PREFIX_PATH / 'bin' / 'python'
+    PY_EXECUTABLE = QGS_PREFIX_PATH / 'bin' / F'python{PY_VERSION[0]}.{PY_VERSION[1]}'  # noqa
 
 
 REQUIREMENTS_FILE = Path(__file__).parent.parent / 'requirements.txt'
