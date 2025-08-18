@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
 import importlib
+from typing import Any
 
 from .settings import GLOBAL_SETTINGS
-from .modules import MODULES_INSTALL_FOLDER
-
 
 __all__ = ['eurostat']
 

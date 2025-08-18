@@ -1,50 +1,50 @@
 from __future__ import annotations
 
+import itertools
 import time
+from dataclasses import dataclass, field
+from functools import partial
 from typing import (
-    Iterable,
     Any,
+    Iterable,
     Literal,
 )
-from dataclasses import dataclass, field
-import itertools
-from functools import partial
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+from qgis.core import (
+    QgsFeature,
+    QgsField,
+    QgsMapLayer,
+    QgsProject,
+    QgsVectorLayer,
+    QgsVectorLayerJoinInfo,
+)
 from qgis.PyQt import (
     QtCore,
-    QtWidgets,
     QtGui,
-)
-from qgis.core import (
-    QgsVectorLayer,
-    QgsField,
-    QgsFeature,
-    QgsProject,
-    QgsVectorLayerJoinInfo,
-    QgsMapLayer,
+    QtWidgets,
 )
 
-from .ui import (
-    UIDialog,
-    UIParameterSectionDialog,
-    UITimePeriodDialog,
-    UiSettingsDialog,
-)
 from .data import (
     Database,
     Dataset,
 )
-from .utils import CheckableComboBox, QComboboxCompleter
-from .settings import GLOBAL_SETTINGS, ProxySettings
 from .enums import (
-    Language,
-    ConnectionStatus,
     Agency,
-    GeoSectionName,
+    ConnectionStatus,
     FrequencyType,
+    GeoSectionName,
+    Language,
 )
+from .settings import GLOBAL_SETTINGS, ProxySettings
+from .ui import (
+    UIDialog,
+    UIParameterSectionDialog,
+    UiSettingsDialog,
+    UITimePeriodDialog,
+)
+from .utils import CheckableComboBox, QComboboxCompleter
 
 
 class Dialog(QtWidgets.QDialog):

@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import concurrent.futures
 from dataclasses import dataclass, field
 from itertools import product
-import concurrent.futures
 
 import pandas as pd
 
 from . import eurostat
+from .enums import Agency, ConnectionStatus, Language, TableOfContentsColumn
 from .settings import GLOBAL_SETTINGS
-from .enums import Language, Agency, ConnectionStatus, TableOfContentsColumn
-
 
 TableOfContents = dict[Agency, dict[Language, pd.DataFrame]]
 AgencyStatus = dict[Agency, ConnectionStatus]

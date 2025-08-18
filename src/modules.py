@@ -2,22 +2,21 @@
 
 from __future__ import annotations
 
-import itertools
-import sys
-import subprocess
-from collections.abc import Iterable
-from pathlib import Path
-from enum import Enum, auto
-from typing import NamedTuple
-import pkgutil
 import importlib.metadata
+import itertools
+import pkgutil
 import platform
+import subprocess
+import sys
+from collections.abc import Iterable
+from enum import Enum, auto
+from pathlib import Path
+from typing import NamedTuple
 
 from qgis.core import QgsApplication
-from qgis.PyQt import QtWidgets, QtCore, QtGui
+from qgis.PyQt import QtCore, QtGui, QtWidgets
 
 from .ui import MissingModules
-
 
 QGS_PREFIX_PATH = Path(QgsApplication.prefixPath())
 PY_VERSION = platform.python_version_tuple()

@@ -3,17 +3,12 @@
 # Ideally, in the future, there should be a better way to do this
 # e.g. read the ui files directly instead of creating this py file.
 # I did this so that I can have autocomplete and type hints in my IDE.
+from __future__ import annotations
 
-
-from qgis.PyQt import QtCore, QtWidgets, QtGui
 from qgis import gui
-from qgis.gui import (
-    QgsMapLayerComboBox,
-    QgsFieldComboBox,
-)
-from qgis.core import QgsMapLayerProxyModel
+from qgis.PyQt import QtCore, QtGui, QtWidgets
 
-from ..resources import *
+# from ..resources import *
 
 
 class UIDialog:
