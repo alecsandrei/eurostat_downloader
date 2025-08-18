@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from qgis.PyQt import (
-    QtCore,
-    QtWidgets,
-    QtGui
-)
+from qgis.PyQt import QtCore, QtWidgets, QtGui
 
 
 class CheckableComboBox(QtWidgets.QComboBox):
@@ -42,7 +38,6 @@ class CheckableComboBox(QtWidgets.QComboBox):
         super().resizeEvent(event)
 
     def eventFilter(self, object, event):
-
         if object == self.lineEdit():
             if event.type() == QtCore.QEvent.Type.MouseButtonRelease:
                 if self.closeOnLineEditClick:
@@ -89,7 +84,7 @@ class CheckableComboBox(QtWidgets.QComboBox):
                 == QtCore.Qt.CheckState.Checked
             ):
                 texts.append(self.model().item(i).text())
-        text = ", ".join(texts)
+        text = ', '.join(texts)
 
         # Compute elided text (with "...")
         metrics = QtGui.QFontMetrics(self.lineEdit().font())
@@ -109,8 +104,14 @@ class CheckableComboBox(QtWidgets.QComboBox):
             item.setData(text)
         else:
             item.setData(data)
-        item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
-        item.setData(QtCore.Qt.CheckState.Unchecked, QtCore.Qt.ItemDataRole.CheckStateRole)
+        item.setFlags(
+            QtCore.Qt.ItemFlag.ItemIsEnabled
+            | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+        )
+        item.setData(
+            QtCore.Qt.CheckState.Unchecked,
+            QtCore.Qt.ItemDataRole.CheckStateRole,
+        )
         self.model().appendRow(item)
 
     def addItems(self, texts, datalist=None):
@@ -125,13 +126,15 @@ class CheckableComboBox(QtWidgets.QComboBox):
         # Return the list of selected items data
         res = []
         for i in range(self.model().rowCount()):
-            if self.model().item(i).checkState() == QtCore.Qt.CheckState.Checked:
+            if (
+                self.model().item(i).checkState()
+                == QtCore.Qt.CheckState.Checked
+            ):
                 res.append(self.model().item(i).data())
         return res
 
 
 class QComboboxCompleter(QtWidgets.QComboBox):
-
     def __init__(self, parent):
         super().__init__(parent=parent)
         self.setEditable(True)

@@ -29,14 +29,12 @@ class _EurostatLoader:
             return None
         if GLOBAL_SETTINGS.proxy.host and GLOBAL_SETTINGS.proxy.port:
             # Create a dictionary with the proxy information
-            proxy = (
-                f'http://{GLOBAL_SETTINGS.proxy.host}:{GLOBAL_SETTINGS.proxy.port}'  # noqa
-            )
+            proxy = f'http://{GLOBAL_SETTINGS.proxy.host}:{GLOBAL_SETTINGS.proxy.port}'  # noqa
             proxy_info = {
                 'https': [
                     GLOBAL_SETTINGS.proxy.user,
                     GLOBAL_SETTINGS.proxy.password,
-                    proxy
+                    proxy,
                 ]
             }
             # Set the proxy for the eurostat library

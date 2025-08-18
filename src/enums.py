@@ -1,11 +1,9 @@
-from enum import (
-    Enum,
-    auto
-)
+from enum import Enum, auto
 
 
 class TableOfContentsColumn(Enum):
     """Enumerates the table of contents column names."""
+
     TITLE = 'title'
     CODE = 'code'
 
@@ -31,6 +29,7 @@ class ConnectionStatus(Enum):
 
 class GeoSectionName(Enum):
     """Enumerates the common fields which describe geographic areas."""
+
     # NOTE: Feel free to expand this enum
     GEO = 'geo'
     REP_MAR = 'rep_mar'
@@ -40,6 +39,7 @@ class GeoSectionName(Enum):
 
 class FrequencyType(Enum):
     """Enumerates the frequency types associated with a dataset."""
+
     ANNUALLY = 'a'
     SEMESTERLY = 's'
     QUARTERLY = 'q'

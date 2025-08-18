@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 from typing import NamedTuple
-from dataclasses import (
-    dataclass,
-    field
-)
+from dataclasses import dataclass, field
 
-from qgis.core import (
-    QgsNetworkAccessManager,
-    QgsSettings
-)
+from qgis.core import QgsNetworkAccessManager, QgsSettings
 
 from .enums import Agency
 
@@ -24,12 +18,12 @@ class ProxySettings(NamedTuple):
 def _get_qgis_proxy() -> None | ProxySettings:
     # This function was taken from the QuickMapServices plugin.
     # module https://github.com/nextgis/quickmapservices/blob/master/src/qgis_settings.py  # noqa
-    proxy_enabled = QGS_SETTINGS.value('proxy/proxyEnabled', u'', type=unicode)
-    proxy_type = QGS_SETTINGS.value('proxy/proxyType', u'', type=unicode)
-    proxy_host = QGS_SETTINGS.value('proxy/proxyHost', u'', type=unicode)
-    proxy_port = QGS_SETTINGS.value('proxy/proxyPort', u'', type=unicode)
-    proxy_user = QGS_SETTINGS.value('proxy/proxyUser', u'', type=unicode)
-    proxy_password = QGS_SETTINGS.value('proxy/proxyPassword', u'', type=unicode)
+    proxy_enabled = QGS_SETTINGS.value('proxy/proxyEnabled', '', type=unicode)
+    proxy_type = QGS_SETTINGS.value('proxy/proxyType', '', type=unicode)
+    proxy_host = QGS_SETTINGS.value('proxy/proxyHost', '', type=unicode)
+    proxy_port = QGS_SETTINGS.value('proxy/proxyPort', '', type=unicode)
+    proxy_user = QGS_SETTINGS.value('proxy/proxyUser', '', type=unicode)
+    proxy_password = QGS_SETTINGS.value('proxy/proxyPassword', '', type=unicode)
 
     if proxy_enabled == 'true':
         if proxy_type == 'DefaultProxy':
@@ -41,13 +35,13 @@ def _get_qgis_proxy() -> None | ProxySettings:
             proxy_password = proxy.password()
 
         if proxy_type in [
-            'DefaultProxy', 'Socks5Proxy', 'HttpProxy', 'HttpCachingProxy'
+            'DefaultProxy',
+            'Socks5Proxy',
+            'HttpProxy',
+            'HttpCachingProxy',
         ]:
             return ProxySettings(
-                proxy_host,
-                proxy_port,
-                proxy_user,
-                proxy_password
+                proxy_host, proxy_port, proxy_user, proxy_password
             )
 
     return None

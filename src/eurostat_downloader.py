@@ -6,10 +6,7 @@ from typing import (
     Any,
     Literal,
 )
-from dataclasses import (
-    dataclass,
-    field
-)
+from dataclasses import dataclass, field
 import itertools
 from functools import partial
 
@@ -33,31 +30,24 @@ from .ui import (
     UIDialog,
     UIParameterSectionDialog,
     UITimePeriodDialog,
-    UiSettingsDialog
+    UiSettingsDialog,
 )
 from .data import (
     Database,
     Dataset,
 )
-from .utils import (
-    CheckableComboBox,
-    QComboboxCompleter
-)
-from .settings import (
-    GLOBAL_SETTINGS,
-    ProxySettings
-)
+from .utils import CheckableComboBox, QComboboxCompleter
+from .settings import GLOBAL_SETTINGS, ProxySettings
 from .enums import (
     Language,
     ConnectionStatus,
     Agency,
     GeoSectionName,
-    FrequencyType
+    FrequencyType,
 )
 
 
 class Dialog(QtWidgets.QDialog):
-
     def __init__(self):
         super().__init__()
 
@@ -84,9 +74,7 @@ class Dialog(QtWidgets.QDialog):
             self.set_layer_join_field_default
         )
         self.ui.lineSearch.textChanged.connect(self.filter_toc)
-        self.ui.listDatabase.itemPressed.connect(
-            self.set_dataset_table
-        )
+        self.ui.listDatabase.itemPressed.connect(self.set_dataset_table)
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(
             self.open_section_ui
         )
@@ -97,7 +85,9 @@ class Dialog(QtWidgets.QDialog):
             self.join_handler.join_table_to_layer
         )
         for language_check in (
-            self.ui.checkEnglish, self.ui.checkGerman, self.ui.checkFrench
+            self.ui.checkEnglish,
+            self.ui.checkGerman,
+            self.ui.checkFrench,
         ):
             language_check.stateChanged.connect(self.update_language_check)
             language_check.stateChanged.connect(self.filter_toc)
@@ -106,9 +96,7 @@ class Dialog(QtWidgets.QDialog):
         tooltip = ['Agency server accessibility']
         for agency, status in self.database._agency_status.items():
             mark = '✅' if status == ConnectionStatus.AVAILABLE else '❎'
-            tooltip.append(
-                f'{agency.name} {mark}'
-            )
+            tooltip.append(f'{agency.name} {mark}')
         self.ui.labelAgencyStatus.setToolTip('\n'.join(tooltip))
 
     def open_settings_ui(self):
@@ -129,28 +117,14 @@ class Dialog(QtWidgets.QDialog):
         self.ui.listDatabase.clear()
         initializer = DatabaseInitializer(self)
         dialog = LoadingDialog(self)
-        loading_label = LoadingLabel(
-            'initializing table of contents', self
-        )
-        initializer.started.connect(
-            partial(self.set_gui_state, False)
-        )
-        initializer.started.connect(
-            dialog.show
-        )
+        loading_label = LoadingLabel('initializing table of contents', self)
+        initializer.started.connect(partial(self.set_gui_state, False))
+        initializer.started.connect(dialog.show)
         loading_label.update_label.connect(dialog.update_loading_label)
-        initializer.started.connect(
-            loading_label.start
-        )
-        initializer.finished.connect(
-            partial(self.set_gui_state, True)
-        )
-        initializer.finished.connect(
-            loading_label.requestInterruption
-        )
-        initializer.finished.connect(
-            dialog.close
-        )
+        initializer.started.connect(loading_label.start)
+        initializer.finished.connect(partial(self.set_gui_state, True))
+        initializer.finished.connect(loading_label.requestInterruption)
+        initializer.finished.connect(dialog.close)
         initializer.error_ocurred.connect(self.handle_error_ocurred)
         initializer.start()
 
@@ -160,9 +134,7 @@ class Dialog(QtWidgets.QDialog):
         if self.database.toc.empty:
             return None
         self.ui.listDatabase.clear()
-        self.subset = self.database.get_subset(
-            self.ui.lineSearch.text()
-        )
+        self.subset = self.database.get_subset(self.ui.lineSearch.text())
         titles = self.database.get_titles(subset=self.subset)
         codes = self.database.get_codes(subset=self.subset)
         items = '[' + codes + '] ' + titles
@@ -179,7 +151,9 @@ class Dialog(QtWidgets.QDialog):
 
     def update_language_check(self):
         language_checks = [
-            self.ui.checkEnglish, self.ui.checkFrench, self.ui.checkGerman
+            self.ui.checkEnglish,
+            self.ui.checkFrench,
+            self.ui.checkGerman,
         ]
         sender = self.sender()
         assert isinstance(sender, QtWidgets.QCheckBox)
@@ -236,32 +210,20 @@ class Dialog(QtWidgets.QDialog):
         self.dataset = Dataset(
             db=self.database,
             code=self.get_selected_dataset_code(),
-            lang=self.get_selected_language()
+            lang=self.get_selected_language(),
         )
         initializer = DatasetInitializer(self)
         dialog = LoadingDialog(self)
         loading_label = LoadingLabel(
             f'initializing dataset "{self.dataset.code}"', self
         )
-        initializer.started.connect(
-            partial(self.set_gui_state, False)
-        )
-        initializer.started.connect(
-            dialog.show
-        )
+        initializer.started.connect(partial(self.set_gui_state, False))
+        initializer.started.connect(dialog.show)
         loading_label.update_label.connect(dialog.update_loading_label)
-        initializer.started.connect(
-            loading_label.start
-        )
-        initializer.finished.connect(
-            partial(self.set_gui_state, True)
-        )
-        initializer.finished.connect(
-            loading_label.requestInterruption
-        )
-        initializer.finished.connect(
-            dialog.close
-        )
+        initializer.started.connect(loading_label.start)
+        initializer.finished.connect(partial(self.set_gui_state, True))
+        initializer.finished.connect(loading_label.requestInterruption)
+        initializer.finished.connect(dialog.close)
         initializer.start()
         initializer.finished.connect(self.set_table_join_fields)
         initializer.finished.connect(self.set_table_join_field_default)
@@ -276,9 +238,7 @@ class Dialog(QtWidgets.QDialog):
         self.ui.comboBoxColumnsToJoin.close()
         self.ui.comboBoxColumnsToJoin = checkable
         assert self.dataset is not None
-        self.ui.comboBoxColumnsToJoin.addItems(
-            self.dataset.params
-        )
+        self.ui.comboBoxColumnsToJoin.addItems(self.dataset.params)
         self.ui.comboBoxColumnsToJoin.setCurrentIndex(-1)
 
     def update_model(self):
@@ -309,9 +269,7 @@ class Dialog(QtWidgets.QDialog):
             self.update_model()
 
     def handle_error_ocurred(
-        self,
-        exception: Exception,
-        action: Literal['raise', 'print'] = 'raise'
+        self, exception: Exception, action: Literal['raise', 'print'] = 'raise'
     ):
         # First 'if' is for debugging reasons.
         if action == 'print':
@@ -321,7 +279,7 @@ class Dialog(QtWidgets.QDialog):
 
 
 class DatabaseInitializer(QtCore.QThread):
-    error_ocurred = QtCore.pyqtSignal(Exception, name="errorOcurred")
+    error_ocurred = QtCore.pyqtSignal(Exception, name='errorOcurred')
 
     def __init__(self, base: Dialog):
         self.base = base
@@ -390,7 +348,6 @@ class LoadingDialog(QtWidgets.QDialog):
 
 
 class ParameterSectionDialog(QtWidgets.QDialog):
-
     def __init__(self, base: Dialog, name: str):
         super().__init__()
         self.base = base
@@ -414,11 +371,9 @@ class ParameterSectionDialog(QtWidgets.QDialog):
     def filter_toc(self):
         assert self.base.dataset is not None
         if self.base.dataset.lang is not None:
-            names = (
-                self.base.dataset.params_info
-                [self.base.dataset.lang]
-                [self.name]
-            )
+            names = self.base.dataset.params_info[self.base.dataset.lang][
+                self.name
+            ]
             assert names is not None
             items = [f'{abbrev} [{name}]' for abbrev, name in names]
         else:
@@ -451,16 +406,13 @@ class ParameterSectionDialog(QtWidgets.QDialog):
                 item.setHidden(search_text not in item_text)
 
     def get_selected_items(self):
-        return (
-            [self.get_listitem_text_abbrev(item)
-             for item in self.ui.listItems.selectedItems()]
-        )
+        return [
+            self.get_listitem_text_abbrev(item)
+            for item in self.ui.listItems.selectedItems()
+        ]
 
     def section_type_handler(self):
-        if (
-            self.name
-            == (geo_field := self.base.get_current_table_join_field())
-        ):
+        if self.name == (geo_field := self.base.get_current_table_join_field()):
             GeoParameterSectionDialog(section_dialog=self, name=geo_field)
 
     def filter_table(self):
@@ -519,11 +471,10 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 widget.setObjectName(object_name)
                 frame.layout().addWidget(widget)
                 setattr(frame, object_name, widget)
+
         frequency = frequency.capitalize()
         label_object_name = ''.join(['label', frequency])
-        _add_label_to_frames(
-            object_name=label_object_name, text=frequency
-        )
+        _add_label_to_frames(object_name=label_object_name, text=frequency)
 
     def add_combobox_to_frames(self, frequency: str):
         def _add_combobox_to_frames(object_name: str):
@@ -532,6 +483,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 widget.setObjectName(object_name)
                 frame.layout().addWidget(widget)
                 setattr(frame, object_name, widget)
+
         frequency = frequency.capitalize()
         combo_object_name = ''.join(['combo', frequency])
         _add_combobox_to_frames(object_name=combo_object_name)
@@ -547,10 +499,11 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
-            widget.addItems(self.base.dataset.date_columns
-                            .str.split('-')
-                            .str.get(idx)
-                            .unique())
+            widget.addItems(
+                self.base.dataset.date_columns.str.split('-')
+                .str.get(idx)
+                .unique()
+            )
 
     def add_items_to_end_combobox(self):
         for idx, frequency in enumerate(self.get_frequency_types()):
@@ -558,11 +511,11 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
-            items = (self.base.dataset
-                     .date_columns
-                     .str.split('-')
-                     .str.get(idx)
-                     .unique())
+            items = (
+                self.base.dataset.date_columns.str.split('-')
+                .str.get(idx)
+                .unique()
+            )
             widget.addItems(items)
 
     def add_items_to_combobox(self):
@@ -604,7 +557,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
             end = cols.index(self.get_end_time_combobox())
         except ValueError:
             end = len(cols) - 1
-        cols_filtered = cols[start:end+1]
+        cols_filtered = cols[start : end + 1]
         cols = self.base.dataset.params + cols_filtered
         self.base.filterer.set_column_filters(filters=cols)
         self.base.update_model()
@@ -688,9 +641,9 @@ class SettingsDialog(QtWidgets.QDialog):
             Agency.EUROSTAT: self.ui.checkBoxAgencyEUROSTAT,
             Agency.GROW: self.ui.checkBoxAgencyGROW,
         }
-        assert all(
-            agency in self._agencies_checkboxes for agency in Agency
-        ), 'Update the agency global settings combobox dict'
+        assert all(agency in self._agencies_checkboxes for agency in Agency), (
+            'Update the agency global settings combobox dict'
+        )
 
         self.restore_global_settings()
         ok_btn = self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
@@ -698,19 +651,17 @@ class SettingsDialog(QtWidgets.QDialog):
         self.exec_()
 
     def update_global_settings(self):
-
         # Connection SSL
-        GLOBAL_SETTINGS.verify_ssl = (
-            self.ui.checkBoxVerifySSL.isChecked()
-        )
+        GLOBAL_SETTINGS.verify_ssl = self.ui.checkBoxVerifySSL.isChecked()
 
         # Agencies
         agencies_checkboxes_bool: dict[Agency, bool] = {
             k: v.isChecked() for k, v in self._agencies_checkboxes.items()
         }
         selected_agencies = [
-            agency for agency, checked
-            in agencies_checkboxes_bool.items() if checked
+            agency
+            for agency, checked in agencies_checkboxes_bool.items()
+            if checked
         ]
         if not selected_agencies:
             selected_agencies = list(Agency)
@@ -721,12 +672,7 @@ class SettingsDialog(QtWidgets.QDialog):
         port = self.ui.lineEditProxyPort.text()
         user = self.ui.lineEditProxyUser.text()
         password = self.ui.lineEditProxyPassword.text()
-        GLOBAL_SETTINGS.proxy = ProxySettings(
-            host,
-            port,
-            user,
-            password
-        )
+        GLOBAL_SETTINGS.proxy = ProxySettings(host, port, user, password)
 
     def restore_global_settings(self):
         # Restore agency settings
@@ -746,7 +692,6 @@ class SettingsDialog(QtWidgets.QDialog):
             self.ui.lineEditProxyPassword.setText(
                 GLOBAL_SETTINGS.proxy.password
             )
-
 
 
 @dataclass
@@ -781,10 +726,7 @@ class DataFilterer:
             for value in values:
                 self.row.setdefault(col, []).append(value)
 
-    def set_column_filters(
-        self,
-        filters: None | str | Iterable[str] = None
-    ):
+    def set_column_filters(self, filters: None | str | Iterable[str] = None):
         if filters is None:
             filters = self.dataset.df.columns.to_list()
         elif isinstance(filters, str):
@@ -792,8 +734,7 @@ class DataFilterer:
         self.column = list(filters)
 
     def remove_row_filters(
-        self,
-        filters: None | str | dict[str, Iterable] | Iterable[str] = None
+        self, filters: None | str | dict[str, Iterable] | Iterable[str] = None
     ):
         if filters is None:
             self.row = {}
@@ -829,6 +770,7 @@ class DatasetModel:
 
 class PandasModel(QtCore.QAbstractTableModel):
     """Class to turn a pandas dataframe into a QAbstractTableModel."""
+
     def __init__(self, data: pd.DataFrame, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self._data = data
@@ -895,7 +837,7 @@ class JoinHandler:
         join_info.setJoinFieldNamesSubset(
             itertools.chain(
                 self.base.ui.comboBoxColumnsToJoin.currentData(),
-                self.base.dataset.date_columns
+                self.base.dataset.date_columns,
             )
         )
         join_info.setJoinLayerId(table.id())
@@ -906,10 +848,7 @@ class JoinHandler:
 
     def join_table_to_layer(self):
         current_layer = self.base.ui.qgsComboLayer.currentLayer()
-        if (
-            self.base.dataset is None
-            or current_layer is None
-        ):
+        if self.base.dataset is None or current_layer is None:
             return None
         current_layer.addJoin(self.join_info)
 
@@ -941,14 +880,12 @@ class QgsConverter:
     @staticmethod
     def to_dataframe(layer: QgsVectorLayer):
         # Source code: https://stackoverflow.com/a/76153082
-        return (
-            pd.DataFrame(
-                [
-                    feat.attributes()
-                    for feat in layer.getFeatures()  # type: ignore
-                ],
-                columns=[field.name() for field in layer.fields()]
-            )
+        return pd.DataFrame(
+            [
+                feat.attributes()
+                for feat in layer.getFeatures()  # type: ignore
+            ],
+            columns=[field.name() for field in layer.fields()],
         )
 
     def from_dataframe(self, df: pd.DataFrame) -> QgsVectorLayer:

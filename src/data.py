@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import (
-    dataclass,
-    field
-)
+from dataclasses import dataclass, field
 from itertools import product
 import concurrent.futures
 
@@ -11,12 +8,7 @@ import pandas as pd
 
 from . import eurostat
 from .settings import GLOBAL_SETTINGS
-from .enums import (
-    Language,
-    Agency,
-    ConnectionStatus,
-    TableOfContentsColumn
-)
+from .enums import Language, Agency, ConnectionStatus, TableOfContentsColumn
 
 
 TableOfContents = dict[Agency, dict[Language, pd.DataFrame]]
@@ -42,10 +34,7 @@ class Database:
             if result is not None:
                 result.exception()
 
-    def _set_toc(
-        self,
-        params: tuple[Language, Agency]
-    ):
+    def _set_toc(self, params: tuple[Language, Agency]):
         lang, agency = params
         self._toc.setdefault(agency, {})
         # If status was for this agency was already unavailable, return
@@ -54,8 +43,8 @@ class Database:
             if status == ConnectionStatus.UNAVAILABLE:
                 return None
         try:
-            self._toc[agency][lang] = (
-                eurostat.get_toc_df(agency=agency.value, lang=lang.value)
+            self._toc[agency][lang] = eurostat.get_toc_df(
+                agency=agency.value, lang=lang.value
             )
             self._agency_status[agency] = ConnectionStatus.AVAILABLE
         except ConnectionError:
@@ -100,10 +89,7 @@ class Database:
             subset = self.toc
         return subset[TableOfContentsColumn.TITLE.value]
 
-    def get_codes(
-        self,
-        subset: pd.DataFrame | None = None
-    ) -> pd.Series[str]:
+    def get_codes(self, subset: pd.DataFrame | None = None) -> pd.Series[str]:
         if subset is None:
             subset = self.toc
         return subset[TableOfContentsColumn.CODE.value]
@@ -115,6 +101,7 @@ ParamsInfo = dict[Language, dict[str, list[tuple[str, str]]]]
 @dataclass
 class Dataset:
     """Class to represent a specific dataset from Eurostat."""
+
     db: Database
     code: str
     lang: Language | None = field(default=None)
@@ -156,13 +143,14 @@ class Dataset:
     def remove_time_period_str(df: pd.DataFrame):
         def replace(col: str):
             return col.replace(r'\TIME_PERIOD', '')
+
         df.columns = df.columns.map(replace)
 
     @property
     def title(self) -> str:
         return self.db.toc.loc[
-            self.db.toc[TableOfContentsColumn.CODE.value]
-            == self.code, TableOfContentsColumn.TITLE.value
+            self.db.toc[TableOfContentsColumn.CODE.value] == self.code,
+            TableOfContentsColumn.TITLE.value,
         ].iloc[0]
 
     @property
@@ -181,7 +169,7 @@ class Dataset:
 
     @property
     def date_columns(self):
-        return self.df.columns[len(self.params):]
+        return self.df.columns[len(self.params) :]
 
     @property
     def params(self) -> list[str]:

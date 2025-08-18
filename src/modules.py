@@ -14,11 +14,7 @@ import importlib.metadata
 import platform
 
 from qgis.core import QgsApplication
-from qgis.PyQt import (
-    QtWidgets,
-    QtCore,
-    QtGui
-)
+from qgis.PyQt import QtWidgets, QtCore, QtGui
 
 from .ui import MissingModules
 
@@ -27,14 +23,22 @@ QGS_PREFIX_PATH = Path(QgsApplication.prefixPath())
 PY_VERSION = platform.python_version_tuple()
 
 if sys.platform == 'win32':
-    PY_EXECUTABLE = QGS_PREFIX_PATH.parent / f'Python{PY_VERSION[0]}{PY_VERSION[1]}' / 'python.exe'  # noqa
+    PY_EXECUTABLE = (
+        QGS_PREFIX_PATH.parent
+        / f'Python{PY_VERSION[0]}{PY_VERSION[1]}'
+        / 'python.exe'
+    )  # noqa
 elif sys.platform == 'linux':
-    PY_EXECUTABLE = QGS_PREFIX_PATH / 'bin' / F'python{PY_VERSION[0]}.{PY_VERSION[1]}'  # noqa
+    PY_EXECUTABLE = (
+        QGS_PREFIX_PATH / 'bin' / f'python{PY_VERSION[0]}.{PY_VERSION[1]}'
+    )  # noqa
 elif sys.platform == 'darwin':
     # TODO I have no idea what to do for Mac OS here. can someone help out?
     # I will keep same as linux until someone contributes
     # The goal is to have PY_EXECUTABLE point to the python executable
-    PY_EXECUTABLE = QGS_PREFIX_PATH / 'bin' / F'python{PY_VERSION[0]}.{PY_VERSION[1]}'  # noqa
+    PY_EXECUTABLE = (
+        QGS_PREFIX_PATH / 'bin' / f'python{PY_VERSION[0]}.{PY_VERSION[1]}'
+    )  # noqa
 
 
 REQUIREMENTS_FILE = Path(__file__).parent.parent / 'requirements.txt'
@@ -56,11 +60,7 @@ class State(Enum):
     WRONG_VERSION = auto()
 
     def to_user_text(self):
-        return (
-            self.name
-            .capitalize()
-            .replace('_', ' ')
-        )
+        return self.name.capitalize().replace('_', ' ')
 
 
 class ComparisonOperator(Enum):
@@ -84,9 +84,7 @@ class Version(NamedTuple):
         # Fill vals up to 3. NOTE: Is there a better way?
         vals.extend(itertools.repeat(None, 3 - len(vals)))
         # Mypy is not happy with star unpack here.
-        return Version(
-            vals[0], vals[1], vals[2]
-        )
+        return Version(vals[0], vals[1], vals[2])
 
 
 class ModuleRequired(NamedTuple):
@@ -113,7 +111,7 @@ def get_reqs() -> Requirements:
         for line in requirements_file:
             line = line.strip()
             try:
-                line = line[:line.index('#')]
+                line = line[: line.index('#')]
             except ValueError:
                 ...
             line = ''.join([char for char in line if not char.isspace()])
@@ -123,9 +121,7 @@ def get_reqs() -> Requirements:
             if not any(
                 operator.value in line for operator in ComparisonOperator
             ):
-                requirements.append(
-                    ModuleRequired(line, None, None)
-                )
+                requirements.append(ModuleRequired(line, None, None))
                 continue
             for operator in ComparisonOperator:
                 if (operator_val := operator.value) not in line:
@@ -133,7 +129,7 @@ def get_reqs() -> Requirements:
                 operator_idx = line.index(operator_val)
                 module_name = line[:operator_idx]
                 version = Version.from_string(
-                    line[operator_idx + len(operator_val):]
+                    line[operator_idx + len(operator_val) :]
                 )
                 requirements.append(
                     ModuleRequired(module_name, operator, version)
@@ -151,13 +147,9 @@ def check_if_missing(requirements: Requirements) -> Modules:
     module_names = [module.name for module in get_modules()]
     for req in requirements:
         if req.name not in module_names:
-            modules.append(
-                ModuleState(req, State.NOT_FOUND, None)
-            )
+            modules.append(ModuleState(req, State.NOT_FOUND, None))
         elif req.version is None:
-            modules.append(
-                ModuleState(req, State.FOUND, None)
-            )
+            modules.append(ModuleState(req, State.FOUND, None))
         else:
             found_version = Version.from_string(
                 importlib.metadata.version(req.name)
@@ -174,14 +166,11 @@ def check_if_missing(requirements: Requirements) -> Modules:
                     ModuleState(req, State.WRONG_VERSION, found_version)
                 )
             else:
-                modules.append(
-                    ModuleState(req, State.FOUND, found_version)
-                )
+                modules.append(ModuleState(req, State.FOUND, found_version))
     return modules
 
 
 class MissingModulesDialog(QtWidgets.QDialog):
-
     def __init__(self, modules: Modules):
         super().__init__()
 
@@ -211,7 +200,7 @@ class MissingModulesDialog(QtWidgets.QDialog):
                 name,
                 f'{operator}{version_required}',
                 version_found,
-                state
+                state,
             )
             for j, value in enumerate(row_values):
                 self.ui.tableWidgetModules.setItem(
@@ -227,20 +216,15 @@ class MissingModulesDialog(QtWidgets.QDialog):
             with open(file_name, 'w') as f:
                 f.write(self.ui.labelLogs.text())
 
-    def handle_completed_modules(
-        self,
-        table_row: int,
-        return_code: int | None
-    ):
+    def handle_completed_modules(self, table_row: int, return_code: int | None):
         if return_code is None:
             return None
         color = Color.GREEN if return_code == 0 else Color.RED
         for col in range(self.ui.tableWidgetModules.columnCount()):
             (
-                self.ui
-                .tableWidgetModules
-                .item(table_row, col)
-                .setBackground(QtGui.QColor(*color.value))
+                self.ui.tableWidgetModules.item(table_row, col).setBackground(
+                    QtGui.QColor(*color.value)
+                )
             )
 
     def install_missing_modules(self):
@@ -263,7 +247,6 @@ class MissingModulesDialog(QtWidgets.QDialog):
 
 
 class MissingModulesInstaller(QtCore.QThread):
-
     subprocess_result = QtCore.pyqtSignal(int, int)
 
     def __init__(
@@ -292,18 +275,19 @@ class MissingModulesInstaller(QtCore.QThread):
                     subprocess.STARTF_USESHOWWINDOW  # type: ignore
                 )
             try:
-                completed_process = subprocess.Popen([
-                    PY_EXECUTABLE.as_posix(),
-                    '-m',
-                    'pip',
-                    'install',
-                    '-t',
-                    MODULES_INSTALL_FOLDER.as_posix(),
-                    name,
-                ],
+                completed_process = subprocess.Popen(
+                    [
+                        PY_EXECUTABLE.as_posix(),
+                        '-m',
+                        'pip',
+                        'install',
+                        '-t',
+                        MODULES_INSTALL_FOLDER.as_posix(),
+                        name,
+                    ],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    startupinfo=startupinfo
+                    startupinfo=startupinfo,
                 )
             except Exception as e:
                 raise e
@@ -315,10 +299,9 @@ class MissingModulesInstaller(QtCore.QThread):
                 line = completed_process.stdout.readline()
                 line_str = line.decode(encoding='utf-8').strip()
                 if line_str:
-                    new_text = ''.join([
-                        self.ui.labelLogs.text().strip(),
-                        f'\n{line_str}'
-                    ])
+                    new_text = ''.join(
+                        [self.ui.labelLogs.text().strip(), f'\n{line_str}']
+                    )
                     self.ui.labelLogs.setText(new_text)
                     vbar = self.ui.scrollAreaLogs.verticalScrollBar()
                     vbar.setValue(vbar.maximum())
@@ -329,14 +312,18 @@ class MissingModulesInstaller(QtCore.QThread):
                         return_code != 0
                         and completed_process.stderr is not None
                     ):
-                        text_to_append = '\n'.join([
-                            line.decode('utf-8').strip() for line
-                            in completed_process.stderr.readlines()
-                        ])
-                        new_text = ''.join([
-                            self.ui.labelLogs.text().strip(),
-                            f'\n{text_to_append}'
-                        ])
+                        text_to_append = '\n'.join(
+                            [
+                                line.decode('utf-8').strip()
+                                for line in completed_process.stderr.readlines()
+                            ]
+                        )
+                        new_text = ''.join(
+                            [
+                                self.ui.labelLogs.text().strip(),
+                                f'\n{text_to_append}',
+                            ]
+                        )
                         self.ui.labelLogs.setText(new_text)
                     break
             self.subprocess_result.emit(table_row, return_code)
