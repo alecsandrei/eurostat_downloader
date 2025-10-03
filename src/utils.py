@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import collections.abc as c
+import typing as t
+
+from qgis.core import QgsFeature, QgsField, QgsVectorLayer, edit
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 
 
@@ -140,3 +144,23 @@ class QComboboxCompleter(QtWidgets.QComboBox):
         self.setEditable(True)
         self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
         self.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+
+
+def layer_from_features(
+    features: c.Sequence[QgsFeature], crs: str = '4326'
+) -> QgsVectorLayer:
+    layer = QgsVectorLayer(f'MultiPolygon?crs=epsg:{crs}', '', 'memory')
+    provider = layer.dataProvider()
+    provider.addAttributes(features[0].fields())
+    layer.updateFields()
+    with edit(layer):
+        provider.addFeatures(features)
+    return layer
+
+
+def add_field_to_layer(
+    layer: QgsVectorLayer, field: QgsField, values: c.Iterable[t.Any]
+) -> None:
+    provider = layer.dataProvider()
+    provider.addAttributes([[field, value] for value in values])
+    layer.updateFields()

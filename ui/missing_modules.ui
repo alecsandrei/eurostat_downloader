@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MissingModules</class>
- <widget class="QWidget" name="MissingModules">
+ <class>MissingModulesDialog</class>
+ <widget class="QWidget" name="MissingModulesDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -146,8 +146,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>512</width>
-            <height>200</height>
+            <width>98</width>
+            <height>34</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">

@@ -1,34 +1,41 @@
 from __future__ import annotations
 
 import itertools
+import os.path
 import time
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from functools import partial
 from typing import (
     Any,
     Iterable,
     Literal,
+    cast,
 )
 
 import numpy as np
 import pandas as pd
+import processing
 from qgis.core import (
     QgsFeature,
     QgsField,
+    QgsJsonUtils,
     QgsMapLayer,
+    QgsNetworkAccessManager,
     QgsProject,
     QgsVectorLayer,
     QgsVectorLayerJoinInfo,
 )
-from qgis.PyQt import (
-    QtCore,
-    QtGui,
-    QtWidgets,
-)
+from qgis.PyQt import QtCore, QtGui, QtNetwork, QtWidgets
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QAction
 
 from .data import (
+    GISCO,
     Database,
     Dataset,
+    Unit,
+    Units,
 )
 from .enums import (
     Agency,
@@ -38,26 +45,197 @@ from .enums import (
     Language,
 )
 from .settings import GLOBAL_SETTINGS, ProxySettings
-from .ui import (
-    UIDialog,
-    UIParameterSectionDialog,
-    UiSettingsDialog,
-    UITimePeriodDialog,
+from .ui.eurostat_downloader_dialog import Ui_EurostatDownloaderDialog
+from .ui.section_dialog_params import Ui_ParametersDialog
+from .ui.section_dialog_time import Ui_TimePeriodDialog
+from .ui.settings_dialog import Ui_SettingsDialog
+from .utils import (
+    CheckableComboBox,
+    QComboboxCompleter,
+    layer_from_features,
 )
-from .utils import CheckableComboBox, QComboboxCompleter
+
+
+class Tabs(Enum):
+    LAYER = auto()
+    GISCO = auto()
+
+
+class EurostatDownloader:
+    """QGIS Plugin Implementation."""
+
+    def __init__(self, iface):
+        """Constructor.
+
+        :param iface: An interface instance that will be passed to this class
+            which provides the hook by which you can manipulate the QGIS
+            application at run time.
+        :type iface: QgsInterface
+        """
+        # Save reference to the QGIS interface
+        self.iface = iface
+        # initialize plugin directory
+        self.plugin_dir = os.path.dirname(__file__)
+        # initialize locale
+        locale = QtCore.QSettings().value('locale/userLocale')[0:2]
+        locale_path = os.path.join(
+            self.plugin_dir, 'i18n', 'EurostatDownloader_{}.qm'.format(locale)
+        )
+
+        if os.path.exists(locale_path):
+            self.translator = QtCore.QTranslator()
+            self.translator.load(locale_path)
+            QCoreApplication.installTranslator(self.translator)
+
+        # Declare instance attributes
+        self.actions = []
+        self.menu = self.tr('&Eurostat Downloader')
+
+        # Check if plugin was started the first time in current QGIS session
+        # Must be set in initGui() to survive plugin reloads
+        self.first_start = None
+
+    # noinspection PyMethodMayBeStatic
+    def tr(self, message):
+        """Get the translation for a string using Qt translation API.
+
+        We implement this ourselves since we do not inherit QObject.
+
+        :param message: String for translation.
+        :type message: str, QString
+
+        :returns: Translated version of message.
+        :rtype: QString
+        """
+        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+        return QCoreApplication.translate('EurostatDownloader', message)
+
+    def add_action(
+        self,
+        icon_path,
+        text,
+        callback,
+        enabled_flag=True,
+        add_to_menu=True,
+        add_to_toolbar=True,
+        status_tip=None,
+        whats_this=None,
+        parent=None,
+    ):
+        """Add a toolbar icon to the toolbar.
+
+        :param icon_path: Path to the icon for this action. Can be a resource
+            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
+        :type icon_path: str
+
+        :param text: Text that should be shown in menu items for this action.
+        :type text: str
+
+        :param callback: Function to be called when the action is triggered.
+        :type callback: function
+
+        :param enabled_flag: A flag indicating if the action should be enabled
+            by default. Defaults to True.
+        :type enabled_flag: bool
+
+        :param add_to_menu: Flag indicating whether the action should also
+            be added to the menu. Defaults to True.
+        :type add_to_menu: bool
+
+        :param add_to_toolbar: Flag indicating whether the action should also
+            be added to the toolbar. Defaults to True.
+        :type add_to_toolbar: bool
+
+        :param status_tip: Optional text to show in a popup when mouse pointer
+            hovers over the action.
+        :type status_tip: str
+
+        :param parent: Parent widget for the new action. Defaults None.
+        :type parent: QWidget
+
+        :param whats_this: Optional text to show in the status bar when the
+            mouse pointer hovers over the action.
+
+        :returns: The action that was created. Note that the action is also
+            added to self.actions list.
+        :rtype: QAction
+        """
+
+        icon = QtGui.QIcon(icon_path)
+        action = QAction(icon, text, parent)
+        action.triggered.connect(callback)
+        action.setEnabled(enabled_flag)
+
+        if status_tip is not None:
+            action.setStatusTip(status_tip)
+
+        if whats_this is not None:
+            action.setWhatsThis(whats_this)
+
+        if add_to_toolbar:
+            # Adds plugin icon to Plugins toolbar
+            self.iface.addToolBarIcon(action)
+
+        if add_to_menu:
+            self.iface.addPluginToMenu(self.menu, action)
+
+        self.actions.append(action)
+
+        return action
+
+    def initGui(self):
+        """Create the menu entries and toolbar icons inside the QGIS GUI."""
+
+        icon_path = ':/plugins/eurostat_downloader/assets/icon.png'
+        self.add_action(
+            icon_path,
+            text=self.tr('Get Eurostat data'),
+            callback=self.run,
+            parent=self.iface.mainWindow(),
+        )
+
+        # will be set False in run()
+        self.first_start = True
+
+    def unload(self):
+        """Removes the plugin menu item and icon from QGIS GUI."""
+        for action in self.actions:
+            self.iface.removePluginMenu(self.tr('&Eurostat Downloader'), action)
+            self.iface.removeToolBarIcon(action)
+
+    def run(self):
+        """Run method that performs all the real work"""
+
+        # Create the dialog with elements (after translation) and keep reference
+        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
+        if self.first_start:
+            self.first_start = False
+            self.dlg = Dialog(self)
+
+        # show the dialog
+        self.dlg.show()
+        # Run the dialog event loop
+        result = self.dlg.exec_()
+        # See if OK was pressed
+        if result:
+            # Do something useful here - delete the line containing pass and
+            # substitute with your code.
+            pass
 
 
 class Dialog(QtWidgets.QDialog):
-    def __init__(self):
+    def __init__(self, eurostat_downloader: EurostatDownloader):
         super().__init__()
 
         # Init GUI
-        self.ui = UIDialog()
+        self.eurostat_downloader = eurostat_downloader
+        self.ui = Ui_EurostatDownloaderDialog()
         self.ui.setupUi(self)
         self.set_layer_join_fields()
 
         # Instantiate objects
         self.database = Database()
+        self.gisco_handler = GISCOHandler(self)
         self.join_handler = JoinHandler(base=self)
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
@@ -91,6 +269,14 @@ class Dialog(QtWidgets.QDialog):
         ):
             language_check.stateChanged.connect(self.update_language_check)
             language_check.stateChanged.connect(self.filter_toc)
+        self.ui.tabWidget.currentChanged.connect(self.handle_tab_change)
+
+    def handle_tab_change(self, index: int):
+        tab = Tabs(index + 1)
+        if tab is Tabs.LAYER:
+            ...
+        elif tab is Tabs.GISCO:
+            self.gisco_handler.add_themes()
 
     def set_agency_status_tooltip(self):
         tooltip = ['Agency server accessibility']
@@ -278,6 +464,242 @@ class Dialog(QtWidgets.QDialog):
             raise exception
 
 
+class GISCOUnitDownloader(QtCore.QObject):
+    finished = QtCore.pyqtSignal()
+
+    def __init__(self, handler: GISCOHandler, units: Units, parent=None):
+        super().__init__(parent)
+        self.handler = handler
+        self.gisco = self.handler.get_theme()
+        self.nam = QgsNetworkAccessManager(self)
+        self.features: dict[Unit, QgsFeature] = {}
+        self.units: Units = units
+        self.replies: list[QtNetwork.QNetworkReply] = []
+
+    def request(self):
+        self.replies.clear()
+        for unit in self.units:
+            reply = self.gisco.get_feature_from_unit(unit, self.nam)
+            self.replies.append(reply)
+            reply.finished.connect(
+                lambda r=reply, u=unit: self._on_finished(r, u)
+            )
+
+    def _on_finished(self, reply: QtNetwork.QNetworkReply, unit: Unit):
+        self.handle_response(reply, unit)
+        reply.deleteLater()
+        if len(self.features) == len(self.units):
+            self.finished.emit()
+
+    def handle_response(self, reply: QtNetwork.QNetworkReply, unit: Unit):
+        features = []
+        try:
+            error = None
+            url = reply.url().url()
+            data = bytes(reply.readAll()).decode(encoding='UTF-8')
+            fields = QgsJsonUtils.stringToFields(data)
+            parsed_features = QgsJsonUtils.stringToFeatureList(data, fields)
+
+            # We need to add the _UNIT_ID field which will be used for join
+            field_id = QgsField('_UNIT_ID', type=QtCore.QVariant.String)
+            fields.append(field_id)
+            for parsed_feature in parsed_features:
+                feature = QgsFeature(fields)
+                feature.setGeometry(parsed_feature.geometry())
+                feature.setAttributes(parsed_feature.attributes() + [unit.id])
+                features.append(feature)
+        except Exception:
+            error = reply.errorString()
+        finally:
+            self.features[unit] = features
+        self.handler.update_completed_downloads(
+            url, None if not error else error
+        )
+
+
+class GISCOHandler:
+    def __init__(self, base: Dialog):
+        self.base = base
+        self.unit_downloader: GISCOUnitDownloader | None = None
+        self.base.ui.comboBoxGISCOTheme.currentIndexChanged.connect(
+            self.add_years
+        )
+        self.base.ui.comboBoxGISCOYear.currentIndexChanged.connect(
+            self.add_spatial_types
+        )
+        self.base.ui.comboBoxGISCOSpatialType.currentIndexChanged.connect(
+            self.add_fields
+        )
+        self.base.ui.pushButtonValidateJoin.clicked.connect(self.validate_join)
+        self.themes: dict[str, GISCO] = {}
+        self.comboboxes = (
+            self.base.ui.comboBoxGISCOTheme,
+            self.base.ui.comboBoxGISCOYear,
+            self.base.ui.comboBoxGISCOSpatialType,
+            self.base.ui.comboBoxGISCOScale,
+            self.base.ui.comboBoxGISCOProjection,
+        )
+        self.base.ui.pushButtonGISCOJoin.clicked.connect(self.join_data)
+
+    def join_data(self):
+        if self.unit_downloader is None:
+            return None
+        vector_layer = layer_from_features(
+            list(
+                itertools.chain.from_iterable(
+                    self.unit_downloader.features.values()
+                )
+            ),
+            crs=self.get_projection(),
+        )
+        table = self.base.converter.table
+        processing_result = cast(
+            QgsVectorLayer,
+            processing.run(
+                'native:joinattributestable',
+                {
+                    'INPUT': vector_layer,
+                    'FIELD': '_UNIT_ID',
+                    'INPUT_2': table,
+                    'FIELD_2': self.base.get_current_table_join_field(),
+                    'FIELDS_TO_COPY': [],
+                    'METHOD': 0,
+                    'DISCARD_NONMATCHING': True,
+                    'PREFIX': '',
+                    'OUTPUT': 'TEMPORARY_OUTPUT',
+                },
+            )['OUTPUT'],
+        )
+        processing_result.setName(self.base.dataset.code)
+        instance = QgsProject().instance()
+        if instance is not None:
+            instance.addMapLayer(processing_result)
+            canvas = self.base.eurostat_downloader.iface.mapCanvas()
+            assert canvas
+            canvas.setExtent(processing_result.extent())
+
+    def add_themes(self):
+        # Add themes if not already added
+        if not self.base.ui.comboBoxGISCOTheme.count():
+            subclasses = [class_.__name__ for class_ in GISCO.__subclasses__()]
+            self.base.ui.comboBoxGISCOTheme.addItems(subclasses)
+
+    def cache_theme(self, theme: str):
+        subclasses = GISCO.__subclasses__()
+        for i, class_ in enumerate(subclasses):
+            if class_.__name__ == theme:
+                self.themes[theme] = subclasses[i]()  # type: ignore
+
+    def get_theme(self) -> GISCO:
+        current_theme = self.base.ui.comboBoxGISCOTheme.currentText()
+        if current_theme not in self.themes:
+            self.cache_theme(current_theme)
+        return self.themes[current_theme]
+
+    @staticmethod
+    def clear_comboboxes(comboboxes: Iterable[QtWidgets.QComboBox]):
+        for combobox in comboboxes:
+            with QtCore.QSignalBlocker(combobox):
+                combobox.clear()
+
+    def add_years(self):
+        self.clear_comboboxes(self.comboboxes[1:])
+        initializer = GISCOYearHandler(self.base, self.get_theme())
+        initializer.start()
+
+    def add_spatial_types(self, index: int):
+        self.clear_comboboxes(self.comboboxes[2:])
+        theme = self.get_theme()
+        units = theme.get_units(self.base.ui.comboBoxGISCOYear.itemText(index))
+        spatial_types = units.get_unique_field_values(
+            field_names=['spatial_type']
+        )['spatial_type']
+        self.base.ui.comboBoxGISCOSpatialType.addItems(spatial_types)
+
+    def get_year(self) -> str:
+        return self.base.ui.comboBoxGISCOYear.currentText()
+
+    def get_projection(self) -> str:
+        return self.base.ui.comboBoxGISCOProjection.currentText()
+
+    def add_fields(self, index: int):
+        self.base.ui.comboBoxGISCOScale.clear()
+        self.base.ui.comboBoxGISCOProjection.clear()
+        filters = {
+            'spatial_type': [
+                self.base.ui.comboBoxGISCOSpatialType.itemText(index)
+            ]
+        }
+        units = self.get_theme().get_units(self.get_year())
+        filtered = units.filter(filters)  # type: ignore
+        field_unique_values = filtered.get_unique_field_values(
+            field_names=['scale', 'projection']
+        )
+        self.base.ui.comboBoxGISCOScale.addItems(field_unique_values['scale'])
+        self.base.ui.comboBoxGISCOProjection.addItems(
+            field_unique_values['projection']
+        )
+
+    def update_validate_join_text(self, total: int, matched: int):
+        text = f'matched {matched} of {total}'
+        self.base.ui.labelValidateJoin.setText(text)
+
+    def update_completed_downloads(self, url: str, error: str | None = None):
+        failed = error is not None
+        qlabel = self.base.ui.labelCompletedDownloads
+        text = qlabel.text()
+        mark = '❎' if failed else '✅'
+        to_append = f'{url} - {mark}'
+        if failed:
+            assert error is not None
+            to_append += error
+        if text:
+            qlabel.setText('\n'.join((to_append, text)))
+        else:
+            qlabel.setText(to_append)
+
+    def clear(self):
+        self.base.ui.labelCompletedDownloads.clear()
+
+    def validate_join(self):
+        self.clear()
+        data: PandasModel = self.base.ui.tableDataset.model()
+        geo_column = self.base.ui.comboTableJoinField.currentText()
+        geo_data = data._data[geo_column].unique()
+        theme = self.get_theme()
+        year = self.get_year()
+        units = theme.get_units(year)
+        filters = {
+            'spatial_type': [
+                self.base.ui.comboBoxGISCOSpatialType.currentText()
+            ],
+            'scale': [self.base.ui.comboBoxGISCOScale.currentText()],
+            'projection': [self.base.ui.comboBoxGISCOProjection.currentText()],
+            'id': geo_data,
+        }
+        filtered = units.filter(filters)
+        self.update_validate_join_text(geo_data.shape[0], len(filtered))
+        self.unit_downloader = GISCOUnitDownloader(
+            self, filtered, parent=self.base
+        )
+        self.unit_downloader.request()
+        if filtered:
+            self.unit_downloader.finished.connect(
+                lambda: self.base.ui.pushButtonGISCOJoin.setEnabled(True)
+            )
+
+
+class GISCOYearHandler(QtCore.QThread):
+    def __init__(self, base: Dialog, theme: GISCO):
+        self.base = base
+        self.theme = theme
+        super().__init__(self.base)
+
+    def run(self):
+        years = self.theme.get_years()
+        self.base.ui.comboBoxGISCOYear.addItems(years)
+
+
 class DatabaseInitializer(QtCore.QThread):
     error_ocurred = QtCore.pyqtSignal(Exception, name='errorOcurred')
 
@@ -352,7 +774,7 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         super().__init__()
         self.base = base
         self.name = name
-        self.ui = UIParameterSectionDialog()
+        self.ui = Ui_ParametersDialog()
         self.ui.setupUi(self)
         self.filter_toc()
         self.select_based_on_filterer()
@@ -437,7 +859,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
         super().__init__()
         self.base = base
         self.name = name
-        self.ui = UITimePeriodDialog()
+        self.ui = Ui_TimePeriodDialog()
         self.ui.setupUi(self)
         self.add_widgets_to_frames()
         self.add_items_to_combobox()
@@ -627,7 +1049,7 @@ class SettingsDialog(QtWidgets.QDialog):
     ):
         super().__init__()
         self.base = base
-        self.ui = UiSettingsDialog()
+        self.ui = Ui_SettingsDialog()
         self.ui.setupUi(self)
 
         # TODO: maybe make an abstraction instead of

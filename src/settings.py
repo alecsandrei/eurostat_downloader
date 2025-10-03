@@ -53,10 +53,12 @@ class GlobalSettings:
     proxy: ProxySettings | None = None
     agencies: list[Agency] = field(default_factory=list)
     verify_ssl: bool = True
+    network_manager: QgsNetworkAccessManager = field(init=False)
 
     def __post_init__(self):
         self.agencies = list(Agency)
         self.proxy = _get_qgis_proxy()
+        self.network_manager = QgsNetworkAccessManager()
 
 
 QGS_SETTINGS = QgsSettings()

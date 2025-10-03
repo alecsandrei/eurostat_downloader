@@ -16,7 +16,7 @@ from typing import NamedTuple
 from qgis.core import QgsApplication
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 
-from .ui import MissingModules
+from .ui.missing_modules import Ui_MissingModulesDialog
 
 QGS_PREFIX_PATH = Path(QgsApplication.prefixPath())
 PY_VERSION = platform.python_version_tuple()
@@ -174,7 +174,7 @@ class MissingModulesDialog(QtWidgets.QDialog):
         super().__init__()
 
         # Init GUI
-        self.ui = MissingModules()
+        self.ui = Ui_MissingModulesDialog()
         self.ui.setupUi(self)
         self.module_states = modules
         self.fill_table()

@@ -32,6 +32,7 @@ options(
             '.mypy_cache',
             'scripts',
             '*.pyc',
+            '*.zip',
             '.git',
             '.idea',
             '.gitignore',

@@ -1,20 +1,20 @@
 """This script initializes the plugin, making it known to QGIS."""
+
 from __future__ import annotations
 
-import sys
 import site
+import sys
 
 from qgis.core import Qgis
 
-from .src.modules import MODULES_INSTALL_FOLDER
 from .src.modules import (
-    get_reqs,
-    get_modules,
-    check_if_missing,
+    MODULES_INSTALL_FOLDER,
     MissingModulesDialog,
-    State
+    State,
+    check_if_missing,
+    get_modules,
+    get_reqs,
 )
-
 
 MissingModules = list[str]
 
@@ -28,7 +28,6 @@ def pip_missing() -> bool:
 
 
 def handle_missing_modules() -> None | MissingModules:
-
     def get_module_states():
         reqs = get_reqs()
         return check_if_missing(reqs)
@@ -40,10 +39,12 @@ def handle_missing_modules() -> None | MissingModules:
 
     modules = get_module_states()
     if not all(module.state is State.FOUND for module in modules):
-        return (
-            [module.module.name for module in modules
-             if module.state is not State.FOUND]
-        )
+        return [
+            module.module.name
+            for module in modules
+            if module.state is not State.FOUND
+        ]
+    return None
 
 
 def classFactory(iface):
@@ -63,20 +64,21 @@ def classFactory(iface):
                 'could not be installed. The Eurostat Downloader plugin '
                 'will not work.'
             )
-            (iface
-            .messageBar()
-            .pushMessage('ERROR', message,
-                        level=Qgis.MessageLevel.Critical)
+            (
+                iface.messageBar().pushMessage(
+                    'ERROR', message, level=Qgis.MessageLevel.Critical
+                )
             )
         message = (
             'The following packages were not found '
             f'or could not be installed: {", ".join(missing_modules)}. '
             'The Eurostat Downloader plugin might not work.'
         )
-        (iface
-        .messageBar()
-        .pushMessage('ERROR', message,
-                    level=Qgis.MessageLevel.Critical)
+        (
+            iface.messageBar().pushMessage(
+                'ERROR', message, level=Qgis.MessageLevel.Critical
+            )
         )
-    from .eurostat_downloader import EurostatDownloader
+    from .src.eurostat_downloader import EurostatDownloader
+
     return EurostatDownloader(iface)

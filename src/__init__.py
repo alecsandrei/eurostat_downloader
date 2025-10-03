@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 from typing import Any
 
 from .settings import GLOBAL_SETTINGS
 
 __all__ = ['eurostat']
+
+DEBUG = True
+PACKAGE_DIR = Path(__file__).parent
 
 
 class _EurostatLoader:

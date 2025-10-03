@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SelectTimePeriod</class>
- <widget class="QWidget" name="SelectTimePeriod">
+ <class>TimePeriodDialog</class>
+ <widget class="QWidget" name="TimePeriodDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
