@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections.abc as c
 import typing as t
 
-from qgis.core import QgsFeature, QgsField, QgsVectorLayer, edit
+from qgis.core import Qgis, QgsFeature, QgsField, QgsVectorLayer, edit
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 
 
@@ -149,7 +149,17 @@ class QComboboxCompleter(QtWidgets.QComboBox):
 def layer_from_features(
     features: c.Sequence[QgsFeature], crs: str = '4326'
 ) -> QgsVectorLayer:
-    layer = QgsVectorLayer(f'MultiPolygon?crs=epsg:{crs}', '', 'memory')
+    geometry_type = features[0].geometry().type()
+    if geometry_type == Qgis.GeometryType.Polygon:
+        as_str = 'MultiPolygon'
+    elif geometry_type == Qgis.GeometryType.Line:
+        as_str = 'MultiLineString'
+    elif geometry_type == Qgis.GeometryType.Point:
+        as_str = 'MultiPoint'
+    else:
+        raise ValueError(f'Did not expect geometry type {geometry_type}')
+
+    layer = QgsVectorLayer(f'{as_str}?crs=epsg:{crs}', '', 'memory')
     provider = layer.dataProvider()
     provider.addAttributes(features[0].fields())
     layer.updateFields()

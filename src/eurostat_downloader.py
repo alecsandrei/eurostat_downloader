@@ -3,13 +3,15 @@ from __future__ import annotations
 import itertools
 import os.path
 import time
-from dataclasses import dataclass, field
+from collections.abc import Iterable
+from dataclasses import astuple, dataclass, field, fields
 from enum import Enum, auto
 from functools import partial
 from typing import (
     Any,
-    Iterable,
+    Callable,
     Literal,
+    Sequence,
     cast,
 )
 
@@ -27,7 +29,7 @@ from qgis.core import (
     QgsVectorLayerJoinInfo,
 )
 from qgis.PyQt import QtCore, QtGui, QtNetwork, QtWidgets
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QAction
 
 from .data import (
@@ -46,6 +48,7 @@ from .enums import (
 )
 from .settings import GLOBAL_SETTINGS, ProxySettings
 from .ui.eurostat_downloader_dialog import Ui_EurostatDownloaderDialog
+from .ui.gisco_join_report import Ui_GISCOJoinReport
 from .ui.section_dialog_params import Ui_ParametersDialog
 from .ui.section_dialog_time import Ui_TimePeriodDialog
 from .ui.settings_dialog import Ui_SettingsDialog
@@ -312,9 +315,8 @@ class Dialog(QtWidgets.QDialog):
         initializer.finished.connect(loading_label.requestInterruption)
         initializer.finished.connect(dialog.close)
         initializer.error_ocurred.connect(self.handle_error_ocurred)
-        initializer.start()
-
         initializer.finished.connect(self.set_agency_status_tooltip)
+        initializer.start()
 
     def filter_toc(self):
         if self.database.toc.empty:
@@ -410,11 +412,12 @@ class Dialog(QtWidgets.QDialog):
         initializer.finished.connect(partial(self.set_gui_state, True))
         initializer.finished.connect(loading_label.requestInterruption)
         initializer.finished.connect(dialog.close)
-        initializer.start()
         initializer.finished.connect(self.set_table_join_fields)
         initializer.finished.connect(self.set_table_join_field_default)
         initializer.finished.connect(self.set_layer_join_field_default)
         initializer.finished.connect(self.set_join_columns)
+        initializer.finished.connect(self.gisco_handler.clear)
+        initializer.start()
 
     def set_join_columns(self):
         checkable = CheckableComboBox()
@@ -517,10 +520,84 @@ class GISCOUnitDownloader(QtCore.QObject):
         )
 
 
+class GISCOJoinReport(QtWidgets.QDialog):
+    def __init__(
+        self,
+        report_data: JoinReportData | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.report_data = report_data
+        self.ui = Ui_GISCOJoinReport()
+        self.ui.setupUi(self)
+
+    def add_headers(self):
+        table = self.ui.tableWidgetGISCOJoinReport
+        cols = [field.name for field in fields(Unit)]
+        cols.insert(0, 'matched')
+        table.setColumnCount(len(cols))
+        table.setHorizontalHeaderLabels(cols)
+
+    def sort_table(self):
+        table = self.ui.tableWidgetGISCOJoinReport
+        table.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+
+    def show(self, event):
+        if self.report_data and not getattr(self.report_data, '_shown', False):
+            self.reset_table()
+            self.populate_table()
+            self.sort_table()
+            self.report_data._shown = True
+        super().show()
+
+    def reset_table(self):
+        table = self.ui.tableWidgetGISCOJoinReport
+        table.sortByColumn(-1, Qt.SortOrder.AscendingOrder)
+        table.clear()
+
+    def populate_table(self):
+        table = self.ui.tableWidgetGISCOJoinReport
+        table.setRowCount(self.report_data.total)
+        self.add_headers()
+
+        def get_item(value: Any) -> QtWidgets.QTableWidgetItem:
+            item = QtWidgets.QTableWidgetItem(str(value))
+            item.setTextAlignment(QtCore.Qt.AlignCenter)
+            item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+            item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+            return item
+
+        for row, code in enumerate(self.report_data.codes):
+            unit = self.report_data.units.filter({'id': [code]})
+            matched = bool(unit)
+            sign = '✅' if matched else '❎'
+
+            table.setItem(row, 0, get_item(sign))
+            if matched:
+                assert len(unit) == 1
+                values = astuple(unit[0])
+                for col, value in enumerate(values, start=1):
+                    table.setItem(row, col, get_item(value))
+            else:
+                table.setItem(row, 1, get_item(code))
+
+
+@dataclass
+class JoinReportData:
+    total: int
+    matched: int
+    codes: Sequence[str]
+    units: Units
+
+
 class GISCOHandler:
     def __init__(self, base: Dialog):
         self.base = base
         self.unit_downloader: GISCOUnitDownloader | None = None
+        self.join_report_data: JoinReportData | None = None
+        self.join_report_dialog: GISCOJoinReport = GISCOJoinReport(
+            parent=self.base
+        )
         self.base.ui.comboBoxGISCOTheme.currentIndexChanged.connect(
             self.add_years
         )
@@ -530,7 +607,13 @@ class GISCOHandler:
         self.base.ui.comboBoxGISCOSpatialType.currentIndexChanged.connect(
             self.add_fields
         )
-        self.base.ui.pushButtonValidateJoin.clicked.connect(self.validate_join)
+        self.base.ui.pushButtonGISCOValidateJoin.clicked.connect(
+            self.validate_join
+        )
+        self.base.ui.pushButtonGISCOJoin.clicked.connect(self.join_handler)
+        self.base.ui.pushButtonGISCOViewJoinReport.clicked.connect(
+            self.join_report_dialog.show
+        )
         self.themes: dict[str, GISCO] = {}
         self.comboboxes = (
             self.base.ui.comboBoxGISCOTheme,
@@ -539,11 +622,29 @@ class GISCOHandler:
             self.base.ui.comboBoxGISCOScale,
             self.base.ui.comboBoxGISCOProjection,
         )
-        self.base.ui.pushButtonGISCOJoin.clicked.connect(self.join_data)
+        self.add_callback_to_comboboxes(
+            lambda: self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(False)
+        )
+
+    def join_handler(self):
+        if not self.base.ui.pushButtonGISCOViewJoinReport.isEnabled():
+            self.validate_join()
+        if self.unit_downloader is None:
+            units = self.join_report_data.units
+            self.unit_downloader = GISCOUnitDownloader(
+                self, units, parent=self.base
+            )
+            if units:
+                self.unit_downloader.finished.connect(self.join_data)
+                self.unit_downloader.request()
+        else:
+            self.join_data()
+
+    def add_callback_to_comboboxes(self, callback: Callable):
+        for combobox in self.comboboxes:
+            combobox.currentIndexChanged.connect(callback)
 
     def join_data(self):
-        if self.unit_downloader is None:
-            return None
         vector_layer = layer_from_features(
             list(
                 itertools.chain.from_iterable(
@@ -640,10 +741,6 @@ class GISCOHandler:
             field_unique_values['projection']
         )
 
-    def update_validate_join_text(self, total: int, matched: int):
-        text = f'matched {matched} of {total}'
-        self.base.ui.labelValidateJoin.setText(text)
-
     def update_completed_downloads(self, url: str, error: str | None = None):
         failed = error is not None
         qlabel = self.base.ui.labelCompletedDownloads
@@ -660,15 +757,25 @@ class GISCOHandler:
 
     def clear(self):
         self.base.ui.labelCompletedDownloads.clear()
+        self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(False)
+        self.unit_downloader = None
+        self.join_report_data = None
 
     def validate_join(self):
-        self.clear()
+        if self.base.dataset is None:
+            return None
+        self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(True)
+        self.join_report_dialog.report_data = self.build_join_report_data()
+
+    def build_join_report_data(self) -> JoinReportData:
         data: PandasModel = self.base.ui.tableDataset.model()
         geo_column = self.base.ui.comboTableJoinField.currentText()
         geo_data = data._data[geo_column].unique()
+
         theme = self.get_theme()
         year = self.get_year()
         units = theme.get_units(year)
+
         filters = {
             'spatial_type': [
                 self.base.ui.comboBoxGISCOSpatialType.currentText()
@@ -677,16 +784,16 @@ class GISCOHandler:
             'projection': [self.base.ui.comboBoxGISCOProjection.currentText()],
             'id': geo_data,
         }
+
         filtered = units.filter(filters)
-        self.update_validate_join_text(geo_data.shape[0], len(filtered))
-        self.unit_downloader = GISCOUnitDownloader(
-            self, filtered, parent=self.base
+
+        self.join_report_data = JoinReportData(
+            geo_data.shape[0], len(filtered), geo_data, filtered
         )
-        self.unit_downloader.request()
-        if filtered:
-            self.unit_downloader.finished.connect(
-                lambda: self.base.ui.pushButtonGISCOJoin.setEnabled(True)
-            )
+        return self.join_report_data
+
+    def download_units(self):
+        assert self.join_report_data is not None
 
 
 class GISCOYearHandler(QtCore.QThread):

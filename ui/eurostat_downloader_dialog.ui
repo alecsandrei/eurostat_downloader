@@ -247,16 +247,19 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_13">
              <item>
-              <widget class="QPushButton" name="pushButtonValidateJoin">
+              <widget class="QPushButton" name="pushButtonGISCOValidateJoin">
                <property name="text">
                 <string>Validate join</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="labelValidateJoin">
+              <widget class="QPushButton" name="pushButtonGISCOViewJoinReport">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string/>
+                <string>View join report</string>
                </property>
               </widget>
              </item>
@@ -300,7 +303,7 @@
            <item>
             <widget class="QPushButton" name="pushButtonGISCOJoin">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="text">
               <string>Join</string>

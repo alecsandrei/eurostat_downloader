@@ -245,7 +245,7 @@ class Unit:
 
     @classmethod
     def from_filename(cls: t.Type[t.Self], filename: str) -> t.Self:
-        split = filename.split('-')
+        split = filename.replace('.geojson', '').split('-')
         if split[1] == 'label':
             try:
                 split.insert(2, None)  # type: ignore
@@ -261,7 +261,7 @@ class Unit:
             self.projection,
             self.year,
         )
-        return '-'.join(val for val in vals if val is not None)
+        return '-'.join(val for val in vals if val is not None) + '.geojson'
 
     def __getitem__(self, field_name: str) -> str | None:
         return getattr(self, field_name)
@@ -270,6 +270,9 @@ class Unit:
 class Units(UserList[Unit]):
     def __init__(self, units: c.Iterable[Unit] | None = None):
         super().__init__(units)
+
+    def as_dicts(self) -> list[dict]:
+        return [asdict(unit) for unit in self.data]
 
     @classmethod
     def from_json(cls: t.Type[t.Self], json: dict[str, t.Any]) -> t.Self:
@@ -297,7 +300,8 @@ class Units(UserList[Unit]):
         for unit in self.data:
             append = True
             for field_name, values in filters.items():
-                if unit[field_name] not in values:
+                truthy_values = [value for value in values if value]
+                if truthy_values and unit[field_name] not in truthy_values:
                     append = False
                     break
             if append:
