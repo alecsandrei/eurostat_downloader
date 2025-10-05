@@ -28,7 +28,7 @@ options(
         excludes=[
             '.vscode',
             '.ruff_cache',
-            'ui',
+            '*.ui',
             '.mypy_cache',
             'scripts',
             '*.pyc',
