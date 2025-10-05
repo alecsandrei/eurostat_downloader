@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # This script file was fully taken from the ee_plugin: https://github.com/gee-community/qgis-earthengine-plugin.
 
+import fnmatch
 import os
 import platform
-import fnmatch
 import zipfile
-import shutil
 
 from paver.easy import *
 
 
 def get_extlibs():
-    if platform.system() == "Windows":
+    if platform.system() == 'Windows':
         return 'extlibs_windows'
     # if platform.system() == "Darwin":
     #     return 'extlibs_macos'
-    if platform.system() == "Linux":
+    if platform.system() == 'Linux':
         return 'extlibs_linux'
 
 
@@ -28,6 +27,7 @@ options(
         tests=['test', 'tests'],
         excludes=[
             '.vscode',
+            '.ruff_cache',
             'ui',
             '.mypy_cache',
             'scripts',
@@ -37,12 +37,12 @@ options(
             '.idea',
             '.gitignore',
             '*/__pycache__',
-            'eurostat_downloader.zip',
-            'extlibs'
-        ]
+            'eurostat_downloader*.zip',
+            'extlibs',
+            '*/eurostat_cache',
+        ],
     ),
 )
-
 
 
 @task
@@ -62,7 +62,8 @@ def make_zip(zipFile, options):
     exclude = lambda p: any([fnmatch.fnmatch(p, e) for e in excludes])
 
     def filter_excludes(files):
-        if not files: return []
+        if not files:
+            return []
         # to prevent descending into dirs, modify the list in place
         for i in range(len(files) - 1, -1, -1):
             f = files[i]
@@ -73,5 +74,7 @@ def make_zip(zipFile, options):
     for root, dirs, files in os.walk(src_dir):
         for f in filter_excludes(files):
             relpath = os.path.relpath(root, '.')
-            zipFile.write(path(root) / f, path('eurostat_downloader') / path(relpath) / f)
+            zipFile.write(
+                path(root) / f, path('eurostat_downloader') / path(relpath) / f
+            )
         filter_excludes(dirs)
