@@ -66,10 +66,6 @@ We can also join the data to the vector layer we downloaded earlier. By default,
 
 ![Alt text](assets/how_to_use_the_plugin_4.png "Title")
 
-# TODOs
-- [ ] Integrate [gisco-geodata](https://github.com/alecsandrei/gisco-geodata) into the plugin.
-- [ ] Add the possibility to filter by agency (use the information from the already existing settings dialog).
-
 # Disclaimer
 
 This plugin, Eurostat Downloader, is an independent project created by Cuvuliuc Alex-Andrei. It is not an official product of Eurostat, and Cuvuliuc Alex-Andrei is not affiliated, associated, authorized, endorsed by, or in any way officially connected with Eurostat or any of its subsidiaries or its affiliates.
