@@ -55,6 +55,8 @@ from .ui.settings_dialog import Ui_SettingsDialog
 from .utils import (
     CheckableComboBox,
     QComboboxCompleter,
+    color_row,
+    get_table_item,
     layer_from_features,
 )
 
@@ -469,6 +471,7 @@ class Dialog(QtWidgets.QDialog):
 
 class GISCOUnitDownloader(QtCore.QObject):
     finished = QtCore.pyqtSignal()
+    unit_finished = QtCore.pyqtSignal(str, str, str)
 
     def __init__(self, handler: GISCOHandler, units: Units, parent=None):
         super().__init__(parent)
@@ -478,15 +481,44 @@ class GISCOUnitDownloader(QtCore.QObject):
         self.features: dict[Unit, QgsFeature] = {}
         self.units: Units = units
         self.replies: list[QtNetwork.QNetworkReply] = []
+        self.unit_finished.connect(
+            self.add_unit_to_table, Qt.ConnectionType.QueuedConnection
+        )
+        self.add_table_headers()
+
+    def add_table_headers(self):
+        table = self.handler.base.ui.tableWidgetDownloadUnits
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(('ID', 'URL', 'Error'))
+
+    def add_unit_to_table(self, url: str, unit_id: str, error_string: str):
+        table = self.handler.base.ui.tableWidgetDownloadUnits
+        table.insertRow(0)
+        table.setItem(0, 0, get_table_item(unit_id))
+        table.setItem(0, 1, get_table_item(url))
+
+        if error_string:
+            table.setItem(0, 2, get_table_item(error_string))
+
+        color = QtGui.QColor(
+            Qt.GlobalColor.red if error_string else Qt.GlobalColor.green
+        )
+        color.setAlpha(50)
+        color_row(table, 0, color)
 
     def request(self):
         self.replies.clear()
         for unit in self.units:
             reply = self.gisco.get_feature_from_unit(unit, self.nam)
-            self.replies.append(reply)
             reply.finished.connect(
                 lambda r=reply, u=unit: self._on_finished(r, u)
             )
+
+            # Here we check if reply was finished before we made the connection
+            if reply.isFinished():
+                self._on_finished(reply, unit)
+
+            self.replies.append(reply)
 
     def _on_finished(self, reply: QtNetwork.QNetworkReply, unit: Unit):
         self.handle_response(reply, unit)
@@ -496,9 +528,11 @@ class GISCOUnitDownloader(QtCore.QObject):
 
     def handle_response(self, reply: QtNetwork.QNetworkReply, unit: Unit):
         features = []
-        try:
-            error = None
-            url = reply.url().url()
+        url = reply.url().url()
+        error: int = reply.error()
+
+        if error == QtNetwork.QNetworkReply.NetworkError.NoError:
+            error_string = ''
             data = bytes(reply.readAll()).decode(encoding='UTF-8')
             fields = QgsJsonUtils.stringToFields(data)
             parsed_features = QgsJsonUtils.stringToFeatureList(data, fields)
@@ -511,13 +545,10 @@ class GISCOUnitDownloader(QtCore.QObject):
                 feature.setGeometry(parsed_feature.geometry())
                 feature.setAttributes(parsed_feature.attributes() + [unit.id])
                 features.append(feature)
-        except Exception:
-            error = reply.errorString()
-        finally:
-            self.features[unit] = features
-        self.handler.update_completed_downloads(
-            url, None if not error else error
-        )
+        else:
+            error_string = reply.errorString()
+        self.features[unit] = features
+        self.unit_finished.emit(url, unit.id, error_string)
 
 
 class GISCOJoinReport(QtWidgets.QDialog):
@@ -560,26 +591,19 @@ class GISCOJoinReport(QtWidgets.QDialog):
         table.setRowCount(self.report_data.total)
         self.add_headers()
 
-        def get_item(value: Any) -> QtWidgets.QTableWidgetItem:
-            item = QtWidgets.QTableWidgetItem(str(value))
-            item.setTextAlignment(QtCore.Qt.AlignCenter)
-            item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-            item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-            return item
-
         for row, code in enumerate(self.report_data.codes):
             unit = self.report_data.units.filter({'id': [code]})
             matched = bool(unit)
             sign = '✅' if matched else '❎'
 
-            table.setItem(row, 0, get_item(sign))
+            table.setItem(row, 0, get_table_item(sign))
             if matched:
                 assert len(unit) == 1
                 values = astuple(unit[0])
                 for col, value in enumerate(values, start=1):
-                    table.setItem(row, col, get_item(value))
+                    table.setItem(row, col, get_table_item(value))
             else:
-                table.setItem(row, 1, get_item(code))
+                table.setItem(row, 1, get_table_item(code))
 
 
 @dataclass
@@ -645,12 +669,15 @@ class GISCOHandler:
             combobox.currentIndexChanged.connect(callback)
 
     def join_data(self):
+        features = list(
+            itertools.chain.from_iterable(
+                self.unit_downloader.features.values()
+            )
+        )
+        if not features:
+            return None
         vector_layer = layer_from_features(
-            list(
-                itertools.chain.from_iterable(
-                    self.unit_downloader.features.values()
-                )
-            ),
+            features,
             crs=self.get_projection(),
         )
         table = self.base.converter.table
@@ -717,6 +744,9 @@ class GISCOHandler:
         )['spatial_type']
         self.base.ui.comboBoxGISCOSpatialType.addItems(spatial_types)
 
+    def get_units(self) -> Units:
+        return self.get_theme().get_units(self.get_year())
+
     def get_year(self) -> str:
         return self.base.ui.comboBoxGISCOYear.currentText()
 
@@ -731,7 +761,7 @@ class GISCOHandler:
                 self.base.ui.comboBoxGISCOSpatialType.itemText(index)
             ]
         }
-        units = self.get_theme().get_units(self.get_year())
+        units = self.get_units()
         filtered = units.filter(filters)  # type: ignore
         field_unique_values = filtered.get_unique_field_values(
             field_names=['scale', 'projection']
@@ -741,25 +771,12 @@ class GISCOHandler:
             field_unique_values['projection']
         )
 
-    def update_completed_downloads(self, url: str, error: str | None = None):
-        failed = error is not None
-        qlabel = self.base.ui.labelCompletedDownloads
-        text = qlabel.text()
-        mark = '❎' if failed else '✅'
-        to_append = f'{url} - {mark}'
-        if failed:
-            assert error is not None
-            to_append += error
-        if text:
-            qlabel.setText('\n'.join((to_append, text)))
-        else:
-            qlabel.setText(to_append)
-
     def clear(self):
-        self.base.ui.labelCompletedDownloads.clear()
         self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(False)
         self.unit_downloader = None
         self.join_report_data = None
+        self.base.ui.tableWidgetDownloadUnits.clearContents()
+        self.base.ui.tableWidgetDownloadUnits.setRowCount(0)
 
     def validate_join(self):
         if self.base.dataset is None:
@@ -791,9 +808,6 @@ class GISCOHandler:
             geo_data.shape[0], len(filtered), geo_data, filtered
         )
         return self.join_report_data
-
-    def download_units(self):
-        assert self.join_report_data is not None
 
 
 class GISCOYearHandler(QtCore.QThread):

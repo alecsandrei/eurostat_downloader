@@ -174,3 +174,20 @@ def add_field_to_layer(
     provider = layer.dataProvider()
     provider.addAttributes([[field, value] for value in values])
     layer.updateFields()
+
+
+def get_table_item(value: t.Any) -> QtWidgets.QTableWidgetItem:
+    item = QtWidgets.QTableWidgetItem(str(value))
+    item.setTextAlignment(QtCore.Qt.AlignCenter)
+    item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+    item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+    return item
+
+
+def color_row(table: QtWidgets.QTableWidget, row: int, color: QtGui.QColor):
+    for col in range(table.columnCount()):
+        item = table.item(row, col)
+        if not item:
+            item = QtWidgets.QTableWidgetItem()
+            table.setItem(row, col, item)
+        item.setBackground(color)
