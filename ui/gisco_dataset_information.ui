@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>GISCODatasetInformation</class>
+ <widget class="QFrame" name="GISCODatasetInformation">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>482</width>
+    <height>148</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>GISCO dataset information</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;justify&quot;&gt;API: &lt;a href=&quot;https://gisco-services.ec.europa.eu/distribution/v2/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://gisco-services.ec.europa.eu/distribution/v2/&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;justify&quot;&gt;&lt;span style=&quot; font-family:'Verdana','Arial','Helvetica','sans-serif'; color:#000000;&quot;&gt;Please be aware that there are specific &lt;/span&gt;&lt;a href=&quot;http://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;download provisions&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-family:'Verdana','Arial','Helvetica','sans-serif'; color:#000000;&quot;&gt; for the datasets shown below which must respected. The download and usage of these data is subject to their acceptance.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::RichText</enum>
+     </property>
+     <property name="scaledContents">
+      <bool>true</bool>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

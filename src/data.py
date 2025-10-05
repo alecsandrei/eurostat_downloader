@@ -88,11 +88,11 @@ class Database:
             self._agency_status[agency] = ConnectionStatus.UNAVAILABLE
 
     def _get_toc(self, lang: Language) -> pd.DataFrame:
-        toc = pd.DataFrame()
+        dfs = []
         for data in self._toc.values():
             if (df := data.get(lang, None)) is not None:
-                toc = pd.concat([toc, df], ignore_index=True)
-        return toc
+                dfs.append(df)
+        return pd.concat(dfs, ignore_index=True).sort_values('code')
 
     @property
     def toc(self) -> pd.DataFrame:

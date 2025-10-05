@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1118</width>
+    <width>1361</width>
     <height>778</height>
    </rect>
   </property>
@@ -171,6 +171,13 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <item>
+            <widget class="QPushButton" name="pushButtonDatasetInformation">
+             <property name="text">
+              <string>Dataset information</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <property name="spacing">
               <number>6</number>
@@ -322,9 +329,15 @@
        </item>
        <item>
         <widget class="QListWidget" name="listDatabase">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="minimumSize">
           <size>
-           <width>0</width>
+           <width>500</width>
            <height>300</height>
           </size>
          </property>
@@ -334,6 +347,18 @@
      </item>
      <item>
       <widget class="QTableView" name="tableDataset">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>500</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::ExtendedSelection</enum>
        </property>

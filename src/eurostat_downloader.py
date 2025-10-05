@@ -30,7 +30,7 @@ from qgis.core import (
 )
 from qgis.PyQt import QtCore, QtGui, QtNetwork, QtWidgets
 from qgis.PyQt.QtCore import QCoreApplication, Qt
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from .data import (
     GISCO,
@@ -48,6 +48,7 @@ from .enums import (
 )
 from .settings import GLOBAL_SETTINGS, ProxySettings
 from .ui.eurostat_downloader_dialog import Ui_EurostatDownloaderDialog
+from .ui.gisco_dataset_information import Ui_GISCODatasetInformation
 from .ui.gisco_join_report import Ui_GISCOJoinReport
 from .ui.section_dialog_params import Ui_ParametersDialog
 from .ui.section_dialog_time import Ui_TimePeriodDialog
@@ -638,6 +639,9 @@ class GISCOHandler:
         self.base.ui.pushButtonGISCOViewJoinReport.clicked.connect(
             self.join_report_dialog.show
         )
+        self.base.ui.pushButtonDatasetInformation.clicked.connect(
+            self.show_gisco_dataset_information
+        )
         self.themes: dict[str, GISCO] = {}
         self.comboboxes = (
             self.base.ui.comboBoxGISCOTheme,
@@ -650,7 +654,15 @@ class GISCOHandler:
             lambda: self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(False)
         )
 
+    def show_gisco_dataset_information(self):
+        frame = QDialog(self.base)
+        ui = Ui_GISCODatasetInformation()
+        ui.setupUi(frame)
+        frame.show()
+
     def join_handler(self):
+        if self.base.dataset is None:
+            return None
         if not self.base.ui.pushButtonGISCOViewJoinReport.isEnabled():
             self.validate_join()
         if self.unit_downloader is None:
