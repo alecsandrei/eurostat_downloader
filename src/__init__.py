@@ -8,7 +8,7 @@ from .settings import GLOBAL_SETTINGS
 
 __all__ = ['eurostat']
 
-DEBUG = True
+DEBUG = False  # True will cache TOC in assets dir
 PACKAGE_DIR = Path(__file__).parent
 
 
@@ -16,10 +16,10 @@ class _EurostatLoader:
     """A wrapper for the 'eurostat' package.
 
     This wrapper allows to call 'set_eurostat_args'
-    every time an objectfrom the eurostat module is
+    every time an object from the eurostat module is
     accessed. This way, the latest global settings
     (e.g. SSL verification setting from the GUI settings dialog)
-    are used. It also loads 'eurostat' lazly.
+    are used. It also loads 'eurostat' lazily.
     """
 
     def __init__(self):
