@@ -509,6 +509,7 @@ class GISCOUnitDownloader(QtCore.QObject):
 
     def request(self):
         self.replies.clear()
+        self.handler.clear_download_units_table()
         for unit in self.units:
             reply = self.gisco.get_feature_from_unit(unit, self.nam)
             reply.finished.connect(
@@ -661,11 +662,14 @@ class GISCOHandler:
         frame.show()
 
     def join_handler(self):
+        join_report_enabled = (
+            self.base.ui.pushButtonGISCOViewJoinReport.isEnabled()
+        )
         if self.base.dataset is None:
             return None
-        if not self.base.ui.pushButtonGISCOViewJoinReport.isEnabled():
+        if not join_report_enabled:
             self.validate_join()
-        if self.unit_downloader is None:
+        if not join_report_enabled or self.unit_downloader is None:
             units = self.join_report_data.units
             self.unit_downloader = GISCOUnitDownloader(
                 self, units, parent=self.base
@@ -783,12 +787,15 @@ class GISCOHandler:
             field_unique_values['projection']
         )
 
+    def clear_download_units_table(self):
+        self.base.ui.tableWidgetDownloadUnits.clearContents()
+        self.base.ui.tableWidgetDownloadUnits.setRowCount(0)
+
     def clear(self):
         self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(False)
         self.unit_downloader = None
         self.join_report_data = None
-        self.base.ui.tableWidgetDownloadUnits.clearContents()
-        self.base.ui.tableWidgetDownloadUnits.setRowCount(0)
+        self.clear_download_units_table()
 
     def validate_join(self):
         if self.base.dataset is None:
