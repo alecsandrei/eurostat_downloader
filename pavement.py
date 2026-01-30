@@ -40,6 +40,8 @@ options(
             'eurostat_downloader*.zip',
             'extlibs',
             '*/eurostat_cache',
+            '*.pkl',
+            '*.sh',
         ],
     ),
 )
