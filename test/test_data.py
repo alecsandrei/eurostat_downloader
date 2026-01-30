@@ -5,9 +5,11 @@ __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2024-01-30'
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, mock_open
 import pandas as pd
 import json
+import tempfile
+from pathlib import Path
 
 from src.data import (
     Database, Dataset, Unit, Units, NUTS, UrbanAudit, Countries,
@@ -320,6 +322,235 @@ class TestRequestFunctions(unittest.TestCase):
         
         self.assertEqual(result, mock_reply)
         mock_mgr.get.assert_called_once()
+
+
+class TestDatabaseCaching(unittest.TestCase):
+    """Test Database JSON caching functionality."""
+
+    def setUp(self):
+        """Setup test fixtures."""
+        self.db = Database(lang=Language.ENGLISH)
+        # Create a temporary directory for cache tests
+        self.temp_dir = tempfile.mkdtemp()
+        self.temp_cache_path = Path(self.temp_dir) / 'test_cache.json'
+        self.db._cache_path = self.temp_cache_path
+
+    def tearDown(self):
+        """Clean up test files."""
+        if self.temp_cache_path.exists():
+            self.temp_cache_path.unlink()
+        Path(self.temp_dir).rmdir()
+
+    def test_cache_path_uses_json_extension(self):
+        """Test that cache path uses .json extension."""
+        db = Database(lang=Language.ENGLISH)
+        self.assertTrue(str(db._cache_path).endswith('.json'))
+        self.assertIn('eurostat_toc', str(db._cache_path))
+
+    def test_cache_toc_creates_json_file(self):
+        """Test that caching creates a valid JSON file."""
+        # Setup test data
+        self.db._toc = {
+            Agency.EUROSTAT: {
+                Language.ENGLISH: pd.DataFrame({
+                    TableOfContentsColumn.CODE.value: ['TEST001', 'TEST002'],
+                    TableOfContentsColumn.TITLE.value: ['Test Dataset 1', 'Test Dataset 2']
+                })
+            }
+        }
+        
+        # Cache the TOC
+        self.db.cache_toc()
+        
+        # Verify file was created
+        self.assertTrue(self.temp_cache_path.exists())
+        
+        # Verify it's valid JSON
+        with open(self.temp_cache_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        self.assertIsInstance(data, dict)
+        self.assertIn('EUROSTAT', data)
+
+    def test_cache_toc_structure(self):
+        """Test that cached JSON has correct structure."""
+        # Setup test data with multiple agencies and languages
+        self.db._toc = {
+            Agency.EUROSTAT: {
+                Language.ENGLISH: pd.DataFrame({
+                    TableOfContentsColumn.CODE.value: ['CODE1'],
+                    TableOfContentsColumn.TITLE.value: ['Title1']
+                }),
+                Language.FRENCH: pd.DataFrame({
+                    TableOfContentsColumn.CODE.value: ['CODE1'],
+                    TableOfContentsColumn.TITLE.value: ['Titre1']
+                })
+            }
+        }
+        
+        self.db.cache_toc()
+        
+        with open(self.temp_cache_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Check structure
+        self.assertIn('EUROSTAT', data)
+        self.assertIn('ENGLISH', data['EUROSTAT'])
+        self.assertIn('FRENCH', data['EUROSTAT'])
+        self.assertIn('code', data['EUROSTAT']['ENGLISH'])
+        self.assertIn('title', data['EUROSTAT']['ENGLISH'])
+
+    def test_load_toc_from_cache(self):
+        """Test loading TOC from JSON cache."""
+        # Create cache data
+        cache_data = {
+            'EUROSTAT': {
+                'ENGLISH': {
+                    'code': ['TEST001', 'TEST002'],
+                    'title': ['Dataset 1', 'Dataset 2']
+                }
+            }
+        }
+        
+        with open(self.temp_cache_path, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f)
+        
+        # Load from cache
+        self.db._load_toc_from_cache()
+        
+        # Verify data was loaded correctly
+        self.assertIn(Agency.EUROSTAT, self.db._toc)
+        self.assertIn(Language.ENGLISH, self.db._toc[Agency.EUROSTAT])
+        df = self.db._toc[Agency.EUROSTAT][Language.ENGLISH]
+        self.assertEqual(len(df), 2)
+        self.assertIn('TEST001', df['code'].values)
+        self.assertIn('Dataset 1', df['title'].values)
+
+    def test_cache_and_load_roundtrip(self):
+        """Test that data survives cache/load roundtrip."""
+        # Original data
+        original_df = pd.DataFrame({
+            TableOfContentsColumn.CODE.value: ['A001', 'B002', 'C003'],
+            TableOfContentsColumn.TITLE.value: ['Dataset A', 'Dataset B', 'Dataset C']
+        })
+        
+        self.db._toc = {
+            Agency.EUROSTAT: {
+                Language.ENGLISH: original_df
+            }
+        }
+        
+        # Cache it
+        self.db.cache_toc()
+        
+        # Clear the in-memory TOC
+        self.db._toc = {}
+        
+        # Load from cache
+        self.db._load_toc_from_cache()
+        
+        # Compare
+        loaded_df = self.db._toc[Agency.EUROSTAT][Language.ENGLISH]
+        pd.testing.assert_frame_equal(original_df, loaded_df)
+
+    def test_cache_multiple_agencies(self):
+        """Test caching with multiple agencies."""
+        self.db._toc = {
+            Agency.EUROSTAT: {
+                Language.ENGLISH: pd.DataFrame({
+                    'code': ['E001'],
+                    'title': ['Eurostat Data']
+                })
+            },
+            Agency.COMEXT: {
+                Language.ENGLISH: pd.DataFrame({
+                    'code': ['C001'],
+                    'title': ['Comext Data']
+                })
+            }
+        }
+        
+        self.db.cache_toc()
+        
+        with open(self.temp_cache_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        self.assertIn('EUROSTAT', data)
+        self.assertIn('COMEXT', data)
+
+    def test_load_cache_multiple_agencies(self):
+        """Test loading cache with multiple agencies."""
+        cache_data = {
+            'EUROSTAT': {
+                'ENGLISH': {'code': ['E001'], 'title': ['Eurostat']}
+            },
+            'COMEXT': {
+                'ENGLISH': {'code': ['C001'], 'title': ['Comext']},
+                'FRENCH': {'code': ['C001'], 'title': ['Comext FR']}
+            }
+        }
+        
+        with open(self.temp_cache_path, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f)
+        
+        self.db._load_toc_from_cache()
+        
+        self.assertIn(Agency.EUROSTAT, self.db._toc)
+        self.assertIn(Agency.COMEXT, self.db._toc)
+        self.assertIn(Language.FRENCH, self.db._toc[Agency.COMEXT])
+
+    def test_cache_preserves_data_types(self):
+        """Test that caching preserves data correctly."""
+        # DataFrame with various data
+        original_df = pd.DataFrame({
+            'code': ['CODE1', 'CODE2'],
+            'title': ['Title 1', 'Title 2'],
+            'type': ['dataset', 'table']
+        })
+        
+        self.db._toc = {
+            Agency.EUROSTAT: {
+                Language.ENGLISH: original_df
+            }
+        }
+        
+        self.db.cache_toc()
+        self.db._toc = {}
+        self.db._load_toc_from_cache()
+        
+        loaded_df = self.db._toc[Agency.EUROSTAT][Language.ENGLISH]
+        
+        # Check columns exist
+        self.assertIn('code', loaded_df.columns)
+        self.assertIn('title', loaded_df.columns)
+        self.assertIn('type', loaded_df.columns)
+        
+        # Check values
+        self.assertEqual(loaded_df['code'].tolist(), ['CODE1', 'CODE2'])
+        self.assertEqual(loaded_df['title'].tolist(), ['Title 1', 'Title 2'])
+
+    @patch('src.data.DEBUG', True)
+    def test_initialize_toc_with_cache(self):
+        """Test initialize_toc loads from cache when available."""
+        # Create a cache file
+        cache_data = {
+            'EUROSTAT': {
+                'ENGLISH': {
+                    'code': ['CACHED001'],
+                    'title': ['Cached Dataset']
+                }
+            }
+        }
+        
+        with open(self.temp_cache_path, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f)
+        
+        self.db.initialize_toc()
+        
+        # Should have loaded from cache
+        self.assertIn(Agency.EUROSTAT, self.db._toc)
+        df = self.db._toc[Agency.EUROSTAT][Language.ENGLISH]
+        self.assertIn('CACHED001', df['code'].values)
 
 
 class TestDatabaseAdvanced(unittest.TestCase):

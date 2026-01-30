@@ -4,7 +4,6 @@ import abc
 import collections.abc as c
 import concurrent.futures
 import json
-import pickle
 import typing as t
 from collections import UserList, defaultdict
 from dataclasses import asdict, dataclass, field
@@ -48,7 +47,7 @@ class Database:
             PACKAGE_DIR.parent
             / 'assets'
             / 'eurostat_cache'
-            / f'eurostat_toc_{datetime.today().strftime("%Y-%m-%d")}.pkl'
+            / f'eurostat_toc_{datetime.today().strftime("%Y-%m-%d")}.json'
         )
         self._cache_path.parent.mkdir(exist_ok=True)
 
@@ -58,8 +57,7 @@ class Database:
     def initialize_toc(self):
         """Used to initialize the table of contents."""
         if DEBUG and self._cache_path.exists():
-            with open(self._cache_path, mode='rb') as file:
-                self._toc = pickle.load(file)
+            self._load_toc_from_cache()
         else:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 results = executor.map(
@@ -131,9 +129,28 @@ class Database:
             subset = self.toc
         return subset[TableOfContentsColumn.CODE.value]
 
+    def _load_toc_from_cache(self):
+        """Load table of contents from JSON cache."""
+        with open(self._cache_path, mode='r', encoding='utf-8') as file:
+            cache_data = json.load(file)
+        
+        for agency_name, languages_data in cache_data.items():
+            agency = Agency[agency_name]
+            self._toc[agency] = {}
+            for lang_name, df_data in languages_data.items():
+                lang = Language[lang_name]
+                self._toc[agency][lang] = pd.DataFrame(df_data)
+
     def cache_toc(self):
-        with open(self._cache_path, mode='wb') as file:
-            pickle.dump(self._toc, file)
+        """Cache table of contents as JSON."""
+        cache_data = {}
+        for agency, languages_data in self._toc.items():
+            cache_data[agency.name] = {}
+            for lang, df in languages_data.items():
+                cache_data[agency.name][lang.name] = df.to_dict(orient='list')
+        
+        with open(self._cache_path, mode='w', encoding='utf-8') as file:
+            json.dump(cache_data, file, indent=2)
 
 
 ParamsInfo = dict[Language, dict[str, list[tuple[str, str]]]]
