@@ -13,18 +13,30 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_GISCOJoinReport(object):
     def setupUi(self, GISCOJoinReport):
-        GISCOJoinReport.setObjectName("GISCOJoinReport")
+        GISCOJoinReport.setObjectName('GISCOJoinReport')
         GISCOJoinReport.resize(779, 645)
         self.gridLayout = QtWidgets.QGridLayout(GISCOJoinReport)
-        self.gridLayout.setObjectName("gridLayout")
-        self.tableWidgetGISCOJoinReport = QtWidgets.QTableWidget(GISCOJoinReport)
-        self.tableWidgetGISCOJoinReport.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
-        self.tableWidgetGISCOJoinReport.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContentsOnFirstShow)
-        self.tableWidgetGISCOJoinReport.setObjectName("tableWidgetGISCOJoinReport")
+        self.gridLayout.setObjectName('gridLayout')
+        self.tableWidgetGISCOJoinReport = QtWidgets.QTableWidget(
+            GISCOJoinReport
+        )
+        self.tableWidgetGISCOJoinReport.setContextMenuPolicy(
+            QtCore.Qt.NoContextMenu
+        )
+        self.tableWidgetGISCOJoinReport.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.AdjustToContentsOnFirstShow
+        )
+        self.tableWidgetGISCOJoinReport.setObjectName(
+            'tableWidgetGISCOJoinReport'
+        )
         self.tableWidgetGISCOJoinReport.setColumnCount(0)
         self.tableWidgetGISCOJoinReport.setRowCount(0)
-        self.tableWidgetGISCOJoinReport.horizontalHeader().setSortIndicatorShown(True)
-        self.tableWidgetGISCOJoinReport.verticalHeader().setSortIndicatorShown(False)
+        self.tableWidgetGISCOJoinReport.horizontalHeader().setSortIndicatorShown(
+            True
+        )
+        self.tableWidgetGISCOJoinReport.verticalHeader().setSortIndicatorShown(
+            False
+        )
         self.gridLayout.addWidget(self.tableWidgetGISCOJoinReport, 0, 0, 1, 1)
 
         self.retranslateUi(GISCOJoinReport)
@@ -32,5 +44,7 @@ class Ui_GISCOJoinReport(object):
 
     def retranslateUi(self, GISCOJoinReport):
         _translate = QtCore.QCoreApplication.translate
-        GISCOJoinReport.setWindowTitle(_translate("GISCOJoinReport", "Join report"))
+        GISCOJoinReport.setWindowTitle(
+            _translate('GISCOJoinReport', 'Join report')
+        )
         self.tableWidgetGISCOJoinReport.setSortingEnabled(True)

@@ -9,164 +9,189 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from qgis import gui
+
+try:
+    from ... import resources
+except ImportError:
+    pass
 
 
 class Ui_EurostatDownloaderDialog(object):
     def setupUi(self, EurostatDownloaderDialog):
-        EurostatDownloaderDialog.setObjectName("EurostatDownloaderDialog")
+        EurostatDownloaderDialog.setObjectName('EurostatDownloaderDialog')
         EurostatDownloaderDialog.resize(1361, 778)
         self.verticalLayout_6 = QtWidgets.QVBoxLayout(EurostatDownloaderDialog)
-        self.verticalLayout_6.setObjectName("verticalLayout_6")
+        self.verticalLayout_6.setObjectName('verticalLayout_6')
         self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout.setObjectName('horizontalLayout')
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.pushButtonInitializeTOC = QtWidgets.QPushButton(EurostatDownloaderDialog)
-        self.pushButtonInitializeTOC.setObjectName("pushButtonInitializeTOC")
+        self.verticalLayout_5.setObjectName('verticalLayout_5')
+        self.pushButtonInitializeTOC = QtWidgets.QPushButton(
+            EurostatDownloaderDialog
+        )
+        self.pushButtonInitializeTOC.setObjectName('pushButtonInitializeTOC')
         self.verticalLayout_5.addWidget(self.pushButtonInitializeTOC)
         self.buttonReset = QtWidgets.QPushButton(EurostatDownloaderDialog)
-        self.buttonReset.setObjectName("buttonReset")
+        self.buttonReset.setObjectName('buttonReset')
         self.verticalLayout_5.addWidget(self.buttonReset)
         self.buttonAdd = QtWidgets.QPushButton(EurostatDownloaderDialog)
-        self.buttonAdd.setObjectName("buttonAdd")
+        self.buttonAdd.setObjectName('buttonAdd')
         self.verticalLayout_5.addWidget(self.buttonAdd)
         self.horizontalLayout_14 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_14.setObjectName("horizontalLayout_14")
+        self.horizontalLayout_14.setObjectName('horizontalLayout_14')
         self.label_3 = QtWidgets.QLabel(EurostatDownloaderDialog)
-        self.label_3.setObjectName("label_3")
+        self.label_3.setObjectName('label_3')
         self.horizontalLayout_14.addWidget(self.label_3)
         self.comboTableJoinField = QtWidgets.QComboBox(EurostatDownloaderDialog)
-        self.comboTableJoinField.setObjectName("comboTableJoinField")
+        self.comboTableJoinField.setObjectName('comboTableJoinField')
         self.horizontalLayout_14.addWidget(self.comboTableJoinField)
         self.verticalLayout_5.addLayout(self.horizontalLayout_14)
         self.tabWidget = QtWidgets.QTabWidget(EurostatDownloaderDialog)
-        self.tabWidget.setObjectName("tabWidget")
+        self.tabWidget.setObjectName('tabWidget')
         self.tab_2 = QtWidgets.QWidget()
-        self.tab_2.setObjectName("tab_2")
+        self.tab_2.setObjectName('tab_2')
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tab_2)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.verticalLayout_3.setObjectName('verticalLayout_3')
         self.horizontalLayout_16 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_16.setObjectName("horizontalLayout_16")
+        self.horizontalLayout_16.setObjectName('horizontalLayout_16')
         self.label = QtWidgets.QLabel(self.tab_2)
-        self.label.setObjectName("label")
+        self.label.setObjectName('label')
         self.horizontalLayout_16.addWidget(self.label)
         self.qgsComboLayer = gui.QgsMapLayerComboBox(self.tab_2)
         self.qgsComboLayer.setAllowEmptyLayer(True)
         self.qgsComboLayer.setShowCrs(True)
-        self.qgsComboLayer.setObjectName("qgsComboLayer")
+        self.qgsComboLayer.setObjectName('qgsComboLayer')
         self.horizontalLayout_16.addWidget(self.qgsComboLayer)
         self.verticalLayout_3.addLayout(self.horizontalLayout_16)
         self.horizontalLayout_15 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_15.setObjectName("horizontalLayout_15")
+        self.horizontalLayout_15.setObjectName('horizontalLayout_15')
         self.label_2 = QtWidgets.QLabel(self.tab_2)
-        self.label_2.setObjectName("label_2")
+        self.label_2.setObjectName('label_2')
         self.horizontalLayout_15.addWidget(self.label_2)
         self.qgsComboLayerJoinField = gui.QgsFieldComboBox(self.tab_2)
-        self.qgsComboLayerJoinField.setObjectName("qgsComboLayerJoinField")
+        self.qgsComboLayerJoinField.setObjectName('qgsComboLayerJoinField')
         self.horizontalLayout_15.addWidget(self.qgsComboLayerJoinField)
         self.verticalLayout_3.addLayout(self.horizontalLayout_15)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.horizontalLayout_3.setObjectName('horizontalLayout_3')
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setSpacing(0)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.labelEnterPrefix = QtWidgets.QLabel(self.tab_2)
-        self.labelEnterPrefix.setObjectName("labelEnterPrefix")
+        self.labelEnterPrefix.setObjectName('labelEnterPrefix')
         self.verticalLayout_2.addWidget(self.labelEnterPrefix)
         self.linePrefix = QtWidgets.QLineEdit(self.tab_2)
-        self.linePrefix.setObjectName("linePrefix")
+        self.linePrefix.setObjectName('linePrefix')
         self.verticalLayout_2.addWidget(self.linePrefix)
         self.horizontalLayout_3.addLayout(self.verticalLayout_2)
         self.verticalLayoutColumnsToJoin = QtWidgets.QVBoxLayout()
-        self.verticalLayoutColumnsToJoin.setObjectName("verticalLayoutColumnsToJoin")
+        self.verticalLayoutColumnsToJoin.setObjectName(
+            'verticalLayoutColumnsToJoin'
+        )
         self.label_7 = QtWidgets.QLabel(self.tab_2)
-        self.label_7.setObjectName("label_7")
+        self.label_7.setObjectName('label_7')
         self.verticalLayoutColumnsToJoin.addWidget(self.label_7)
         self.comboBoxColumnsToJoin = QtWidgets.QComboBox(self.tab_2)
-        self.comboBoxColumnsToJoin.setObjectName("comboBoxColumnsToJoin")
+        self.comboBoxColumnsToJoin.setObjectName('comboBoxColumnsToJoin')
         self.verticalLayoutColumnsToJoin.addWidget(self.comboBoxColumnsToJoin)
         self.horizontalLayout_3.addLayout(self.verticalLayoutColumnsToJoin)
         self.verticalLayout_3.addLayout(self.horizontalLayout_3)
         self.horizontalLayout_17 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
+        self.horizontalLayout_17.setObjectName('horizontalLayout_17')
         self.buttonJoin = QtWidgets.QPushButton(self.tab_2)
         self.buttonJoin.setMinimumSize(QtCore.QSize(50, 25))
-        self.buttonJoin.setObjectName("buttonJoin")
+        self.buttonJoin.setObjectName('buttonJoin')
         self.horizontalLayout_17.addWidget(self.buttonJoin)
         self.verticalLayout_3.addLayout(self.horizontalLayout_17)
-        spacerItem = QtWidgets.QSpacerItem(20, 128, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20,
+            128,
+            QtWidgets.QSizePolicy.Minimum,
+            QtWidgets.QSizePolicy.Expanding,
+        )
         self.verticalLayout_3.addItem(spacerItem)
-        self.tabWidget.addTab(self.tab_2, "")
+        self.tabWidget.addTab(self.tab_2, '')
         self.tab = QtWidgets.QWidget()
-        self.tab.setObjectName("tab")
+        self.tab.setObjectName('tab')
         self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.tab)
-        self.verticalLayout_7.setObjectName("verticalLayout_7")
+        self.verticalLayout_7.setObjectName('verticalLayout_7')
         self.pushButtonDatasetInformation = QtWidgets.QPushButton(self.tab)
-        self.pushButtonDatasetInformation.setObjectName("pushButtonDatasetInformation")
+        self.pushButtonDatasetInformation.setObjectName(
+            'pushButtonDatasetInformation'
+        )
         self.verticalLayout_7.addWidget(self.pushButtonDatasetInformation)
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_4.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
+        self.verticalLayout_4.setSizeConstraint(
+            QtWidgets.QLayout.SetDefaultConstraint
+        )
         self.verticalLayout_4.setSpacing(6)
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.verticalLayout_4.setObjectName('verticalLayout_4')
         self.horizontalLayout_8 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
+        self.horizontalLayout_8.setObjectName('horizontalLayout_8')
         self.label_12 = QtWidgets.QLabel(self.tab)
-        self.label_12.setObjectName("label_12")
+        self.label_12.setObjectName('label_12')
         self.horizontalLayout_8.addWidget(self.label_12)
         self.comboBoxGISCOTheme = QtWidgets.QComboBox(self.tab)
-        self.comboBoxGISCOTheme.setObjectName("comboBoxGISCOTheme")
+        self.comboBoxGISCOTheme.setObjectName('comboBoxGISCOTheme')
         self.horizontalLayout_8.addWidget(self.comboBoxGISCOTheme)
         self.verticalLayout_4.addLayout(self.horizontalLayout_8)
         self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_9.setObjectName("horizontalLayout_9")
+        self.horizontalLayout_9.setObjectName('horizontalLayout_9')
         self.label_8 = QtWidgets.QLabel(self.tab)
-        self.label_8.setObjectName("label_8")
+        self.label_8.setObjectName('label_8')
         self.horizontalLayout_9.addWidget(self.label_8)
         self.comboBoxGISCOYear = QtWidgets.QComboBox(self.tab)
-        self.comboBoxGISCOYear.setObjectName("comboBoxGISCOYear")
+        self.comboBoxGISCOYear.setObjectName('comboBoxGISCOYear')
         self.horizontalLayout_9.addWidget(self.comboBoxGISCOYear)
         self.verticalLayout_4.addLayout(self.horizontalLayout_9)
         self.horizontalLayout_10 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_10.setObjectName("horizontalLayout_10")
+        self.horizontalLayout_10.setObjectName('horizontalLayout_10')
         self.label_9 = QtWidgets.QLabel(self.tab)
-        self.label_9.setObjectName("label_9")
+        self.label_9.setObjectName('label_9')
         self.horizontalLayout_10.addWidget(self.label_9)
         self.comboBoxGISCOSpatialType = QtWidgets.QComboBox(self.tab)
-        self.comboBoxGISCOSpatialType.setObjectName("comboBoxGISCOSpatialType")
+        self.comboBoxGISCOSpatialType.setObjectName('comboBoxGISCOSpatialType')
         self.horizontalLayout_10.addWidget(self.comboBoxGISCOSpatialType)
         self.verticalLayout_4.addLayout(self.horizontalLayout_10)
         self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_11.setObjectName("horizontalLayout_11")
+        self.horizontalLayout_11.setObjectName('horizontalLayout_11')
         self.label_10 = QtWidgets.QLabel(self.tab)
-        self.label_10.setObjectName("label_10")
+        self.label_10.setObjectName('label_10')
         self.horizontalLayout_11.addWidget(self.label_10)
         self.comboBoxGISCOScale = QtWidgets.QComboBox(self.tab)
-        self.comboBoxGISCOScale.setObjectName("comboBoxGISCOScale")
+        self.comboBoxGISCOScale.setObjectName('comboBoxGISCOScale')
         self.horizontalLayout_11.addWidget(self.comboBoxGISCOScale)
         self.verticalLayout_4.addLayout(self.horizontalLayout_11)
         self.horizontalLayout_12 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_12.setObjectName("horizontalLayout_12")
+        self.horizontalLayout_12.setObjectName('horizontalLayout_12')
         self.label_11 = QtWidgets.QLabel(self.tab)
-        self.label_11.setObjectName("label_11")
+        self.label_11.setObjectName('label_11')
         self.horizontalLayout_12.addWidget(self.label_11)
         self.comboBoxGISCOProjection = QtWidgets.QComboBox(self.tab)
-        self.comboBoxGISCOProjection.setObjectName("comboBoxGISCOProjection")
+        self.comboBoxGISCOProjection.setObjectName('comboBoxGISCOProjection')
         self.horizontalLayout_12.addWidget(self.comboBoxGISCOProjection)
         self.verticalLayout_4.addLayout(self.horizontalLayout_12)
         self.horizontalLayout_13 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_13.setObjectName("horizontalLayout_13")
+        self.horizontalLayout_13.setObjectName('horizontalLayout_13')
         self.pushButtonGISCOValidateJoin = QtWidgets.QPushButton(self.tab)
-        self.pushButtonGISCOValidateJoin.setObjectName("pushButtonGISCOValidateJoin")
+        self.pushButtonGISCOValidateJoin.setObjectName(
+            'pushButtonGISCOValidateJoin'
+        )
         self.horizontalLayout_13.addWidget(self.pushButtonGISCOValidateJoin)
         self.pushButtonGISCOViewJoinReport = QtWidgets.QPushButton(self.tab)
         self.pushButtonGISCOViewJoinReport.setEnabled(False)
-        self.pushButtonGISCOViewJoinReport.setObjectName("pushButtonGISCOViewJoinReport")
+        self.pushButtonGISCOViewJoinReport.setObjectName(
+            'pushButtonGISCOViewJoinReport'
+        )
         self.horizontalLayout_13.addWidget(self.pushButtonGISCOViewJoinReport)
         self.verticalLayout_4.addLayout(self.horizontalLayout_13)
         self.verticalLayout_7.addLayout(self.verticalLayout_4)
         self.tableWidgetDownloadUnits = QtWidgets.QTableWidget(self.tab)
-        self.tableWidgetDownloadUnits.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustIgnored)
-        self.tableWidgetDownloadUnits.setObjectName("tableWidgetDownloadUnits")
+        self.tableWidgetDownloadUnits.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.AdjustIgnored
+        )
+        self.tableWidgetDownloadUnits.setObjectName('tableWidgetDownloadUnits')
         self.tableWidgetDownloadUnits.setColumnCount(3)
         self.tableWidgetDownloadUnits.setRowCount(0)
         item = QtWidgets.QTableWidgetItem()
@@ -175,137 +200,225 @@ class Ui_EurostatDownloaderDialog(object):
         self.tableWidgetDownloadUnits.setHorizontalHeaderItem(1, item)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidgetDownloadUnits.setHorizontalHeaderItem(2, item)
-        self.tableWidgetDownloadUnits.horizontalHeader().setCascadingSectionResizes(False)
-        self.tableWidgetDownloadUnits.verticalHeader().setCascadingSectionResizes(False)
+        self.tableWidgetDownloadUnits.horizontalHeader().setCascadingSectionResizes(
+            False
+        )
+        self.tableWidgetDownloadUnits.verticalHeader().setCascadingSectionResizes(
+            False
+        )
         self.verticalLayout_7.addWidget(self.tableWidgetDownloadUnits)
         self.pushButtonGISCOJoin = QtWidgets.QPushButton(self.tab)
         self.pushButtonGISCOJoin.setEnabled(True)
-        self.pushButtonGISCOJoin.setObjectName("pushButtonGISCOJoin")
+        self.pushButtonGISCOJoin.setObjectName('pushButtonGISCOJoin')
         self.verticalLayout_7.addWidget(self.pushButtonGISCOJoin)
-        self.tabWidget.addTab(self.tab, "")
+        self.tabWidget.addTab(self.tab, '')
         self.verticalLayout_5.addWidget(self.tabWidget)
         self.horizontalLayout.addLayout(self.verticalLayout_5)
         self.verticalLayout = QtWidgets.QVBoxLayout()
-        self.verticalLayout.setObjectName("verticalLayout")
+        self.verticalLayout.setObjectName('verticalLayout')
         self.lineSearch = QtWidgets.QLineEdit(EurostatDownloaderDialog)
-        self.lineSearch.setObjectName("lineSearch")
+        self.lineSearch.setObjectName('lineSearch')
         self.verticalLayout.addWidget(self.lineSearch)
         self.listDatabase = QtWidgets.QListWidget(EurostatDownloaderDialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.listDatabase.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.listDatabase.sizePolicy().hasHeightForWidth()
+        )
         self.listDatabase.setSizePolicy(sizePolicy)
         self.listDatabase.setMinimumSize(QtCore.QSize(500, 300))
-        self.listDatabase.setObjectName("listDatabase")
+        self.listDatabase.setObjectName('listDatabase')
         self.verticalLayout.addWidget(self.listDatabase)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.tableDataset = QtWidgets.QTableView(EurostatDownloaderDialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.tableDataset.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.tableDataset.sizePolicy().hasHeightForWidth()
+        )
         self.tableDataset.setSizePolicy(sizePolicy)
         self.tableDataset.setMinimumSize(QtCore.QSize(500, 0))
-        self.tableDataset.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        self.tableDataset.setObjectName("tableDataset")
+        self.tableDataset.setSelectionMode(
+            QtWidgets.QAbstractItemView.ExtendedSelection
+        )
+        self.tableDataset.setObjectName('tableDataset')
         self.horizontalLayout.addWidget(self.tableDataset)
         self.verticalLayout_6.addLayout(self.horizontalLayout)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.horizontalLayout_2.setObjectName('horizontalLayout_2')
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
+        self.horizontalLayout_7.setObjectName('horizontalLayout_7')
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.horizontalLayout_4.setObjectName('horizontalLayout_4')
         self.label_4 = QtWidgets.QLabel(EurostatDownloaderDialog)
-        self.label_4.setObjectName("label_4")
+        self.label_4.setObjectName('label_4')
         self.horizontalLayout_4.addWidget(self.label_4)
         self.checkEnglish = QtWidgets.QCheckBox(EurostatDownloaderDialog)
-        self.checkEnglish.setText("")
+        self.checkEnglish.setText('')
         self.checkEnglish.setChecked(True)
-        self.checkEnglish.setObjectName("checkEnglish")
+        self.checkEnglish.setObjectName('checkEnglish')
         self.horizontalLayout_4.addWidget(self.checkEnglish)
         self.horizontalLayout_7.addLayout(self.horizontalLayout_4)
-        spacerItem1 = QtWidgets.QSpacerItem(10, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            10, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_7.addItem(spacerItem1)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.horizontalLayout_5.setObjectName('horizontalLayout_5')
         self.label_6 = QtWidgets.QLabel(EurostatDownloaderDialog)
-        self.label_6.setObjectName("label_6")
+        self.label_6.setObjectName('label_6')
         self.horizontalLayout_5.addWidget(self.label_6)
         self.checkGerman = QtWidgets.QCheckBox(EurostatDownloaderDialog)
-        self.checkGerman.setText("")
-        self.checkGerman.setObjectName("checkGerman")
+        self.checkGerman.setText('')
+        self.checkGerman.setObjectName('checkGerman')
         self.horizontalLayout_5.addWidget(self.checkGerman)
         self.horizontalLayout_7.addLayout(self.horizontalLayout_5)
-        spacerItem2 = QtWidgets.QSpacerItem(10, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            10, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_7.addItem(spacerItem2)
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
+        self.horizontalLayout_6.setObjectName('horizontalLayout_6')
         self.label_5 = QtWidgets.QLabel(EurostatDownloaderDialog)
-        self.label_5.setObjectName("label_5")
+        self.label_5.setObjectName('label_5')
         self.horizontalLayout_6.addWidget(self.label_5)
         self.checkFrench = QtWidgets.QCheckBox(EurostatDownloaderDialog)
-        self.checkFrench.setText("")
-        self.checkFrench.setObjectName("checkFrench")
+        self.checkFrench.setText('')
+        self.checkFrench.setObjectName('checkFrench')
         self.horizontalLayout_6.addWidget(self.checkFrench)
         self.horizontalLayout_7.addLayout(self.horizontalLayout_6)
         self.horizontalLayout_2.addLayout(self.horizontalLayout_7)
-        self.toolButtonSettings = QtWidgets.QToolButton(EurostatDownloaderDialog)
+        self.toolButtonSettings = QtWidgets.QToolButton(
+            EurostatDownloaderDialog
+        )
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/plugins/eurostat_downloader/assets/settings.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(':/plugins/eurostat_downloader/assets/settings.png'),
+            QtGui.QIcon.Normal,
+            QtGui.QIcon.Off,
+        )
         self.toolButtonSettings.setIcon(icon)
-        self.toolButtonSettings.setObjectName("toolButtonSettings")
+        self.toolButtonSettings.setObjectName('toolButtonSettings')
         self.horizontalLayout_2.addWidget(self.toolButtonSettings)
         self.labelAgencyStatus = QtWidgets.QLabel(EurostatDownloaderDialog)
-        self.labelAgencyStatus.setObjectName("labelAgencyStatus")
+        self.labelAgencyStatus.setObjectName('labelAgencyStatus')
         self.horizontalLayout_2.addWidget(self.labelAgencyStatus)
         self.button_box = QtWidgets.QDialogButtonBox(EurostatDownloaderDialog)
         self.button_box.setOrientation(QtCore.Qt.Horizontal)
-        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
-        self.button_box.setObjectName("button_box")
+        self.button_box.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
+        )
+        self.button_box.setObjectName('button_box')
         self.horizontalLayout_2.addWidget(self.button_box)
         self.verticalLayout_6.addLayout(self.horizontalLayout_2)
 
         self.retranslateUi(EurostatDownloaderDialog)
         self.tabWidget.setCurrentIndex(0)
-        self.button_box.accepted.connect(EurostatDownloaderDialog.accept) # type: ignore
-        self.button_box.rejected.connect(EurostatDownloaderDialog.reject) # type: ignore
+        self.button_box.accepted.connect(EurostatDownloaderDialog.accept)  # type: ignore
+        self.button_box.rejected.connect(EurostatDownloaderDialog.reject)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(EurostatDownloaderDialog)
 
     def retranslateUi(self, EurostatDownloaderDialog):
         _translate = QtCore.QCoreApplication.translate
-        EurostatDownloaderDialog.setWindowTitle(_translate("EurostatDownloaderDialog", "Eurostat data downloader"))
-        self.pushButtonInitializeTOC.setText(_translate("EurostatDownloaderDialog", "Initialize table of contents"))
-        self.buttonReset.setText(_translate("EurostatDownloaderDialog", "Reset table"))
-        self.buttonAdd.setText(_translate("EurostatDownloaderDialog", "Add table"))
-        self.label_3.setText(_translate("EurostatDownloaderDialog", "Select geographic column"))
-        self.label.setText(_translate("EurostatDownloaderDialog", "Select layer"))
-        self.label_2.setText(_translate("EurostatDownloaderDialog", "Select layer join field"))
-        self.labelEnterPrefix.setText(_translate("EurostatDownloaderDialog", "Add prefix to joined fields"))
-        self.label_7.setText(_translate("EurostatDownloaderDialog", "Columns to join"))
-        self.buttonJoin.setText(_translate("EurostatDownloaderDialog", "Join data"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("EurostatDownloaderDialog", "Layer"))
-        self.pushButtonDatasetInformation.setText(_translate("EurostatDownloaderDialog", "Dataset information"))
-        self.label_12.setText(_translate("EurostatDownloaderDialog", "Theme"))
-        self.label_8.setText(_translate("EurostatDownloaderDialog", "Year"))
-        self.label_9.setText(_translate("EurostatDownloaderDialog", "Spatial type"))
-        self.label_10.setText(_translate("EurostatDownloaderDialog", "Scale"))
-        self.label_11.setText(_translate("EurostatDownloaderDialog", "Projection"))
-        self.pushButtonGISCOValidateJoin.setText(_translate("EurostatDownloaderDialog", "Validate join"))
-        self.pushButtonGISCOViewJoinReport.setText(_translate("EurostatDownloaderDialog", "View join report"))
+        EurostatDownloaderDialog.setWindowTitle(
+            _translate('EurostatDownloaderDialog', 'Eurostat data downloader')
+        )
+        self.pushButtonInitializeTOC.setText(
+            _translate(
+                'EurostatDownloaderDialog', 'Initialize table of contents'
+            )
+        )
+        self.buttonReset.setText(
+            _translate('EurostatDownloaderDialog', 'Reset table')
+        )
+        self.buttonAdd.setText(
+            _translate('EurostatDownloaderDialog', 'Add table')
+        )
+        self.label_3.setText(
+            _translate('EurostatDownloaderDialog', 'Select geographic column')
+        )
+        self.label.setText(
+            _translate('EurostatDownloaderDialog', 'Select layer')
+        )
+        self.label_2.setText(
+            _translate('EurostatDownloaderDialog', 'Select layer join field')
+        )
+        self.labelEnterPrefix.setText(
+            _translate(
+                'EurostatDownloaderDialog', 'Add prefix to joined fields'
+            )
+        )
+        self.label_7.setText(
+            _translate('EurostatDownloaderDialog', 'Columns to join')
+        )
+        self.buttonJoin.setText(
+            _translate('EurostatDownloaderDialog', 'Join data')
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_2),
+            _translate('EurostatDownloaderDialog', 'Layer'),
+        )
+        self.pushButtonDatasetInformation.setText(
+            _translate('EurostatDownloaderDialog', 'Dataset information')
+        )
+        self.label_12.setText(_translate('EurostatDownloaderDialog', 'Theme'))
+        self.label_8.setText(_translate('EurostatDownloaderDialog', 'Year'))
+        self.label_9.setText(
+            _translate('EurostatDownloaderDialog', 'Spatial type')
+        )
+        self.label_10.setText(_translate('EurostatDownloaderDialog', 'Scale'))
+        self.label_11.setText(
+            _translate('EurostatDownloaderDialog', 'Projection')
+        )
+        self.pushButtonGISCOValidateJoin.setText(
+            _translate('EurostatDownloaderDialog', 'Validate join')
+        )
+        self.pushButtonGISCOViewJoinReport.setText(
+            _translate('EurostatDownloaderDialog', 'View join report')
+        )
         item = self.tableWidgetDownloadUnits.horizontalHeaderItem(0)
-        item.setText(_translate("EurostatDownloaderDialog", "ID"))
+        item.setText(_translate('EurostatDownloaderDialog', 'ID'))
         item = self.tableWidgetDownloadUnits.horizontalHeaderItem(1)
-        item.setText(_translate("EurostatDownloaderDialog", "URL"))
+        item.setText(_translate('EurostatDownloaderDialog', 'URL'))
         item = self.tableWidgetDownloadUnits.horizontalHeaderItem(2)
-        item.setText(_translate("EurostatDownloaderDialog", "Error"))
-        self.pushButtonGISCOJoin.setText(_translate("EurostatDownloaderDialog", "Join"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("EurostatDownloaderDialog", "GISCO"))
-        self.label_4.setText(_translate("EurostatDownloaderDialog", "<html><head/><body><p><img src=\":/plugins/eurostat_downloader/assets/uk.png\"/></p></body></html>"))
-        self.label_6.setText(_translate("EurostatDownloaderDialog", "<html><head/><body><p><img src=\":/plugins/eurostat_downloader/assets/germany.png\"/></p></body></html>"))
-        self.label_5.setText(_translate("EurostatDownloaderDialog", "<html><head/><body><p><img src=\":/plugins/eurostat_downloader/assets/france.png\"/></p></body></html>"))
-        self.toolButtonSettings.setText(_translate("EurostatDownloaderDialog", "..."))
-        self.labelAgencyStatus.setText(_translate("EurostatDownloaderDialog", "<html><head/><body><p><img src=\":/plugins/eurostat_downloader/assets/signal.png\"/></p></body></html>"))
-from qgis import gui
-from ... import resources
+        item.setText(_translate('EurostatDownloaderDialog', 'Error'))
+        self.pushButtonGISCOJoin.setText(
+            _translate('EurostatDownloaderDialog', 'Join')
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab),
+            _translate('EurostatDownloaderDialog', 'GISCO'),
+        )
+        self.label_4.setText(
+            _translate(
+                'EurostatDownloaderDialog',
+                '<html><head/><body><p><img src=":/plugins/eurostat_downloader/assets/uk.png"/></p></body></html>',
+            )
+        )
+        self.label_6.setText(
+            _translate(
+                'EurostatDownloaderDialog',
+                '<html><head/><body><p><img src=":/plugins/eurostat_downloader/assets/germany.png"/></p></body></html>',
+            )
+        )
+        self.label_5.setText(
+            _translate(
+                'EurostatDownloaderDialog',
+                '<html><head/><body><p><img src=":/plugins/eurostat_downloader/assets/france.png"/></p></body></html>',
+            )
+        )
+        self.toolButtonSettings.setText(
+            _translate('EurostatDownloaderDialog', '...')
+        )
+        self.labelAgencyStatus.setText(
+            _translate(
+                'EurostatDownloaderDialog',
+                '<html><head/><body><p><img src=":/plugins/eurostat_downloader/assets/signal.png"/></p></body></html>',
+            )
+        )

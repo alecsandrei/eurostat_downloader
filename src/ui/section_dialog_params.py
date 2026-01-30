@@ -13,37 +13,51 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_ParametersDialog(object):
     def setupUi(self, ParametersDialog):
-        ParametersDialog.setObjectName("ParametersDialog")
+        ParametersDialog.setObjectName('ParametersDialog')
         ParametersDialog.resize(500, 400)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(ParametersDialog.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            ParametersDialog.sizePolicy().hasHeightForWidth()
+        )
         ParametersDialog.setSizePolicy(sizePolicy)
         ParametersDialog.setMaximumSize(QtCore.QSize(500, 400))
         ParametersDialog.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.gridLayout = QtWidgets.QGridLayout(ParametersDialog)
-        self.gridLayout.setObjectName("gridLayout")
+        self.gridLayout.setObjectName('gridLayout')
         self.lineSearch = QtWidgets.QLineEdit(ParametersDialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineSearch.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineSearch.sizePolicy().hasHeightForWidth()
+        )
         self.lineSearch.setSizePolicy(sizePolicy)
         self.lineSearch.setFrame(True)
-        self.lineSearch.setObjectName("lineSearch")
+        self.lineSearch.setObjectName('lineSearch')
         self.gridLayout.addWidget(self.lineSearch, 0, 0, 1, 1)
         self.listItems = QtWidgets.QListWidget(ParametersDialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.listItems.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.listItems.sizePolicy().hasHeightForWidth()
+        )
         self.listItems.setSizePolicy(sizePolicy)
-        self.listItems.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        self.listItems.setObjectName("listItems")
+        self.listItems.setSelectionMode(
+            QtWidgets.QAbstractItemView.ExtendedSelection
+        )
+        self.listItems.setObjectName('listItems')
         self.gridLayout.addWidget(self.listItems, 1, 0, 2, 1)
         self.buttonReset = QtWidgets.QPushButton(ParametersDialog)
-        self.buttonReset.setObjectName("buttonReset")
+        self.buttonReset.setObjectName('buttonReset')
         self.gridLayout.addWidget(self.buttonReset, 3, 0, 1, 1)
 
         self.retranslateUi(ParametersDialog)
@@ -51,5 +65,9 @@ class Ui_ParametersDialog(object):
 
     def retranslateUi(self, ParametersDialog):
         _translate = QtCore.QCoreApplication.translate
-        ParametersDialog.setWindowTitle(_translate("ParametersDialog", "Edit section"))
-        self.buttonReset.setText(_translate("ParametersDialog", "Reset selection"))
+        ParametersDialog.setWindowTitle(
+            _translate('ParametersDialog', 'Edit section')
+        )
+        self.buttonReset.setText(
+            _translate('ParametersDialog', 'Reset selection')
+        )

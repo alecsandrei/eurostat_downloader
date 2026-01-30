@@ -13,39 +13,45 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_TimePeriodDialog(object):
     def setupUi(self, TimePeriodDialog):
-        TimePeriodDialog.setObjectName("TimePeriodDialog")
+        TimePeriodDialog.setObjectName('TimePeriodDialog')
         TimePeriodDialog.resize(440, 130)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(TimePeriodDialog.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            TimePeriodDialog.sizePolicy().hasHeightForWidth()
+        )
         TimePeriodDialog.setSizePolicy(sizePolicy)
         self.verticalLayout = QtWidgets.QVBoxLayout(TimePeriodDialog)
-        self.verticalLayout.setObjectName("verticalLayout")
+        self.verticalLayout.setObjectName('verticalLayout')
         self.frameStart = QtWidgets.QFrame(TimePeriodDialog)
         self.frameStart.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frameStart.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.frameStart.setObjectName("frameStart")
+        self.frameStart.setObjectName('frameStart')
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.frameStart)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.labelStart = QtWidgets.QLabel(self.frameStart)
-        self.labelStart.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
-        self.labelStart.setObjectName("labelStart")
+        self.labelStart.setAlignment(
+            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop
+        )
+        self.labelStart.setObjectName('labelStart')
         self.verticalLayout_2.addWidget(self.labelStart)
         self.verticalLayout.addWidget(self.frameStart)
         self.frameEnd = QtWidgets.QFrame(TimePeriodDialog)
         self.frameEnd.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frameEnd.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.frameEnd.setObjectName("frameEnd")
+        self.frameEnd.setObjectName('frameEnd')
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.frameEnd)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.verticalLayout_3.setObjectName('verticalLayout_3')
         self.labelEnd = QtWidgets.QLabel(self.frameEnd)
-        self.labelEnd.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
-        self.labelEnd.setObjectName("labelEnd")
+        self.labelEnd.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
+        self.labelEnd.setObjectName('labelEnd')
         self.verticalLayout_3.addWidget(self.labelEnd)
         self.verticalLayout.addWidget(self.frameEnd)
         self.buttonReset = QtWidgets.QPushButton(TimePeriodDialog)
-        self.buttonReset.setObjectName("buttonReset")
+        self.buttonReset.setObjectName('buttonReset')
         self.verticalLayout.addWidget(self.buttonReset)
 
         self.retranslateUi(TimePeriodDialog)
@@ -53,7 +59,9 @@ class Ui_TimePeriodDialog(object):
 
     def retranslateUi(self, TimePeriodDialog):
         _translate = QtCore.QCoreApplication.translate
-        TimePeriodDialog.setWindowTitle(_translate("TimePeriodDialog", "Form"))
-        self.labelStart.setText(_translate("TimePeriodDialog", "Select start time"))
-        self.labelEnd.setText(_translate("TimePeriodDialog", "Select end time"))
-        self.buttonReset.setText(_translate("TimePeriodDialog", "Reset values"))
+        TimePeriodDialog.setWindowTitle(_translate('TimePeriodDialog', 'Form'))
+        self.labelStart.setText(
+            _translate('TimePeriodDialog', 'Select start time')
+        )
+        self.labelEnd.setText(_translate('TimePeriodDialog', 'Select end time'))
+        self.buttonReset.setText(_translate('TimePeriodDialog', 'Reset values'))

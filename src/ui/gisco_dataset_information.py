@@ -13,16 +13,16 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_GISCODatasetInformation(object):
     def setupUi(self, GISCODatasetInformation):
-        GISCODatasetInformation.setObjectName("GISCODatasetInformation")
+        GISCODatasetInformation.setObjectName('GISCODatasetInformation')
         GISCODatasetInformation.resize(482, 148)
         self.gridLayout = QtWidgets.QGridLayout(GISCODatasetInformation)
-        self.gridLayout.setObjectName("gridLayout")
+        self.gridLayout.setObjectName('gridLayout')
         self.label = QtWidgets.QLabel(GISCODatasetInformation)
         self.label.setTextFormat(QtCore.Qt.RichText)
         self.label.setScaledContents(True)
         self.label.setWordWrap(True)
         self.label.setOpenExternalLinks(True)
-        self.label.setObjectName("label")
+        self.label.setObjectName('label')
         self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
 
         self.retranslateUi(GISCODatasetInformation)
@@ -30,5 +30,12 @@ class Ui_GISCODatasetInformation(object):
 
     def retranslateUi(self, GISCODatasetInformation):
         _translate = QtCore.QCoreApplication.translate
-        GISCODatasetInformation.setWindowTitle(_translate("GISCODatasetInformation", "GISCO dataset information"))
-        self.label.setText(_translate("GISCODatasetInformation", "<html><head/><body><p align=\"justify\">API: <a href=\"https://gisco-services.ec.europa.eu/distribution/v2/\"><span style=\" text-decoration: underline; color:#0000ff;\">https://gisco-services.ec.europa.eu/distribution/v2/</span></a></p><p align=\"justify\"><span style=\" font-family:\'Verdana\',\'Arial\',\'Helvetica\',\'sans-serif\'; color:#000000;\">Please be aware that there are specific </span><a href=\"http://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units\"><span style=\" text-decoration: underline; color:#0000ff;\">download provisions</span></a><span style=\" font-family:\'Verdana\',\'Arial\',\'Helvetica\',\'sans-serif\'; color:#000000;\"> for the datasets shown below which must respected. The download and usage of these data is subject to their acceptance.</span></p></body></html>"))
+        GISCODatasetInformation.setWindowTitle(
+            _translate('GISCODatasetInformation', 'GISCO dataset information')
+        )
+        self.label.setText(
+            _translate(
+                'GISCODatasetInformation',
+                '<html><head/><body><p align="justify">API: <a href="https://gisco-services.ec.europa.eu/distribution/v2/"><span style=" text-decoration: underline; color:#0000ff;">https://gisco-services.ec.europa.eu/distribution/v2/</span></a></p><p align="justify"><span style=" font-family:\'Verdana\',\'Arial\',\'Helvetica\',\'sans-serif\'; color:#000000;">Please be aware that there are specific </span><a href="http://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units"><span style=" text-decoration: underline; color:#0000ff;">download provisions</span></a><span style=" font-family:\'Verdana\',\'Arial\',\'Helvetica\',\'sans-serif\'; color:#000000;"> for the datasets shown below which must respected. The download and usage of these data is subject to their acceptance.</span></p></body></html>',
+            )
+        )
