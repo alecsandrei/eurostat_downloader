@@ -596,7 +596,7 @@ class GISCOJoinReport(QtWidgets.QDialog):
         for row, code in enumerate(self.report_data.codes):
             unit = self.report_data.units.filter({'id': [code]})
             matched = bool(unit)
-            sign = '✅' if matched else '❎'
+            sign = '✔' if matched else '✘'
 
             table.setItem(row, 0, get_table_item(sign))
             if matched:
