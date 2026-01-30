@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +9,9 @@ from .settings import GLOBAL_SETTINGS
 
 __all__ = ['eurostat']
 
-DEBUG = False  # True will cache TOC in assets dir
+DEBUG = (
+    os.getenv('EUROSTAT_PLUGIN_DEBUG', '0') == '1'
+)  # True will cache TOC in assets dir
 PACKAGE_DIR = Path(__file__).parent
 
 
