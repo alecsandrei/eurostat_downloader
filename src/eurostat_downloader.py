@@ -1274,12 +1274,14 @@ class DataFilterer:
         return np.setdiff1d(self.column, self.dataset.params).tolist()
 
     def apply_filters(self):
-        ind = [True] * len(self.df)
+        # Use a boolean Series instead of a Python list
+        ind = pd.Series(True, index=self.df.index)
+
         for col, vals in self.row.items():
             if not vals:
                 continue
-            # TODO: Fix the following line of code. A Pandas FutureWarning.
-            ind = ind & (self.df[col].isin(vals))
+            ind = ind & self.df[col].isin(vals)
+
         return self.df.loc[ind, self.column]
 
     def add_row_filters(self, filters: dict[str, Iterable[Any]]):
