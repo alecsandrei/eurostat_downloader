@@ -3,25 +3,14 @@
 
 import fnmatch
 import os
-import platform
 import zipfile
 
 from paver.easy import *
 
 
-def get_extlibs():
-    if platform.system() == 'Windows':
-        return 'extlibs_windows'
-    # if platform.system() == "Darwin":
-    #     return 'extlibs_macos'
-    if platform.system() == 'Linux':
-        return 'extlibs_linux'
-
-
 options(
     plugin=Bunch(
         name='eurostat_downloader',
-        ext_libs=path(get_extlibs()),
         source_dir=path('.'),
         package_dir=path('.'),
         tests=['test', 'tests'],
@@ -38,7 +27,6 @@ options(
             '.gitignore',
             '*/__pycache__',
             'eurostat_downloader*.zip',
-            'extlibs',
             '*/eurostat_cache',
             '*.pkl',
             '*.sh',

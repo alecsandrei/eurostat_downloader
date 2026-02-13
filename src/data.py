@@ -13,14 +13,15 @@ from itertools import product
 from pathlib import Path
 from urllib.parse import urljoin
 
-import pandas as pd
-from qgis.core import QgsNetworkAccessManager
-from qgis.PyQt.QtCore import QUrl
-from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
-
-from . import DEBUG, PACKAGE_DIR, eurostat
+from . import DEBUG, PACKAGE_DIR, fetch
 from .enums import Agency, ConnectionStatus, Language, TableOfContentsColumn
 from .settings import GLOBAL_SETTINGS
+
+
+def _debug(msg: str, prefix: str = "🔍") -> None:
+    """Print debug message if DEBUG mode is enabled."""
+    if DEBUG:
+        print(f"{prefix} [EUROSTAT-DATA] {msg}")
 
 GISCO_BASE = 'https://gisco-services.ec.europa.eu/distribution/v2/{theme}/'
 GISCO_URL = {
@@ -33,7 +34,7 @@ GISCO_URL = {
     'unit': urljoin(GISCO_BASE, 'distribution/{filename}'),
 }
 Datasets = dict[str, t.Any]
-TableOfContents = dict[Agency, dict[Language, pd.DataFrame]]
+TableOfContents = dict[Agency, dict[Language, list[dict[str, t.Any]]]]
 AgencyStatus = dict[Agency, ConnectionStatus]
 
 
@@ -80,56 +81,59 @@ class Database:
             if status == ConnectionStatus.UNAVAILABLE:
                 return None
         try:
-            self._toc[agency][lang] = eurostat.get_toc_df(
+            self._toc[agency][lang] = fetch.get_toc(
                 agency=agency.value, lang=lang.value
             )
             self._agency_status[agency] = ConnectionStatus.AVAILABLE
         except ConnectionError:
             self._agency_status[agency] = ConnectionStatus.UNAVAILABLE
 
-    def _get_toc(self, lang: Language) -> pd.DataFrame:
-        dfs = []
+    def _get_toc(self, lang: Language) -> list[dict[str, t.Any]]:
+        rows = []
         for data in self._toc.values():
-            if (df := data.get(lang, None)) is not None:
-                dfs.append(df)
-        return pd.concat(dfs, ignore_index=True).sort_values('code')
+            if (toc_list := data.get(lang, None)) is not None:
+                rows.extend(toc_list)
+        return sorted(rows, key=lambda x: x.get('code', ''))
 
     @property
-    def toc(self) -> pd.DataFrame:
+    def toc(self) -> list[dict[str, t.Any]]:
         return self._get_toc(self.lang)
 
     @property
-    def toc_titles(self) -> pd.Series[str]:
-        return self.toc[TableOfContentsColumn.TITLE.value]
+    def toc_titles(self) -> list[str]:
+        return [row[TableOfContentsColumn.TITLE.value] for row in self.toc]
 
     @property
     def toc_size(self):
-        return self.toc.shape[0]
+        return len(self.toc)
 
-    def get_subset(self, keyword: str):
+    def get_subset(self, keyword: str) -> list[dict[str, t.Any]]:
         """Creates a subset of the toc."""
         if not keyword.strip():
             return self.toc
-        # Concat the code and the title.
-        concatenated: pd.Series[str] = (
-            self.toc[TableOfContentsColumn.CODE.value]
-            + ' '
-            + self.toc[TableOfContentsColumn.TITLE.value]
-        )
-        # Check if keyword is in series.
-        mask = concatenated.str.contains(pat=keyword, case=False, regex=False)
-        # Concat the dataframes and drop duplicates.
-        return self.toc[mask]
+        keyword_lower = keyword.lower()
+        result = []
+        for row in self.toc:
+            code = row.get(TableOfContentsColumn.CODE.value, '')
+            title = row.get(TableOfContentsColumn.TITLE.value, '')
+            search_text = f'{code} {title}'.lower()
+            if keyword_lower in search_text:
+                result.append(row)
+        return result
 
-    def get_titles(self, subset: pd.DataFrame | None = None) -> pd.Series[str]:
+    def get_titles(
+        self, subset: list[dict[str, t.Any]] | None = None
+    ) -> list[str]:
         if subset is None:
             subset = self.toc
-        return subset[TableOfContentsColumn.TITLE.value]
+        return [row[TableOfContentsColumn.TITLE.value] for row in subset]
 
-    def get_codes(self, subset: pd.DataFrame | None = None) -> pd.Series[str]:
+    def get_codes(
+        self, subset: list[dict[str, t.Any]] | None = None
+    ) -> list[str]:
         if subset is None:
             subset = self.toc
-        return subset[TableOfContentsColumn.CODE.value]
+        return [row[TableOfContentsColumn.CODE.value] for row in subset]
 
     def _load_toc_from_cache(self):
         """Load table of contents from JSON cache."""
@@ -139,17 +143,17 @@ class Database:
         for agency_name, languages_data in cache_data.items():
             agency = Agency[agency_name]
             self._toc[agency] = {}
-            for lang_name, df_data in languages_data.items():
+            for lang_name, toc_data in languages_data.items():
                 lang = Language[lang_name]
-                self._toc[agency][lang] = pd.DataFrame(df_data)
+                self._toc[agency][lang] = toc_data
 
     def cache_toc(self):
         """Cache table of contents as JSON."""
         cache_data = {}
         for agency, languages_data in self._toc.items():
             cache_data[agency.name] = {}
-            for lang, df in languages_data.items():
-                cache_data[agency.name][lang.name] = df.to_dict(orient='list')
+            for lang, toc_list in languages_data.items():
+                cache_data[agency.name][lang.name] = toc_list
 
         with open(self._cache_path, mode='w', encoding='utf-8') as file:
             json.dump(cache_data, file, indent=2)
@@ -166,70 +170,83 @@ class Dataset:
     code: str
     lang: Language | None = field(default=None)
     _param_info: ParamsInfo = field(init=False, default_factory=dict)
-    _df: pd.DataFrame = field(init=False)
+    _data: dict[str, t.Any] | None = field(init=False, default=None)
     _params: list[str] = field(init=False, default_factory=list)
 
     def set_language(self, lang: Language | None):
         self.lang = lang
 
     def _set_pars(self):
-        self._params.extend(eurostat.get_pars(self.code))
+        self._params.extend(fetch.get_pars(self.code))
 
     def _set_param_info(self, data: tuple[str, Language]):
         param, lang = data[0], data[1]
-        dic = eurostat.get_dic(
-            code=self.code, par=param, full=False, lang=lang.value
-        )
+        dic = fetch.get_dic(code=self.code, par=param, full=False, lang=lang.value)
         self._param_info.setdefault(lang, {})[param] = dic
 
-    def _set_df(self):
-        data_df = eurostat.get_data_df(code=self.code)
-        assert data_df is not None
-        self.remove_time_period_str(data_df)
-        self._df = data_df
+    def _set_data(self):
+        _debug(f'Fetching dataset: {self.code}', '💾')
+        data_dict = fetch.get_data(code=self.code)
+        assert data_dict is not None
+        self.remove_time_period_str(data_dict)
+        _debug(
+            f'Dataset loaded: {len(data_dict["data"])} rows, {len(data_dict["columns"])} columns',
+            '✓',
+        )
+        self._data = data_dict
 
-    def initialize_df(self):
+    def initialize_data(self):
+        _debug(f'Initializing dataset: {self.code}', '⚙')
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.submit(self._set_df)
+            executor.submit(self._set_data)
             params = executor.submit(self._set_pars)
             concurrent.futures.wait([params])
             executor.map(self._set_param_info, product(self._params, Language))
+        _debug('Dataset initialized successfully', '✓')
 
     @property
-    def df(self) -> pd.DataFrame:
-        return self._df
+    def data(self) -> dict[str, t.Any]:
+        """Returns data as dict with 'columns' and 'data' keys."""
+        return self._data
 
     @staticmethod
-    def remove_time_period_str(df: pd.DataFrame):
-        def replace(col: str):
-            return col.replace(r'\TIME_PERIOD', '')
-
-        df.columns = df.columns.map(replace)
+    def remove_time_period_str(data_dict: dict[str, t.Any]):
+        """Remove \\TIME_PERIOD from column names."""
+        columns = data_dict['columns']
+        data_dict['columns'] = [
+            col.replace(r'\TIME_PERIOD', '') for col in columns
+        ]
 
     @property
     def title(self) -> str:
-        return self.db.toc.loc[
-            self.db.toc[TableOfContentsColumn.CODE.value] == self.code,
-            TableOfContentsColumn.TITLE.value,
-        ].iloc[0]
+        for row in self.db.toc:
+            if row[TableOfContentsColumn.CODE.value] == self.code:
+                return row[TableOfContentsColumn.TITLE.value]
+        return ''
 
     @property
     def frequency(self) -> str:
         """Assumes that the first column contains the frequency,
         and that all the values inside the column are all unique."""
-        return self.df.iloc[0].values[0]
+        if self._data and self._data['data']:
+            return self._data['data'][0][0]
+        return ''
 
     @property
     def data_start(self):
-        return self.date_columns[0]
+        date_cols = self.date_columns
+        return date_cols[0] if date_cols else None
 
     @property
     def data_end(self):
-        return self.date_columns[-1]
+        date_cols = self.date_columns
+        return date_cols[-1] if date_cols else None
 
     @property
     def date_columns(self):
-        return self.df.columns[len(self.params) :]
+        if not self._data:
+            return []
+        return self._data['columns'][len(self.params) :]
 
     @property
     def params(self) -> list[str]:
@@ -238,20 +255,6 @@ class Dataset:
     @property
     def params_info(self) -> ParamsInfo:
         return self._param_info
-
-
-def request_blocking(url: str) -> bytes:
-    request = QNetworkRequest(QUrl(url))
-    return GLOBAL_SETTINGS.network_manager.blockingGet(request).content().data()
-
-
-def request(
-    url: str, manager: QgsNetworkAccessManager | None = None
-) -> QNetworkReply:
-    request = QNetworkRequest(QUrl(url))
-    if manager is None:
-        manager = GLOBAL_SETTINGS.network_manager
-    return manager.get(request)
 
 
 @dataclass(frozen=True, eq=True)
@@ -338,9 +341,8 @@ class GISCO(abc.ABC):
     def theme(self) -> str: ...
 
     def set_datasets(self):
-        self.datasets = json.loads(
-            request_blocking(GISCO_URL['datasets'].format(theme=self.theme))
-        )
+        url = GISCO_URL['datasets'].format(theme=self.theme)
+        self.datasets = json.loads(fetch.gisco_request_blocking(url))
 
     def get_years(self) -> list[str]:
         if self.datasets is None:
@@ -352,19 +354,17 @@ class GISCO(abc.ABC):
 
     def set_units(self, year: str):
         url = GISCO_URL['units'].format(theme=self.theme, year=year)
-        self.units[year] = Units.from_json(json.loads(request_blocking(url)))
+        self.units[year] = Units.from_json(json.loads(fetch.gisco_request_blocking(url)))
 
     def get_units(self, year: str) -> Units:
         if year not in self.units:
             self.set_units(year)
         return self.units[year]
 
-    def get_feature_from_unit(
-        self, unit: Unit, manager: QgsNetworkAccessManager | None = None
-    ) -> QNetworkReply:
+    def get_feature_from_unit(self, unit: Unit, manager=None):
         filename = unit.to_filename()
         url = GISCO_URL['unit'].format(theme=self.theme, filename=filename)
-        return request(url, manager)
+        return fetch.gisco_request(url, manager)
 
 
 @dataclass
