@@ -15,8 +15,6 @@ from typing import (
     cast,
 )
 
-import numpy as np
-import pandas as pd
 import processing
 from qgis.core import (
     QgsFeature,
@@ -246,7 +244,7 @@ class Dialog(QtWidgets.QDialog):
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
         self.dataset: Dataset | None = None
-        self.subset: pd.DataFrame | None = None
+        self.subset: list[dict[str, Any]] | None = None
         self.filterer: DataFilterer | None = None
 
         # Signals
@@ -322,20 +320,21 @@ class Dialog(QtWidgets.QDialog):
         initializer.start()
 
     def filter_toc(self):
-        if self.database.toc.empty:
+        if not self.database.toc:  # Check if list is empty
             return None
         self.ui.listDatabase.clear()
         self.subset = self.database.get_subset(self.ui.lineSearch.text())
         titles = self.database.get_titles(subset=self.subset)
         codes = self.database.get_codes(subset=self.subset)
-        items = '[' + codes + '] ' + titles
+        items = ['[' + code + '] ' + title for code, title in zip(codes, titles)]
         self.ui.listDatabase.addItems(items)
 
     def get_selected_dataset_code(self):
         row = self.ui.listDatabase.currentRow()
         if self.subset is None:
             self.subset = self.database.toc
-        return self.database.get_codes(subset=self.subset).iloc[row]
+        codes = self.database.get_codes(subset=self.subset)
+        return codes[row] if row < len(codes) else None
 
     def get_current_table_join_field(self):
         return self.ui.comboTableJoinField.currentText()
@@ -382,13 +381,22 @@ class Dialog(QtWidgets.QDialog):
             # Don't infer join field if there are more than 100k features.
             # NOTE: This is arbitrary, can be changed in the future.
             return None
-        df = self.converter.to_dataframe(layer=layer)
+        layer_data = self.converter.to_data_dict(layer=layer)
         geo = self.ui.comboTableJoinField.currentText()
-        unique_values = self.model.pandas._data[geo].unique()
-        columns = df.columns[df.isin(unique_values).any()]
-        if not columns.empty:
-            idx = df.columns.to_list().index(columns[-1])
-            return idx
+        # Get unique values from the geo column
+        model_data = self.model.table_model
+        if geo in model_data._columns:
+            geo_idx = model_data._columns.index(geo)
+            unique_values = set(row[geo_idx] for row in model_data._data)
+        else:
+            return None
+
+        # Find which column in layer contains these values
+        for col_idx, col_name in enumerate(layer_data['columns']):
+            col_values = set(row[col_idx] for row in layer_data['data'])
+            if unique_values & col_values:  # If there's any overlap
+                return col_idx
+        return None
 
     def set_layer_join_field_default(self):
         if not hasattr(self, 'model'):
@@ -439,11 +447,11 @@ class Dialog(QtWidgets.QDialog):
         self.model = DatasetModel(
             estat_dataset=self.dataset, filterer=self.filterer
         )
-        self.ui.tableDataset.setModel(self.model.pandas)
+        self.ui.tableDataset.setModel(self.model.table_model)
 
     def open_section_ui(self, idx: int):
         assert self.dataset is not None
-        section_name = self.dataset.df.columns[idx]
+        section_name = self.dataset.data['columns'][idx]
         if section_name in self.dataset.params:
             ParameterSectionDialog(base=self, name=section_name)
         elif section_name in self.dataset.date_columns:
@@ -804,9 +812,15 @@ class GISCOHandler:
         self.join_report_dialog.report_data = self.build_join_report_data()
 
     def build_join_report_data(self) -> JoinReportData:
-        data: PandasModel = self.base.ui.tableDataset.model()
+        data: DataTableModel = self.base.ui.tableDataset.model()
         geo_column = self.base.ui.comboTableJoinField.currentText()
-        geo_data = data._data[geo_column].unique()
+
+        # Get unique values from geo column
+        if geo_column in data._columns:
+            geo_idx = data._columns.index(geo_column)
+            geo_data = list(set(row[geo_idx] for row in data._data))
+        else:
+            geo_data = []
 
         theme = self.get_theme()
         year = self.get_year()
@@ -824,7 +838,7 @@ class GISCOHandler:
         filtered = units.filter(filters)
 
         self.join_report_data = JoinReportData(
-            geo_data.shape[0], len(filtered), geo_data, filtered
+            len(geo_data), len(filtered), geo_data, filtered
         )
         return self.join_report_data
 
@@ -851,11 +865,11 @@ class DatabaseInitializer(QtCore.QThread):
         try:
             self.base.ui.listDatabase.clear()
             self.base.database.initialize_toc()
-            if self.base.database.toc.empty:
+            if not self.base.database.toc:  # Check if list is empty
                 return None
             titles = self.base.database.get_titles()
             codes = self.base.database.get_codes()
-            items = '[' + codes + '] ' + titles
+            items = ['[' + code + '] ' + title for code, title in zip(codes, titles)]
             self.base.ui.listDatabase.addItems(items)
         except Exception as e:
             self.error_ocurred.emit(e)
@@ -868,7 +882,7 @@ class DatasetInitializer(QtCore.QThread):
 
     def run(self):
         assert self.base.dataset is not None
-        self.base.dataset.initialize_df()
+        self.base.dataset.initialize_data()
         self.base.filterer = DataFilterer(dataset=self.base.dataset)
         self.base.update_model()
 
@@ -939,7 +953,14 @@ class ParameterSectionDialog(QtWidgets.QDialog):
             assert names is not None
             items = [f'{abbrev} [{name}]' for abbrev, name in names]
         else:
-            items = self.base.dataset.df[self.name].unique()
+            # Get unique values from column
+            data_dict = self.base.dataset.data
+            if self.name in data_dict['columns']:
+                col_idx = data_dict['columns'].index(self.name)
+                values = set(row[col_idx] for row in data_dict['data'])
+                items = list(values)
+            else:
+                items = []
         self.ui.listItems.addItems(items)
 
     def get_listitem_text_abbrev(self, item: QtWidgets.QListWidgetItem):
@@ -1061,11 +1082,13 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
-            widget.addItems(
-                self.base.dataset.date_columns.str.split('-')
-                .str.get(idx)
-                .unique()
-            )
+            # Split date columns and get unique values for this frequency part
+            date_parts = set()
+            for date_col in self.base.dataset.date_columns:
+                parts = date_col.split('-')
+                if idx < len(parts):
+                    date_parts.add(parts[idx])
+            widget.addItems(sorted(date_parts))
 
     def add_items_to_end_combobox(self):
         for idx, frequency in enumerate(self.get_frequency_types()):
@@ -1073,12 +1096,13 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
-            items = (
-                self.base.dataset.date_columns.str.split('-')
-                .str.get(idx)
-                .unique()
-            )
-            widget.addItems(items)
+            # Split date columns and get unique values for this frequency part
+            date_parts = set()
+            for date_col in self.base.dataset.date_columns:
+                parts = date_col.split('-')
+                if idx < len(parts):
+                    date_parts.add(parts[idx])
+            widget.addItems(sorted(date_parts))
 
     def add_items_to_combobox(self):
         self.add_items_to_start_combobox()
@@ -1110,7 +1134,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
 
     def add_time_filters(self):
         assert self.base.dataset is not None
-        cols = self.base.dataset.date_columns.to_list()
+        cols = list(self.base.dataset.date_columns)
         try:
             start = cols.index(self.get_start_time_combobox())
         except ValueError:
@@ -1130,11 +1154,16 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
-            items = self.base.dataset.date_columns.str.split('-').str.get(idx)
-            items_first = items[0]
-            items_unique = items.unique()
-            default_index = items_unique.to_list().index(items_first)
-            widget.setCurrentIndex(default_index)
+            # Get first date column and extract the part for this frequency
+            if self.base.dataset.date_columns:
+                first_col = self.base.dataset.date_columns[0]
+                parts = first_col.split('-')
+                if idx < len(parts):
+                    items_first = parts[idx]
+                    # Find index in widget
+                    default_index = widget.findText(items_first)
+                    if default_index >= 0:
+                        widget.setCurrentIndex(default_index)
 
     def set_default_end_combobox(self):
         for idx, frequency in enumerate(self.get_frequency_types()):
@@ -1142,11 +1171,16 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
             )
             assert self.base.dataset is not None
-            items = self.base.dataset.date_columns.str.split('-').str.get(idx)
-            items_last = items[-1]
-            items_unique = items.unique()
-            default_index = items_unique.to_list().index(items_last)
-            widget.setCurrentIndex(default_index)
+            # Get last date column and extract the part for this frequency
+            if self.base.dataset.date_columns:
+                last_col = self.base.dataset.date_columns[-1]
+                parts = last_col.split('-')
+                if idx < len(parts):
+                    items_last = parts[idx]
+                    # Find index in widget
+                    default_index = widget.findText(items_last)
+                    if default_index >= 0:
+                        widget.setCurrentIndex(default_index)
 
     def set_default(self):
         self.set_default_start_combobox()
@@ -1257,32 +1291,56 @@ class SettingsDialog(QtWidgets.QDialog):
 
 
 @dataclass
+@dataclass
 class DataFilterer:
     dataset: Dataset
     row: dict[str, list[Any]] = field(init=False, default_factory=dict)
     column: list[str] = field(init=False, default_factory=list)
 
     def __post_init__(self):
-        self.column = self.dataset.df.columns.to_list()
+        self.column = list(self.dataset.data['columns'])
 
     @property
-    def df(self):
-        return self.dataset.df
+    def data_dict(self):
+        return self.dataset.data
 
     @property
-    def date_columns(self) -> list[str] | list:
-        return np.setdiff1d(self.column, self.dataset.params).tolist()
+    def date_columns(self) -> list[str]:
+        return [col for col in self.column if col not in self.dataset.params]
 
-    def apply_filters(self):
-        # Use a boolean Series instead of a Python list
-        ind = pd.Series(True, index=self.df.index)
+    def apply_filters(self) -> dict[str, Any]:
+        """Apply row and column filters, return filtered data dict."""
+        data = self.data_dict
+        columns = data['columns']
+        rows = data['data']
 
-        for col, vals in self.row.items():
-            if not vals:
-                continue
-            ind = ind & self.df[col].isin(vals)
+        # Build column indices for selected columns
+        col_indices = [
+            columns.index(col) for col in self.column if col in columns
+        ]
 
-        return self.df.loc[ind, self.column]
+        # Filter rows based on row filters
+        filtered_rows = []
+        for row in rows:
+            include = True
+            for col, vals in self.row.items():
+                if not vals:
+                    continue
+                if col not in columns:
+                    continue
+                col_idx = columns.index(col)
+                if row[col_idx] not in vals:
+                    include = False
+                    break
+            if include:
+                # Only include selected columns
+                filtered_row = [row[idx] for idx in col_indices]
+                filtered_rows.append(filtered_row)
+
+        # Build filtered column names
+        filtered_columns = [columns[idx] for idx in col_indices]
+
+        return {'columns': filtered_columns, 'data': filtered_rows}
 
     def add_row_filters(self, filters: dict[str, Iterable[Any]]):
         # This is only for the row axis
@@ -1292,7 +1350,7 @@ class DataFilterer:
 
     def set_column_filters(self, filters: None | str | Iterable[str] = None):
         if filters is None:
-            filters = self.dataset.df.columns.to_list()
+            filters = list(self.dataset.data['columns'])
         elif isinstance(filters, str):
             filters = [filters]
         self.column = list(filters)
@@ -1328,27 +1386,29 @@ class DatasetModel:
     filterer: DataFilterer
 
     @property
-    def pandas(self) -> PandasModel:
-        return PandasModel(data=self.filterer.apply_filters())
+    def table_model(self) -> DataTableModel:
+        return DataTableModel(data=self.filterer.apply_filters())
 
 
-class PandasModel(QtCore.QAbstractTableModel):
-    """Class to turn a pandas dataframe into a QAbstractTableModel."""
+class DataTableModel(QtCore.QAbstractTableModel):
+    """Qt table model using dict data instead of pandas DataFrame."""
 
-    def __init__(self, data: pd.DataFrame, parent=None):
+    def __init__(self, data: dict[str, Any], parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
-        self._data = data
+        self._columns = data['columns']
+        self._data = data['data']
 
     def rowCount(self, parent=None):
-        return self._data.shape[0]
+        return len(self._data)
 
     def columnCount(self, parent=None):
-        return self._data.shape[1]
+        return len(self._columns)
 
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if index.isValid():
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
-                return str(self._data.iloc[index.row(), index.column()])
+                value = self._data[index.row()][index.column()]
+                return "" if value is None else str(value)
         return None
 
     def headerData(self, col, orientation, role):
@@ -1356,7 +1416,7 @@ class PandasModel(QtCore.QAbstractTableModel):
             orientation == QtCore.Qt.Orientation.Horizontal
             and role == QtCore.Qt.ItemDataRole.DisplayRole
         ):
-            return self._data.columns[col]
+            return self._columns[col]
         return None
 
 
@@ -1425,49 +1485,81 @@ class QgsConverter:
 
     @property
     def table(self):
-        return self.from_dataframe(self.base.model.pandas._data)
-
-    @staticmethod
-    def dtype_mapper(series: pd.Series):
-        dtype = series.dtype
-        if pd.api.types.is_integer_dtype(dtype):
-            return QtCore.QVariant.Type.Int
-        elif pd.api.types.is_float_dtype(dtype):
-            return QtCore.QVariant.Type.Double
-        elif pd.api.types.is_datetime64_any_dtype(dtype):
-            return QtCore.QVariant.Type.DateTime
-        elif pd.api.types.is_bool_dtype(dtype):
-            return QtCore.QVariant.Type.Bool
-        else:
-            return QtCore.QVariant.Type.String
-
-    @staticmethod
-    def to_dataframe(layer: QgsVectorLayer):
-        # Source code: https://stackoverflow.com/a/76153082
-        return pd.DataFrame(
-            [
-                feat.attributes()
-                for feat in layer.getFeatures()  # type: ignore
-            ],
-            columns=[field.name() for field in layer.fields()],
+        return self.from_data_dict(
+            self.base.model.table_model._data,
+            self.base.model.table_model._columns,
         )
 
-    def from_dataframe(self, df: pd.DataFrame) -> QgsVectorLayer:
-        """Method to convert a pandas dataframe to a qgis table layer."""
+    @staticmethod
+    def dtype_mapper(values: list[Any]) -> QtCore.QVariant.Type:
+        """Infer QVariant type from list of values."""
+        # Sample first non-None value
+        sample = None
+        for val in values:
+            if val is not None and val != '':
+                sample = val
+                break
+
+        if sample is None:
+            return QtCore.QVariant.Type.String
+
+        # Try to infer type
+        if isinstance(sample, bool):
+            return QtCore.QVariant.Type.Bool
+        elif isinstance(sample, int):
+            return QtCore.QVariant.Type.Int
+        elif isinstance(sample, float):
+            return QtCore.QVariant.Type.Double
+        else:
+            # Try to parse as number
+            try:
+                float(str(sample))
+                if '.' in str(sample):
+                    return QtCore.QVariant.Type.Double
+                else:
+                    return QtCore.QVariant.Type.Int
+            except (ValueError, TypeError):
+                return QtCore.QVariant.Type.String
+
+    @staticmethod
+    def to_data_dict(layer: QgsVectorLayer) -> dict[str, Any]:
+        """Convert QGIS vector layer to data dict."""
+        columns = [field.name() for field in layer.fields()]
+        data = [
+            feat.attributes()
+            for feat in layer.getFeatures()  # type: ignore
+        ]
+        return {'columns': columns, 'data': data}
+
+    def from_data_dict(
+        self, data: list[list[Any]], columns: list[str]
+    ) -> QgsVectorLayer:
+        """Method to convert data dict to a qgis table layer."""
         temp = QgsVectorLayer('none', self.base.dataset.code, 'memory')
         temp_data = temp.dataProvider()
         temp.startEditing()
         attributes = []
-        for head in df.columns:
-            attributes.append(
-                QgsField(head, self.dtype_mapper(series=df[head]))
-            )
+
+        # Transpose data to get columns
+        num_cols = len(columns)
+        col_values = [[] for _ in range(num_cols)]
+        for row in data:
+            for col_idx in range(min(len(row), num_cols)):
+                col_values[col_idx].append(row[col_idx])
+
+        # Create fields with inferred types
+        for col_idx, col_name in enumerate(columns):
+            field_type = self.dtype_mapper(col_values[col_idx])
+            attributes.append(QgsField(col_name, field_type))
+
         temp_data.addAttributes(attributes)  # type: ignore
         temp.updateFields()
+
+        # Add features
         rows = []
-        for row in df.itertuples():
+        for row_data in data:
             f = QgsFeature()
-            f.setAttributes([row[idx] for idx in range(1, len(row))])
+            f.setAttributes(row_data)
             rows.append(f)
         temp_data.addFeatures(rows)  # type: ignore
         temp.commitChanges()
