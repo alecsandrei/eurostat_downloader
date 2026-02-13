@@ -6,21 +6,7 @@ image source: *https://ec.europa.eu/eurostat*
 
 It can be used to add Eurostat datasets as tables in QGIS and join them with vector layers.
 
-# Installing external Python dependencies
-
-In order for this plugin to run properly, the [eurostat python package](https://pypi.org/project/eurostat/) needs to be installed. It is available via PyPi.
-
-## Installing dependencies
-
-If the [eurostat python package](https://pypi.org/project/eurostat/) is missing, a dialog will pop up which should assist the inexperienced user.
-
-![Missing modules dialog](assets/missing_modules_dialog.png)
-
-If you choose to install them this way, they will be installed in the plugin folder. Removing the Eurostat Downloader plugin will also remove the installed packages. This option is only available if pip (https://pypi.org/project/pip/) is available.
-
-If the packages were installed correctly, they will be marked with the color green, like this.
-
-![Missing modules dialog green](assets/missing_modules_dialog_green.png)
+**Note:** As of version 0.5.0, this plugin no longer requires external Python dependencies. All functionality is implemented using QGIS's built-in libraries.
 
 # How to install the plugin
 
