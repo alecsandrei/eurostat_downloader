@@ -22,13 +22,15 @@ from . import DEBUG, PACKAGE_DIR, eurostat
 from .enums import Agency, ConnectionStatus, Language, TableOfContentsColumn
 from .settings import GLOBAL_SETTINGS
 
-BASE = 'https://gisco-services.ec.europa.eu/distribution/v2/{theme}/'
-URL = {
-    'datasets': urljoin(BASE, 'datasets.json'),
-    'units': urljoin(BASE, '{theme}-{year}-units.json'),
-    'label': urljoin(BASE, '{id}-label-{projection}-{year}.geojson'),
-    'region': urljoin(BASE, '{id}-region-{scale}-{projection}-{year}.geojson'),
-    'unit': urljoin(BASE, 'distribution/{filename}'),
+GISCO_BASE = 'https://gisco-services.ec.europa.eu/distribution/v2/{theme}/'
+GISCO_URL = {
+    'datasets': urljoin(GISCO_BASE, 'datasets.json'),
+    'units': urljoin(GISCO_BASE, '{theme}-{year}-units.json'),
+    'label': urljoin(GISCO_BASE, '{id}-label-{projection}-{year}.geojson'),
+    'region': urljoin(
+        GISCO_BASE, '{id}-region-{scale}-{projection}-{year}.geojson'
+    ),
+    'unit': urljoin(GISCO_BASE, 'distribution/{filename}'),
 }
 Datasets = dict[str, t.Any]
 TableOfContents = dict[Agency, dict[Language, pd.DataFrame]]
@@ -133,7 +135,7 @@ class Database:
         """Load table of contents from JSON cache."""
         with open(self._cache_path, mode='r', encoding='utf-8') as file:
             cache_data = json.load(file)
-        
+
         for agency_name, languages_data in cache_data.items():
             agency = Agency[agency_name]
             self._toc[agency] = {}
@@ -148,7 +150,7 @@ class Database:
             cache_data[agency.name] = {}
             for lang, df in languages_data.items():
                 cache_data[agency.name][lang.name] = df.to_dict(orient='list')
-        
+
         with open(self._cache_path, mode='w', encoding='utf-8') as file:
             json.dump(cache_data, file, indent=2)
 
@@ -337,7 +339,7 @@ class GISCO(abc.ABC):
 
     def set_datasets(self):
         self.datasets = json.loads(
-            request_blocking(URL['datasets'].format(theme=self.theme))
+            request_blocking(GISCO_URL['datasets'].format(theme=self.theme))
         )
 
     def get_years(self) -> list[str]:
@@ -349,7 +351,7 @@ class GISCO(abc.ABC):
         ]
 
     def set_units(self, year: str):
-        url = URL['units'].format(theme=self.theme, year=year)
+        url = GISCO_URL['units'].format(theme=self.theme, year=year)
         self.units[year] = Units.from_json(json.loads(request_blocking(url)))
 
     def get_units(self, year: str) -> Units:
@@ -361,7 +363,7 @@ class GISCO(abc.ABC):
         self, unit: Unit, manager: QgsNetworkAccessManager | None = None
     ) -> QNetworkReply:
         filename = unit.to_filename()
-        url = URL['unit'].format(theme=self.theme, filename=filename)
+        url = GISCO_URL['unit'].format(theme=self.theme, filename=filename)
         return request(url, manager)
 
 
