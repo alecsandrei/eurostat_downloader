@@ -44,7 +44,7 @@ from .enums import (
     GeoSectionName,
     Language,
 )
-from .settings import GLOBAL_SETTINGS, ProxySettings
+from .settings import GLOBAL_SETTINGS
 from .ui.eurostat_downloader_dialog import Ui_EurostatDownloaderDialog
 from .ui.gisco_dataset_information import Ui_GISCODatasetInformation
 from .ui.gisco_join_report import Ui_GISCOJoinReport
@@ -247,6 +247,11 @@ class Dialog(QtWidgets.QDialog):
         self.subset: list[dict[str, Any]] | None = None
         self.filterer: DataFilterer | None = None
 
+        # Search debounce timer
+        self.search_timer = QtCore.QTimer()
+        self.search_timer.setSingleShot(True)
+        self.search_timer.timeout.connect(self.filter_toc)
+
         # Signals
         self.ui.pushButtonInitializeTOC.clicked.connect(
             self.initialize_database
@@ -255,8 +260,8 @@ class Dialog(QtWidgets.QDialog):
         self.ui.qgsComboLayer.layerChanged.connect(
             self.set_layer_join_field_default
         )
-        self.ui.lineSearch.textChanged.connect(self.filter_toc)
-        self.ui.listDatabase.itemPressed.connect(self.set_dataset_table)
+        self.ui.lineSearch.textChanged.connect(self.on_search_text_changed)
+        self.ui.treeDatabase.itemClicked.connect(self.set_dataset_table)
         self.ui.tableDataset.horizontalHeader().sectionClicked.connect(
             self.open_section_ui
         )
@@ -285,7 +290,7 @@ class Dialog(QtWidgets.QDialog):
     def set_agency_status_tooltip(self):
         tooltip = ['Agency server accessibility']
         for agency, status in self.database._agency_status.items():
-            mark = '✅' if status == ConnectionStatus.AVAILABLE else '❎'
+            mark = '[OK]' if status == ConnectionStatus.AVAILABLE else '[X]'
             tooltip.append(f'{agency.name} {mark}')
         self.ui.labelAgencyStatus.setToolTip('\n'.join(tooltip))
 
@@ -304,7 +309,10 @@ class Dialog(QtWidgets.QDialog):
                 obj.setEnabled(state)
 
     def initialize_database(self):
-        self.ui.listDatabase.clear()
+        self.ui.treeDatabase.clear()
+        # Temporarily disconnect the textChanged signal to prevent double population
+        self.ui.lineSearch.textChanged.disconnect(self.on_search_text_changed)
+
         initializer = DatabaseInitializer(self)
         dialog = LoadingDialog(self)
         loading_label = LoadingLabel('initializing table of contents', self)
@@ -317,24 +325,265 @@ class Dialog(QtWidgets.QDialog):
         initializer.finished.connect(dialog.close)
         initializer.error_ocurred.connect(self.handle_error_ocurred)
         initializer.finished.connect(self.set_agency_status_tooltip)
+
+        # Reconnect the signal after initialization
+        initializer.finished.connect(
+            lambda: self.ui.lineSearch.textChanged.connect(
+                self.on_search_text_changed
+            )
+        )
+
         initializer.start()
+
+    def populate_tree(
+        self, items: list[dict[str, Any]], preserve_expansion: bool = False
+    ):
+        """Populate QTreeWidget with hierarchical data.
+
+        Args:
+            items: List of TOC items to populate
+            preserve_expansion: If True, preserve the current expansion state
+        """
+        from . import DEBUG
+
+        if DEBUG:
+            print(f'🌳 populate_tree() called with {len(items)} items')
+            import traceback
+
+            traceback.print_stack(limit=5)
+
+        # Save expansion state if requested
+        expanded_codes = set()
+        if preserve_expansion:
+            expanded_codes = self._get_expanded_item_codes()
+
+        self.ui.treeDatabase.clear()
+
+        # Group items by agency
+        from collections import defaultdict
+
+        agency_items = defaultdict(list)
+        for item in items:
+            agency = item.get('agency', 'EUROSTAT')
+            agency_items[agency].append(item)
+
+        # Build tree for each agency
+        for agency, agency_item_list in sorted(agency_items.items()):
+            # Create agency root node
+            agency_root = QtWidgets.QTreeWidgetItem([agency, ''])
+            font = agency_root.font(0)
+            font.setBold(True)
+            font.setPointSize(font.pointSize() + 1)
+            agency_root.setFont(0, font)
+            agency_root.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
+            self.ui.treeDatabase.addTopLevelItem(agency_root)
+
+            # Stack to keep track of the last parent at each level
+            parent_stack = [agency_root]
+
+            for item in agency_item_list:
+                level = (
+                    item.get('level', 0) + 1
+                )  # +1 because agency is the new root
+                title = item['title']
+                code = item['code']
+                item_type = item.get('type', '')
+
+                # Create tree item with title and code
+                tree_item = QtWidgets.QTreeWidgetItem([title, code])
+
+                # Store the full item data
+                tree_item.setData(0, QtCore.Qt.ItemDataRole.UserRole, item)
+
+                # Only datasets (tables) are selectable, folders are just navigation
+                if item_type in ['table', 'dataset']:
+                    tree_item.setFlags(
+                        tree_item.flags() | QtCore.Qt.ItemFlag.ItemIsSelectable
+                    )
+                else:
+                    # Folders are not selectable but expandable
+                    tree_item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
+                    # Make folders bold
+                    font = tree_item.font(0)
+                    font.setBold(True)
+                    tree_item.setFont(0, font)
+
+                # Adjust parent_stack to current level
+                while len(parent_stack) > level:
+                    parent_stack.pop()
+
+                # Add to parent
+                if parent_stack:
+                    parent_stack[-1].addChild(tree_item)
+                else:
+                    agency_root.addChild(tree_item)
+
+                # Add current item to stack
+                parent_stack.append(tree_item)
+
+        # Set better column proportions
+        # Use viewport width (actual displayable area) and ensure minimum widths
+        viewport_width = self.ui.treeDatabase.viewport().width()
+        # Fallback to widget width if viewport not ready
+        if viewport_width < 100:
+            viewport_width = self.ui.treeDatabase.width()
+
+        # Give Dataset column 70% of width, Code column 30%
+        # But ensure Dataset column is at least 350px
+        dataset_width = max(int(viewport_width * 0.7), 350)
+        code_width = max(int(viewport_width * 0.3), 150)
+
+        self.ui.treeDatabase.setColumnWidth(0, dataset_width)
+        self.ui.treeDatabase.setColumnWidth(1, code_width)
+
+        # Restore expansion state or collapse all
+        if preserve_expansion and expanded_codes:
+            self._restore_expanded_items(expanded_codes)
+        else:
+            # Collapse all top-level items to start
+            self.ui.treeDatabase.collapseAll()
+
+    def _get_expanded_item_codes(self) -> set[str]:
+        """Get codes of all currently expanded items (including agency roots)."""
+        expanded = set()
+
+        def check_item(item):
+            if item.isExpanded():
+                item_data = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
+                if item_data and 'code' in item_data:
+                    # Regular item with code
+                    expanded.add(item_data['code'])
+                else:
+                    # Agency root (no UserRole data) - use the text
+                    expanded.add(f'__AGENCY__{item.text(0)}')
+
+            # Recursively check children
+            for i in range(item.childCount()):
+                check_item(item.child(i))
+
+        # Check all top-level items
+        for i in range(self.ui.treeDatabase.topLevelItemCount()):
+            check_item(self.ui.treeDatabase.topLevelItem(i))
+
+        return expanded
+
+    def _restore_expanded_items(self, expanded_codes: set[str]):
+        """Restore expansion state for items with given codes."""
+
+        def restore_item(item):
+            item_data = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
+            if item_data and 'code' in item_data:
+                # Regular item with code
+                if item_data['code'] in expanded_codes:
+                    item.setExpanded(True)
+            else:
+                # Agency root - check using text
+                if f'__AGENCY__{item.text(0)}' in expanded_codes:
+                    item.setExpanded(True)
+
+            # Recursively restore children
+            for i in range(item.childCount()):
+                restore_item(item.child(i))
+
+        # Restore all top-level items
+        for i in range(self.ui.treeDatabase.topLevelItemCount()):
+            restore_item(self.ui.treeDatabase.topLevelItem(i))
+
+    def on_search_text_changed(self):
+        """Debounce search input - wait 300ms after user stops typing."""
+        self.search_timer.stop()
+        self.search_timer.start(300)  # milliseconds
 
     def filter_toc(self):
         if not self.database.toc:  # Check if list is empty
             return None
-        self.ui.listDatabase.clear()
-        self.subset = self.database.get_subset(self.ui.lineSearch.text())
-        titles = self.database.get_titles(subset=self.subset)
-        codes = self.database.get_codes(subset=self.subset)
-        items = ['[' + code + '] ' + title for code, title in zip(codes, titles)]
-        self.ui.listDatabase.addItems(items)
+
+        search_text = self.ui.lineSearch.text().lower()
+
+        if not search_text:
+            # No filter: show full hierarchy, preserve expansion (for language changes)
+            self.populate_tree(self.database.toc, preserve_expansion=True)
+            self.subset = None
+        else:
+            # Filter: show items matching search but preserve tree structure
+            self.subset = self.database.get_subset(search_text)
+
+            if not self.subset:
+                self.ui.treeDatabase.clear()
+                return
+
+            # Build a set of matching codes - but ONLY for actual datasets, not folders
+            matching_codes = {
+                item['code']
+                for item in self.subset
+                if item.get('type', '') in ['table', 'dataset']
+            }
+
+            if not matching_codes:
+                # No actual datasets match, only folders
+                self.ui.treeDatabase.clear()
+                return
+
+            # Single pass: Add items and their parents only when we encounter a dataset match
+            filtered_items = []
+            parent_stack = []  # Track current parent chain
+
+            for item in self.database.toc:
+                code = item['code']
+                level = item.get('level', 0)
+                item_type = item.get('type', '')
+
+                # Adjust parent stack to current level
+                while len(parent_stack) > level:
+                    parent_stack.pop()
+
+                # Only consider datasets as matches, not folders
+                is_match = code in matching_codes and item_type in [
+                    'table',
+                    'dataset',
+                ]
+
+                if is_match:
+                    # Add all parents from stack that aren't already in filtered_items
+                    for parent in parent_stack:
+                        if parent not in filtered_items:
+                            filtered_items.append(parent)
+
+                    # Add this matching dataset
+                    filtered_items.append(item)
+
+                # Always track in parent stack for hierarchy
+                parent_stack.append(item)
+
+            # Now populate tree with filtered items (in hierarchical order)
+            self.populate_tree(filtered_items)
+
+            # Expand all items so search results are visible
+            self.ui.treeDatabase.expandAll()
+
+            # Set column widths after filtering (same logic as populate_tree)
+            viewport_width = self.ui.treeDatabase.viewport().width()
+            if viewport_width < 100:
+                viewport_width = self.ui.treeDatabase.width()
+
+            dataset_width = max(int(viewport_width * 0.7), 350)
+            code_width = max(int(viewport_width * 0.3), 150)
+
+            self.ui.treeDatabase.setColumnWidth(0, dataset_width)
+            self.ui.treeDatabase.setColumnWidth(1, code_width)
 
     def get_selected_dataset_code(self):
-        row = self.ui.listDatabase.currentRow()
-        if self.subset is None:
-            self.subset = self.database.toc
-        codes = self.database.get_codes(subset=self.subset)
-        return codes[row] if row < len(codes) else None
+        current_item = self.ui.treeDatabase.currentItem()
+        if current_item is None:
+            return None
+
+        # Get the stored item data
+        item_data = current_item.data(0, QtCore.Qt.ItemDataRole.UserRole)
+        if item_data:
+            return item_data.get('code')
+
+        # Fallback: parse from the displayed code column
+        return current_item.text(1)
 
     def get_current_table_join_field(self):
         return self.ui.comboTableJoinField.currentText()
@@ -406,6 +655,22 @@ class Dialog(QtWidgets.QDialog):
                 self.ui.qgsComboLayerJoinField.setCurrentIndex(idx)
 
     def set_dataset_table(self):
+        """Initialize dataset table when a dataset (not folder) is clicked."""
+        current_item = self.ui.treeDatabase.currentItem()
+        if current_item is None:
+            return
+
+        # Get the stored item data to check type
+        item_data = current_item.data(0, QtCore.Qt.ItemDataRole.UserRole)
+        if not item_data:
+            # This is likely an agency root node, ignore
+            return
+
+        item_type = item_data.get('type', '')
+        # Only initialize datasets, not folders
+        if item_type not in ['table', 'dataset']:
+            return
+
         self.dataset = Dataset(
             db=self.database,
             code=self.get_selected_dataset_code(),
@@ -863,14 +1128,12 @@ class DatabaseInitializer(QtCore.QThread):
 
     def run(self):
         try:
-            self.base.ui.listDatabase.clear()
+            self.base.ui.treeDatabase.clear()
             self.base.database.initialize_toc()
             if not self.base.database.toc:  # Check if list is empty
                 return None
-            titles = self.base.database.get_titles()
-            codes = self.base.database.get_codes()
-            items = ['[' + code + '] ' + title for code, title in zip(codes, titles)]
-            self.base.ui.listDatabase.addItems(items)
+            # Populate the tree with hierarchical data
+            self.base.populate_tree(self.base.database.toc)
         except Exception as e:
             self.error_ocurred.emit(e)
 
@@ -1247,9 +1510,6 @@ class SettingsDialog(QtWidgets.QDialog):
         self.exec_()
 
     def update_global_settings(self):
-        # Connection SSL
-        GLOBAL_SETTINGS.verify_ssl = self.ui.checkBoxVerifySSL.isChecked()
-
         # Agencies
         agencies_checkboxes_bool: dict[Agency, bool] = {
             k: v.isChecked() for k, v in self._agencies_checkboxes.items()
@@ -1263,13 +1523,6 @@ class SettingsDialog(QtWidgets.QDialog):
             selected_agencies = list(Agency)
         GLOBAL_SETTINGS.agencies = selected_agencies
 
-        # Proxy
-        host = self.ui.lineEditProxyHost.text()
-        port = self.ui.lineEditProxyPort.text()
-        user = self.ui.lineEditProxyUser.text()
-        password = self.ui.lineEditProxyPassword.text()
-        GLOBAL_SETTINGS.proxy = ProxySettings(host, port, user, password)
-
     def restore_global_settings(self):
         # Restore agency settings
         if GLOBAL_SETTINGS.agencies:
@@ -1277,20 +1530,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 if agency not in GLOBAL_SETTINGS.agencies:
                     checkbox.setChecked(False)
 
-        # Restore SLL setting
-        self.ui.checkBoxVerifySSL.setChecked(GLOBAL_SETTINGS.verify_ssl)
 
-        # Restore proxy settings
-        if GLOBAL_SETTINGS.proxy is not None:
-            self.ui.lineEditProxyHost.setText(GLOBAL_SETTINGS.proxy.host)
-            self.ui.lineEditProxyPort.setText(GLOBAL_SETTINGS.proxy.port)
-            self.ui.lineEditProxyUser.setText(GLOBAL_SETTINGS.proxy.user)
-            self.ui.lineEditProxyPassword.setText(
-                GLOBAL_SETTINGS.proxy.password
-            )
-
-
-@dataclass
 @dataclass
 class DataFilterer:
     dataset: Dataset
@@ -1408,7 +1648,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
         if index.isValid():
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 value = self._data[index.row()][index.column()]
-                return "" if value is None else str(value)
+                return '' if value is None else str(value)
         return None
 
     def headerData(self, col, orientation, role):

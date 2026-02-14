@@ -14,10 +14,11 @@ from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 DEBUG = os.getenv('EUROSTAT_PLUGIN_DEBUG', '0') == '1'
 
 
-def _debug(msg: str, prefix: str = "🔍") -> None:
+def _debug(msg: str, prefix: str = '🔍') -> None:
     """Print debug message if DEBUG mode is enabled."""
     if DEBUG:
-        print(f"{prefix} [EUROSTAT-FETCH] {msg}")
+        print(f'{prefix} [EUROSTAT-FETCH] {msg}')
+
 
 BASE_URL = {
     'EUROSTAT': 'https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/',
@@ -142,36 +143,174 @@ def _blocking_request(url: str, timeout: int = 120000) -> bytes | None:
 
 def _retry_request(url: str, max_attempts: int = 4) -> bytes | None:
     """Retry a request up to max_attempts times."""
-    _debug(f"Starting retry request (max_attempts={max_attempts})")
+    _debug(f'Starting retry request (max_attempts={max_attempts})')
     for attempt in range(max_attempts):
         if attempt > 0:
-            _debug(f"Retry attempt {attempt+1}/{max_attempts}", "⏱")
+            _debug(f'Retry attempt {attempt + 1}/{max_attempts}', '⏱')
         data = _blocking_request(url)
         if data is not None:
             if b'https://sorry.ec.europa.eu/' in data:
-                _debug("Server temporarily unavailable", "❌")
+                _debug('Server temporarily unavailable', '❌')
                 raise ConnectionError('Server temporarily unavailable')
-            _debug(f"Success on attempt {attempt+1}", "✓")
+            _debug(f'Success on attempt {attempt + 1}', '✓')
             return data
-    _debug(f"All {max_attempts} attempts failed", "❌")
+    _debug(f'All {max_attempts} attempts failed', '❌')
     return None
 
 
 def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[dict[str, Any]]:
-    """Download Eurostat table of contents as list of dictionaries."""
-    _debug(f"Fetching TOC for agency={agency}, lang={lang}", "📋")
+    """Download table of contents as hierarchical tree structure.
+
+    For EUROSTAT, uses the text-based TOC with hierarchy.
+    For other agencies, falls back to SDMX dataflow endpoint and infers hierarchy.
+    """
+    _debug(f'Fetching hierarchical TOC for agency={agency}, lang={lang}', '📋')
+
+    # EUROSTAT has a special text-based TOC endpoint with hierarchy
+    if agency == 'EUROSTAT':
+        url = (
+            'https://ec.europa.eu/eurostat/api/dissemination/catalogue/toc/txt'
+        )
+        if lang != 'en':
+            url += f'?lang={lang}'
+
+        data = _retry_request(url)
+        if data is None:
+            _debug('Failed to fetch TOC', '❌')
+            raise ConnectionError(f'Failed to fetch TOC for {agency}')
+
+        resp_txt = data.decode('utf-8')
+        lines = resp_txt.strip().split('\n')
+
+        # Skip header line
+        if not lines:
+            return []
+        lines = lines[1:]
+
+        rows = []
+        for line in lines:
+            parts = line.split('\t')
+            if len(parts) < 3:
+                continue
+
+            # Count leading spaces BEFORE stripping quotes
+            # The format is: "    Title" where spaces are INSIDE the quotes
+            title_raw = parts[0]
+            # Remove quotes first to expose the spaces
+            title_unquoted = title_raw.strip('"')
+            # Now count the leading spaces
+            indent_count = len(title_unquoted) - len(title_unquoted.lstrip())
+            level = indent_count // 4  # 4 spaces per level
+
+            # Clean title and other fields
+            title = title_unquoted.lstrip()
+            code = parts[1].strip('"')
+            _type = parts[2].strip('"')
+
+            # Extract other fields if available
+            last_update = (
+                parts[3].strip('"').strip() if len(parts) > 3 else None
+            )
+            last_struct_change = (
+                parts[4].strip('"').strip() if len(parts) > 4 else None
+            )
+            data_start = parts[5].strip('"').strip() if len(parts) > 5 else None
+            data_end = parts[6].strip('"').strip() if len(parts) > 6 else None
+            values = parts[7].strip('"').strip() if len(parts) > 7 else None
+
+            row = {
+                'title': title,
+                'code': code,
+                'type': _type,
+                'level': level,
+                'last update of data': last_update or '',
+                'last table structure change': last_struct_change or '',
+                'data start': data_start or '',
+                'data end': data_end or '',
+                'values': values or '',
+            }
+            rows.append(row)
+
+        _debug(f'Found {len(rows)} items in hierarchy', '✓')
+        return rows
+
+    else:
+        # Other agencies: use SDMX dataflow endpoint (flat structure)
+        # We'll mark everything as level 0 since we can't infer hierarchy
+        _debug(
+            f'Using SDMX dataflow endpoint for {agency} (no hierarchy available)',
+            '⚠',
+        )
+        base_url = BASE_URL[agency]
+        url = f'{base_url}dataflow/all?format=JSON&compressed=true&lang={lang}'
+
+        data = _retry_request(url)
+        if data is None:
+            _debug('Failed to fetch TOC', '❌')
+            raise ConnectionError(f'Failed to fetch TOC for {agency}')
+
+        _debug('Decompressing gzip response...')
+        resp_txt = gzip.decompress(data).decode('utf-8')
+        resp_dict = json.loads(resp_txt)
+        items = resp_dict.get('link', {}).get('item', [])
+        _debug(f'Found {len(items)} items', '✓')
+
+        rows = []
+        for el in items:
+            title = el.get('label', '')
+            code = el.get('extension', {}).get('id', '')
+            _type = el.get('class', 'dataset')
+
+            # Extract metadata
+            last_update = None
+            last_struct_change = None
+            data_start = None
+            data_end = None
+
+            for a in el.get('extension', {}).get('annotation', []):
+                if a.get('type') == 'UPDATE_DATA':
+                    last_update = a.get('date')
+                elif a.get('type') == 'UPDATE_STRUCTURE':
+                    last_struct_change = a.get('date')
+                elif a.get('type') == 'OBS_PERIOD_OVERALL_OLDEST':
+                    data_start = a.get('title')
+                elif a.get('type') == 'OBS_PERIOD_OVERALL_LATEST':
+                    data_end = a.get('title')
+
+            row = {
+                'title': title,
+                'code': code,
+                'type': _type,
+                'level': 0,  # Flat structure - all items at root level
+                'last update of data': last_update or '',
+                'last table structure change': last_struct_change or '',
+                'data start': data_start or '',
+                'data end': data_end or '',
+                'values': '',
+            }
+            rows.append(row)
+
+        _debug(f'Converted to {len(rows)} flat items', '✓')
+        return rows
+
+
+def get_toc_flat(
+    agency: str = 'EUROSTAT', lang: str = 'en'
+) -> list[dict[str, Any]]:
+    """Download Eurostat table of contents as flat list (legacy function)."""
+    _debug(f'Fetching flat TOC for agency={agency}, lang={lang}', '📋')
     base_url = BASE_URL[agency]
     url = f'{base_url}dataflow/all?format=JSON&compressed=true&lang={lang}'
 
     data = _retry_request(url)
     if data is None:
-        _debug("Failed to fetch TOC", "❌")
+        _debug('Failed to fetch TOC', '❌')
         raise ConnectionError(f'Failed to fetch TOC for {agency}')
 
-    _debug("Decompressing gzip response...")
+    _debug('Decompressing gzip response...')
     resp_txt = gzip.decompress(data).decode('utf-8')
     resp_dict = json.loads(resp_txt)
-    _debug(f"Found {len(resp_dict['link']['item'])} items", "✓")
+    _debug(f'Found {len(resp_dict["link"]["item"])} items', '✓')
 
     rows = []
     for el in resp_dict['link']['item']:
@@ -282,9 +421,9 @@ def _get_dims_info(code: str, detail: str = 'name', lang: str = 'en'):
 
 def get_pars(code: str) -> list[str]:
     """Get parameters (dimensions) for a dataset."""
-    _debug(f"Fetching parameters for dataset: {code}", "📊")
+    _debug(f'Fetching parameters for dataset: {code}', '📊')
     _, _, dims = _get_dims_info(code, detail='name')
-    _debug(f"Found {len(dims)} parameters: {dims}", "✓")
+    _debug(f'Found {len(dims)} parameters: {dims}', '✓')
     return dims
 
 
@@ -292,13 +431,13 @@ def get_dic(
     code: str, par: str | None = None, full: bool = True, lang: str = 'en'
 ) -> list[tuple[str, str]]:
     """Get dictionary/codelist for dataset dimensions or parameter values."""
-    _debug(f"Fetching dictionary for code={code}, par={par}", "📖")
+    _debug(f'Fetching dictionary for code={code}, par={par}', '📖')
     if par:
         agency_id, provider, dims = _get_dims_info(code, detail='basic')
         try:
             par_id = [d[1] for d in dims if d[0].lower() == par.lower()][0]
         except IndexError:
-            _debug(f"Parameter {par} not found", "❌")
+            _debug(f'Parameter {par} not found', '❌')
             raise ValueError(f'Parameter {par} not found in {code}')
 
         url = (
@@ -308,14 +447,14 @@ def get_dic(
 
         data = _retry_request(url)
         if data is None:
-            _debug("Failed to fetch codelist", "❌")
+            _debug('Failed to fetch codelist', '❌')
             raise ConnectionError(f'Failed to fetch codelist for {par}')
 
-        _debug("Decompressing and parsing TSV...")
+        _debug('Decompressing and parsing TSV...')
         resp_list = gzip.decompress(data).decode('utf-8').split('\r\n')
         resp_list.pop()
         tmp_list = [tuple(el.split('\t')) for el in resp_list]
-        _debug(f"Parsed {len(tmp_list)} code-label pairs", "✓")
+        _debug(f'Parsed {len(tmp_list)} code-label pairs', '✓')
 
         if full:
             return tmp_list
@@ -324,7 +463,7 @@ def get_dic(
             return [el for el in tmp_list if el[0] in par_values]
     else:
         _, _, dims_list = _get_dims_info(code, detail='descr', lang=lang)
-        _debug(f"Got {len(dims_list)} dimension descriptions", "✓")
+        _debug(f'Got {len(dims_list)} dimension descriptions', '✓')
         return dims_list
 
 
@@ -410,11 +549,16 @@ def get_data(
             if header is None:
                 # Parse header: first column is "dim1,dim2,dim3", rest are time periods
                 header_parts = row_str.split('\t')
-                dimension_names = [d.strip() for d in header_parts[0].split(',')]
+                dimension_names = [
+                    d.strip() for d in header_parts[0].split(',')
+                ]
                 time_periods = [t.strip() for t in header_parts[1:]]
                 # Combine dimension names and time periods into full column list
                 header = dimension_names + time_periods
-                _debug(f"Parsed header: {len(dimension_names)} dimensions + {len(time_periods)} periods", "📊")
+                _debug(
+                    f'Parsed header: {len(dimension_names)} dimensions + {len(time_periods)} periods',
+                    '📊',
+                )
                 continue
 
             parts = row_str.split('\t')
@@ -458,10 +602,10 @@ def get_data(
                     alldata.append(key_parts + row_data)
 
     if not alldata or header is None:
-        _debug("No data found", "⚠")
+        _debug('No data found', '⚠')
         return None
 
-    _debug(f"Parsed {len(alldata)} rows with {len(header)} columns", "✓")
+    _debug(f'Parsed {len(alldata)} rows with {len(header)} columns', '✓')
     return {'columns': header, 'data': alldata}
 
 
@@ -473,40 +617,40 @@ def setproxy(proxyinfo):
 # GISCO API functions
 def gisco_request_blocking(url: str) -> bytes:
     """Make a blocking HTTP GET request for GISCO data (using QGIS settings).
-    
+
     Args:
         url: URL to request
-        
+
     Returns:
         Response data as bytes
     """
     from .settings import GLOBAL_SETTINGS
     from qgis.PyQt.QtCore import QUrl
     from qgis.PyQt.QtNetwork import QNetworkRequest
-    
-    _debug(f"GISCO blocking request: {url[:100]}...", "🗺")
+
+    _debug(f'GISCO blocking request: {url[:100]}...', '🗺')
     request = QNetworkRequest(QUrl(url))
     response = GLOBAL_SETTINGS.network_manager.blockingGet(request)
     data = response.content().data()
-    _debug(f"Received {len(data)} bytes", "✓")
+    _debug(f'Received {len(data)} bytes', '✓')
     return data
 
 
 def gisco_request(url: str, manager=None):
     """Make an async HTTP GET request for GISCO data.
-    
+
     Args:
         url: URL to request
         manager: Optional QgsNetworkAccessManager instance
-        
+
     Returns:
         QNetworkReply object
     """
     from .settings import GLOBAL_SETTINGS
     from qgis.PyQt.QtCore import QUrl
     from qgis.PyQt.QtNetwork import QNetworkRequest
-    
-    _debug(f"GISCO async request: {url[:100]}...", "🗺")
+
+    _debug(f'GISCO async request: {url[:100]}...', '🗺')
     request = QNetworkRequest(QUrl(url))
     if manager is None:
         manager = GLOBAL_SETTINGS.network_manager
