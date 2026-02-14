@@ -120,7 +120,9 @@ def test_dataset_operations():
         db.initialize_toc()
 
         with patch('src.data.eurostat.get_pars', return_value=['geo', 'sex']):
-            with patch('src.data.eurostat.get_data', return_value=mock_data_response):
+            with patch(
+                'src.data.eurostat.get_data', return_value=mock_data_response
+            ):
                 with patch('src.data.eurostat.get_dic', return_value=[]):
                     dataset = Dataset(db=db, code='TEST_DATA')
                     dataset.initialize_df()
@@ -136,7 +138,9 @@ def test_dataset_operations():
                     assert params == ['geo', 'sex']
 
                     data = dataset.df
-                    print(f'✓ Data retrieved with {len(data["columns"])} columns')
+                    print(
+                        f'✓ Data retrieved with {len(data["columns"])} columns'
+                    )
                     assert len(data['columns']) == 6
 
                     # Check TIME_PERIOD was removed
@@ -265,5 +269,6 @@ if __name__ == '__main__':
     except Exception as e:
         print(f'\n❌ Unexpected error: {e}')
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

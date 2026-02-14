@@ -18,10 +18,11 @@ from .enums import Agency, ConnectionStatus, Language, TableOfContentsColumn
 from .settings import GLOBAL_SETTINGS
 
 
-def _debug(msg: str, prefix: str = "🔍") -> None:
+def _debug(msg: str, prefix: str = '🔍') -> None:
     """Print debug message if DEBUG mode is enabled."""
     if DEBUG:
-        print(f"{prefix} [EUROSTAT-DATA] {msg}")
+        print(f'{prefix} [EUROSTAT-DATA] {msg}')
+
 
 GISCO_BASE = 'https://gisco-services.ec.europa.eu/distribution/v2/{theme}/'
 GISCO_URL = {
@@ -89,11 +90,21 @@ class Database:
             self._agency_status[agency] = ConnectionStatus.UNAVAILABLE
 
     def _get_toc(self, lang: Language) -> list[dict[str, t.Any]]:
+        """Get TOC for current language, organized by agency.
+
+        Note: Items are kept in their original hierarchical order from the API.
+        We only sort by agency to group items, but preserve the tree structure
+        within each agency.
+        """
         rows = []
-        for data in self._toc.values():
+        for agency in sorted(self._toc.keys(), key=lambda a: a.value):
+            data = self._toc[agency]
             if (toc_list := data.get(lang, None)) is not None:
+                # Add agency info to each item for organization
+                for item in toc_list:
+                    item['agency'] = agency.value
                 rows.extend(toc_list)
-        return sorted(rows, key=lambda x: x.get('code', ''))
+        return rows
 
     @property
     def toc(self) -> list[dict[str, t.Any]]:
@@ -181,7 +192,9 @@ class Dataset:
 
     def _set_param_info(self, data: tuple[str, Language]):
         param, lang = data[0], data[1]
-        dic = fetch.get_dic(code=self.code, par=param, full=False, lang=lang.value)
+        dic = fetch.get_dic(
+            code=self.code, par=param, full=False, lang=lang.value
+        )
         self._param_info.setdefault(lang, {})[param] = dic
 
     def _set_data(self):
@@ -354,7 +367,9 @@ class GISCO(abc.ABC):
 
     def set_units(self, year: str):
         url = GISCO_URL['units'].format(theme=self.theme, year=year)
-        self.units[year] = Units.from_json(json.loads(fetch.gisco_request_blocking(url)))
+        self.units[year] = Units.from_json(
+            json.loads(fetch.gisco_request_blocking(url))
+        )
 
     def get_units(self, year: str) -> Units:
         if year not in self.units:

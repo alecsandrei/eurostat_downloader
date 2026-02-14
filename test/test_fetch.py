@@ -70,7 +70,7 @@ class TestFetchModule(unittest.TestCase):
     @patch('src.fetch._retry_request')
     def test_get_pars_success(self, mock_retry):
         """Test getting dataset parameters."""
-        mock_df_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -82,9 +82,9 @@ class TestFetchModule(unittest.TestCase):
                     </structure:Dataflow>
                 </structure:Dataflows>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
-        mock_dsd_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_dsd_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -111,7 +111,7 @@ class TestFetchModule(unittest.TestCase):
                     </structure:DataStructure>
                 </structure:DataStructures>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
         mock_retry.side_effect = [mock_df_xml, mock_dsd_xml]
 
@@ -133,7 +133,7 @@ class TestFetchModule(unittest.TestCase):
     @patch('src.fetch._retry_request')
     def test_get_dic_success(self, mock_retry):
         """Test getting dimension dictionary."""
-        mock_df_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -145,9 +145,9 @@ class TestFetchModule(unittest.TestCase):
                     </structure:Dataflow>
                 </structure:Dataflows>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
-        mock_dsd_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_dsd_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -167,7 +167,7 @@ class TestFetchModule(unittest.TestCase):
                     </structure:DataStructure>
                 </structure:DataStructures>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
         mock_codelist_tsv = gzip.compress(
             b'BE\tBelgium\r\nFR\tFrance\r\nDE\tGermany\r\n'
@@ -185,7 +185,7 @@ class TestFetchModule(unittest.TestCase):
     @patch('src.fetch._retry_request')
     def test_get_dic_invalid_parameter(self, mock_retry):
         """Test get_dic with invalid parameter name."""
-        mock_df_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -197,9 +197,9 @@ class TestFetchModule(unittest.TestCase):
                     </structure:Dataflow>
                 </structure:Dataflows>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
-        mock_dsd_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_dsd_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -219,17 +219,19 @@ class TestFetchModule(unittest.TestCase):
                     </structure:DataStructure>
                 </structure:DataStructures>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
         mock_retry.side_effect = [mock_df_xml, mock_dsd_xml]
 
         with self.assertRaises(ValueError):
-            fetch.get_dic('TEST_DATA', par='invalid_param', full=True, lang='en')
+            fetch.get_dic(
+                'TEST_DATA', par='invalid_param', full=True, lang='en'
+            )
 
     @patch('src.fetch._retry_request')
     def test_get_data_success(self, mock_retry):
         """Test downloading dataset."""
-        mock_df_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -241,9 +243,9 @@ class TestFetchModule(unittest.TestCase):
                     </structure:Dataflow>
                 </structure:Dataflows>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
-        mock_dsd_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_dsd_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -263,7 +265,7 @@ class TestFetchModule(unittest.TestCase):
                     </structure:DataStructure>
                 </structure:DataStructures>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
         mock_tsv_data = gzip.compress(
             b'geo\\time\t2020\t2021\r\nBE\t100\t105\r\nFR\t200\t210\r\n'
@@ -281,7 +283,7 @@ class TestFetchModule(unittest.TestCase):
     @patch('src.fetch._retry_request')
     def test_get_data_with_filters(self, mock_retry):
         """Test downloading dataset with filters."""
-        mock_df_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -293,9 +295,9 @@ class TestFetchModule(unittest.TestCase):
                     </structure:Dataflow>
                 </structure:Dataflows>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
-        mock_dsd_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
+        mock_dsd_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
                           xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
             <message:Structures>
@@ -315,7 +317,7 @@ class TestFetchModule(unittest.TestCase):
                     </structure:DataStructure>
                 </structure:DataStructures>
             </message:Structures>
-        </message:Structure>'''
+        </message:Structure>"""
 
         mock_tsv_data = gzip.compress(
             b'geo\\time\t2022\t2023\r\nBE\t110\t115\r\n'

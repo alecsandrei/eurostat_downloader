@@ -9,11 +9,17 @@ import sys
 import os
 
 # Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+)
 
 from src.enums import (
-    TableOfContentsColumn, Language, Agency, ConnectionStatus,
-    GeoSectionName, FrequencyType
+    TableOfContentsColumn,
+    Language,
+    Agency,
+    ConnectionStatus,
+    GeoSectionName,
+    FrequencyType,
 )
 
 
@@ -178,7 +184,11 @@ class TestFrequencyType(unittest.TestCase):
     def test_all_frequencies(self):
         """Test all frequency types are defined."""
         expected_frequencies = {
-            'ANNUALLY', 'SEMESTERLY', 'QUARTERLY', 'MONTHLY', 'DAILY'
+            'ANNUALLY',
+            'SEMESTERLY',
+            'QUARTERLY',
+            'MONTHLY',
+            'DAILY',
         }
         actual_frequencies = {freq.name for freq in FrequencyType}
         self.assertEqual(actual_frequencies, expected_frequencies)

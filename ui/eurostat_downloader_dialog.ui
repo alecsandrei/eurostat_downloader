@@ -328,7 +328,7 @@
         <widget class="QLineEdit" name="lineSearch"/>
        </item>
        <item>
-        <widget class="QListWidget" name="listDatabase">
+        <widget class="QTreeWidget" name="treeDatabase">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -341,6 +341,40 @@
            <height>300</height>
           </size>
          </property>
+         <property name="animated">
+          <bool>true</bool>
+         </property>
+         <property name="indentation">
+          <number>20</number>
+         </property>
+         <property name="rootIsDecorated">
+          <bool>true</bool>
+         </property>
+         <property name="uniformRowHeights">
+          <bool>true</bool>
+         </property>
+         <property name="itemsExpandable">
+          <bool>true</bool>
+         </property>
+         <property name="expandsOnDoubleClick">
+          <bool>true</bool>
+         </property>
+         <property name="headerHidden">
+          <bool>false</bool>
+         </property>
+         <property name="columnCount">
+          <number>2</number>
+         </property>
+         <column>
+          <property name="text">
+           <string>Dataset</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Code</string>
+          </property>
+         </column>
         </widget>
        </item>
       </layout>
