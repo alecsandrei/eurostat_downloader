@@ -4,6 +4,8 @@ extlibs*
 *.zip
 ui/*.py
 scripts/
+symbology-style.db
+assets/eurostat_cache/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

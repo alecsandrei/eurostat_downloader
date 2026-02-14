@@ -16,7 +16,7 @@ from qgis.core import (
 )
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 
-from src.utils import (
+from eurostat_downloader.src.utils import (
     CheckableComboBox,
     QComboboxCompleter,
     layer_from_features,

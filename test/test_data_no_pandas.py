@@ -17,8 +17,8 @@ sys.modules['qgis.PyQt.QtNetwork'] = MagicMock()
 sys.modules['qgis.PyQt.QtWidgets'] = MagicMock()
 sys.modules['qgis.PyQt.QtGui'] = MagicMock()
 
-from src.data import Database, Dataset
-from src.enums import Agency, Language
+from eurostat_downloader.src.data import Database, Dataset
+from eurostat_downloader.src.enums import Agency, Language
 
 
 def test_database_toc():
