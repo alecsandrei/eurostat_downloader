@@ -8,13 +8,13 @@ This is a QGIS plugin that downloads Eurostat datasets and GISCO geospatial data
 
 ```bash
 # Package the plugin for distribution
-paver package
+qgis-plugin-ci package 0.5.0
 
-# Package with tests included
-paver package -t
+# Package with uncommitted changes allowed
+qgis-plugin-ci package 0.5.0 -c
 ```
 
-The package task creates `eurostat_downloader.zip` using LZMA compression, excluding development files (.vscode, .git, caches, etc.).
+The package task creates `eurostat_downloader.0.5.0.zip` in the parent directory, excluding development files (.vscode, .git, caches, tests, etc.).
 
 ## Testing
 

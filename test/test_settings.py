@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import Mock, patch, MagicMock
 from qgis.core import QgsSettings, QgsNetworkAccessManager
 
-from src.settings import ProxySettings, GlobalSettings, _get_qgis_proxy
-from src.enums import Agency
+from eurostat_downloader.src.settings import ProxySettings, GlobalSettings, _get_qgis_proxy
+from eurostat_downloader.src.enums import Agency
 from test.utilities import get_qgis_app
 
 QGIS_APP = get_qgis_app()
@@ -51,7 +51,7 @@ class TestGetQGISProxy(unittest.TestCase):
         """Setup test fixtures."""
         self.mock_settings = Mock(spec=QgsSettings)
 
-    @patch('src.settings.QGS_SETTINGS')
+    @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
     def test_proxy_disabled(self, mock_qgs_settings):
         """Test when proxy is disabled."""
         mock_qgs_settings.value.side_effect = lambda key, default, type: {
@@ -62,7 +62,7 @@ class TestGetQGISProxy(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @patch('src.settings.QGS_SETTINGS')
+    @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
     def test_http_proxy_enabled(self, mock_qgs_settings):
         """Test when HTTP proxy is enabled."""
 
@@ -87,7 +87,7 @@ class TestGetQGISProxy(unittest.TestCase):
         self.assertEqual(result.user, 'user')
         self.assertEqual(result.password, 'pass')
 
-    @patch('src.settings.QGS_SETTINGS')
+    @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
     def test_socks5_proxy_enabled(self, mock_qgs_settings):
         """Test when SOCKS5 proxy is enabled."""
 
@@ -110,8 +110,8 @@ class TestGetQGISProxy(unittest.TestCase):
         self.assertEqual(result.host, 'socks.example.com')
         self.assertEqual(result.port, '1080')
 
-    @patch('src.settings.QGS_SETTINGS')
-    @patch('src.settings.QgsNetworkAccessManager')
+    @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
+    @patch('eurostat_downloader.src.settings.QgsNetworkAccessManager')
     def test_default_proxy(self, mock_network_manager, mock_qgs_settings):
         """Test when using default proxy."""
 
@@ -172,7 +172,7 @@ class TestGlobalSettings(unittest.TestCase):
         for agency in Agency:
             self.assertIn(agency, settings.agencies)
 
-    @patch('src.settings._get_qgis_proxy')
+    @patch('eurostat_downloader.src.settings._get_qgis_proxy')
     def test_global_settings_with_proxy(self, mock_get_proxy):
         """Test GlobalSettings with proxy configuration."""
         mock_proxy = ProxySettings(
@@ -184,7 +184,7 @@ class TestGlobalSettings(unittest.TestCase):
 
         self.assertEqual(settings.proxy, mock_proxy)
 
-    @patch('src.settings._get_qgis_proxy')
+    @patch('eurostat_downloader.src.settings._get_qgis_proxy')
     def test_global_settings_without_proxy(self, mock_get_proxy):
         """Test GlobalSettings without proxy."""
         mock_get_proxy.return_value = None

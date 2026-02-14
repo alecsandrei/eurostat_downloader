@@ -5,8 +5,8 @@ from test.utilities import get_qgis_app
 
 QGIS_APP = get_qgis_app()
 
-from src.data import Database
-from src.enums import Language, Agency
+from eurostat_downloader.src.data import Database
+from eurostat_downloader.src.enums import Language, Agency
 
 
 class TestTreeDatabase(unittest.TestCase):

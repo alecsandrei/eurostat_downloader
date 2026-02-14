@@ -44,7 +44,12 @@ class TestInit(unittest.TestCase):
         ]
 
         file_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), os.pardir, 'metadata.txt')
+            os.path.join(
+                os.path.dirname(__file__),
+                os.pardir,
+                'eurostat_downloader',
+                'metadata.txt',
+            )
         )
         LOGGER.info(file_path)
         metadata = []

@@ -1,0 +1,11 @@
+resources.qrc export-ignore
+resources_rc.py export-ignore
+ui/*.ui export-ignore
+ui/compile.sh export-ignore
+test/ export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+ruff.toml export-ignore
+mypy.ini export-ignore
+AGENTS.md export-ignore
+symbology-style.db export-ignore
