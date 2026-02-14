@@ -34,3 +34,4 @@ tracker=https://github.com/alecsandrei/eurostat_downloader/issues
 repository=https://github.com/alecsandrei/eurostat_downloader
 icon=assets/icon.png
 deprecated=False
+experimental=True
