@@ -1,4 +1,4 @@
-![Alt text](assets/eurostat.png "Title")
+![Alt text](https://raw.githubusercontent.com/alecsandrei/eurostat_downloader/refs/heads/main/eurostat_downloader/assets/eurostat.png "Title")
 
 image source: *https://ec.europa.eu/eurostat*
 
@@ -28,17 +28,17 @@ Let's start by downloading a vector layer from [here](https://ec.europa.eu/euros
 
 Open the plugin and type anything in the search bar. The table of contents will be generated. This may take a while, depending on how fast your internet speed is. Search for any dataset that you would like to use. I will choose **CENS_HNCTZ: Population by sex, age and citizenship**. Click on it, and wait for the table to fill.
 
-![Alt text](assets/how_to_use_the_plugin_1.png "Title")
+![Alt text](https://raw.githubusercontent.com/alecsandrei/eurostat_downloader/refs/heads/main/eurostat_downloader/assets/how_to_use_the_plugin_1.png "Title")
 
 ## Applying filters to the dataset
 
 Now that the table is filled with data, we can apply filters to it. In order to do so, left click on the name of the column. I will select the **T** value (which stands for total) from the 3 available in the sex column.
 
-![Alt text](assets/how_to_use_the_plugin_2.png "Title")
+![Alt text](https://raw.githubusercontent.com/alecsandrei/eurostat_downloader/refs/heads/main/eurostat_downloader/assets/how_to_use_the_plugin_2.png "Title")
 
 We can see the table also filtered dynamically as we selected the **T** value. There is a problem though. If we click on the **citizen** column we will see very abstract abbreviations like FOR, NAT, STLS, and UNK. In the previous example it was easy to guess that F, M AND T stand for female, male and total. In this example, we will need some sort of translation to describe what the abbreviation stands for. To do this, close the **Edit section** window and select a language from the bottom left. Now click on the **citizen** column again.
 
-![Alt text](assets/how_to_use_the_plugin_3.png "Title")
+![Alt text](https://raw.githubusercontent.com/alecsandrei/eurostat_downloader/refs/heads/main/eurostat_downloader/assets/how_to_use_the_plugin_3.png "Title")
 
 The time range can also be filtered.
 
@@ -48,7 +48,7 @@ Now that we applied the filters, if we just want to export the table for further
 
 We can also join the data to the vector layer we downloaded earlier. By default, the plugin tries to infer both the column with the geographic codes from the Eurostat dataset and the field from the vector layer that matches the values from that Eurostat dataset column. In my case, the plugin selected FID for the layer join field and geo for the table (Eurostat data) join field by default. Make sure to check if the join fields were correctly selected. Now, we can just join the data by clicking on the **Join data** button. **Be careful!** The joined data is temporary. You will now need to export the vector layer in order to keep the joined data.
 
-![Alt text](assets/how_to_use_the_plugin_4.png "Title")
+![Alt text](https://raw.githubusercontent.com/alecsandrei/eurostat_downloader/refs/heads/main/eurostat_downloader/assets/how_to_use_the_plugin_4.png "Title")
 
 # Disclaimer
 
