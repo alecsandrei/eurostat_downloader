@@ -421,7 +421,25 @@ class Dialog(QtWidgets.QDialog):
                 # Add current item to stack
                 parent_stack.append(tree_item)
 
-        # Set better column proportions
+        # Set better column proportions - use a helper method
+        self._fix_column_widths()
+
+        # Restore expansion state or collapse all
+        if preserve_expansion and expanded_codes:
+            self._restore_expanded_items(expanded_codes)
+        else:
+            # Collapse all top-level items to start
+            self.ui.treeDatabase.collapseAll()
+        
+        # Fix column widths again after expand/collapse with a small delay
+        QtCore.QTimer.singleShot(100, self._fix_column_widths)
+
+    def _fix_column_widths(self):
+        """Ensure dataset column is properly sized.
+        
+        This method can be called multiple times to ensure column widths
+        are correct even after the widget has fully rendered.
+        """
         # Use viewport width (actual displayable area) and ensure minimum widths
         viewport_width = self.ui.treeDatabase.viewport().width()
         # Fallback to widget width if viewport not ready
@@ -435,13 +453,6 @@ class Dialog(QtWidgets.QDialog):
 
         self.ui.treeDatabase.setColumnWidth(0, dataset_width)
         self.ui.treeDatabase.setColumnWidth(1, code_width)
-
-        # Restore expansion state or collapse all
-        if preserve_expansion and expanded_codes:
-            self._restore_expanded_items(expanded_codes)
-        else:
-            # Collapse all top-level items to start
-            self.ui.treeDatabase.collapseAll()
 
     def _get_expanded_item_codes(self) -> set[str]:
         """Get codes of all currently expanded items (including agency roots)."""
@@ -561,16 +572,10 @@ class Dialog(QtWidgets.QDialog):
             # Expand all items so search results are visible
             self.ui.treeDatabase.expandAll()
 
-            # Set column widths after filtering (same logic as populate_tree)
-            viewport_width = self.ui.treeDatabase.viewport().width()
-            if viewport_width < 100:
-                viewport_width = self.ui.treeDatabase.width()
-
-            dataset_width = max(int(viewport_width * 0.7), 350)
-            code_width = max(int(viewport_width * 0.3), 150)
-
-            self.ui.treeDatabase.setColumnWidth(0, dataset_width)
-            self.ui.treeDatabase.setColumnWidth(1, code_width)
+            # Set column widths after filtering and expanding
+            self._fix_column_widths()
+            # Fix again with delay to ensure it's applied after full render
+            QtCore.QTimer.singleShot(100, self._fix_column_widths)
 
     def get_selected_dataset_code(self):
         current_item = self.ui.treeDatabase.currentItem()
