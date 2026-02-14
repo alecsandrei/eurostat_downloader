@@ -55,9 +55,6 @@ mypy .
 ### Plugin Entry Point
 
 - `__init__.py`: QGIS plugin initialization
-  - Checks for missing Python dependencies (primarily `eurostat` package)
-  - Shows a helper dialog to install missing packages via pip into `extlibs/`
-  - Adds `extlibs/` to Python path using `site.addsitedir()`
   - Returns `EurostatDownloader` class instance
 
 ### Core Components
@@ -78,11 +75,12 @@ mypy .
 
 **`src/fetch.py`**: Low-level API communication
 - Defines API endpoints and SDMX XML namespaces
-- Wraps `eurostat` package functionality
+- Implements direct HTTP requests using QGIS network manager
 - Handles different agency base URLs
 
-**`src/modules.py`**: Dependency management
-- Detects missing Python packages
+**`src/modules.py`**: (Legacy) Dependency management
+- Previously used for detecting missing Python packages
+- Now largely unused as plugin has no external dependencies
 - Provides UI to install packages via pip
 - Manages `extlibs/` installation folder
 
@@ -146,14 +144,13 @@ from __future__ import annotations
 ## External Dependencies
 
 **Runtime (required):**
-- `eurostat>=1.1.0`: Python package for Eurostat API access
 - QGIS 3.00+ with PyQt5
 
 **Development:**
 - `paver`: Build and packaging tool
 - `ruff`: Linting and formatting
 - `mypy`: Type checking
-- `pytest`: Test runner (optional, can use unittest)
+- `unittest`: Test runner (built-in to Python)
 
 ## Plugin Distribution
 
@@ -161,4 +158,4 @@ The plugin is distributed via:
 1. QGIS plugin repository (may be marked experimental)
 2. Manual installation from GitHub releases (eurostat_downloader.zip)
 
-Users must restart QGIS after installing dependencies for changes to take effect.
+No external dependencies are required - the plugin works out of the box with QGIS 3.00+.
