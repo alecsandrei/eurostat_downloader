@@ -1,7 +1,6 @@
-resources.qrc export-ignore
-resources_rc.py export-ignore
-ui/*.ui export-ignore
-ui/compile.sh export-ignore
+eurostat_downloader/resources.qrc export-ignore
+eurostat_downloader/resources_rc.py export-ignore
+eurostat_downloader/ui/ export-ignore
 test/ export-ignore
 .gitignore export-ignore
 .gitattributes export-ignore
@@ -9,3 +8,6 @@ ruff.toml export-ignore
 mypy.ini export-ignore
 AGENTS.md export-ignore
 symbology-style.db export-ignore
+eurostat_downloader/assets/eurostat_cache/ export-ignore
+eurostat_downloader/assets/*_use_the_plugin*.png export-ignore
+README.md export-ignore
