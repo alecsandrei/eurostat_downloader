@@ -10,7 +10,7 @@ email=cuvuliucalexandrei@gmail.com
 changelog=
       0.5.0
         * Removed pandas and requests dependencies - uses only QGIS built-in libraries;
-        * Database is now displayed in a hierarchical strucutre.
+        * Database is now displayed in a hierarchical structure.
       0.4.1
         * Fixed a bug with an outdated functionality (issue #5).
       0.4.0
