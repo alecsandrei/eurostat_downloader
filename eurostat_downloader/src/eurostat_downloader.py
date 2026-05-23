@@ -3,15 +3,14 @@ from __future__ import annotations
 import itertools
 import os.path
 import time
-from collections.abc import Iterable
+import typing as t
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import astuple, dataclass, field, fields
 from enum import Enum, auto
 from functools import partial
 from typing import (
-    Any,
     Callable,
     Literal,
-    Sequence,
     cast,
 )
 
@@ -26,6 +25,7 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorLayerJoinInfo,
 )
+from qgis.gui import QgisInterface
 from qgis.PyQt import QtCore, QtGui, QtNetwork, QtWidgets
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QAction, QDialog
@@ -35,6 +35,9 @@ from eurostat_downloader.src.data import (
     GISCO,
     Database,
     Dataset,
+    DatasetCell,
+    DatasetPayload,
+    TocRow,
     Unit,
     Units,
 )
@@ -61,6 +64,15 @@ from eurostat_downloader.src.utils import (
 )
 
 
+# ``LayerPayload`` mirrors :class:`DatasetPayload` but for QGIS vector layer
+# attributes, whose cell values can be any Python object emitted by QGIS
+# (strings, ints, floats, booleans, ``None``, ``QVariant``...). Defined
+# locally here because it is only consumed by :class:`QgsConverter`.
+class LayerPayload(t.TypedDict):
+    columns: list[str]
+    data: list[list[object]]
+
+
 class Tabs(Enum):
     LAYER = auto()
     GISCO = auto()
@@ -69,7 +81,7 @@ class Tabs(Enum):
 class EurostatDownloader:
     """QGIS Plugin Implementation."""
 
-    def __init__(self, iface):
+    def __init__(self, iface: QgisInterface) -> None:
         """Constructor.
 
         :param iface: An interface instance that will be passed to this class
@@ -93,15 +105,15 @@ class EurostatDownloader:
             QCoreApplication.installTranslator(self.translator)
 
         # Declare instance attributes
-        self.actions = []
+        self.actions: list[QAction] = []
         self.menu = self.tr('&Eurostat Downloader')
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
-        self.first_start = None
+        self.first_start: bool | None = None
 
     # noinspection PyMethodMayBeStatic
-    def tr(self, message):
+    def tr(self, message: str) -> str:
         """Get the translation for a string using Qt translation API.
 
         We implement this ourselves since we do not inherit QObject.
@@ -113,20 +125,20 @@ class EurostatDownloader:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('EurostatDownloader', message)
+        return cast(str, QCoreApplication.translate('EurostatDownloader', message))
 
-    def add_action(
+    def add_action(  # type: ignore[explicit-any]  # Callable[..., X] uses `...` which mypy treats as Any; callbacks here genuinely accept arbitrary signatures from Qt signals
         self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None,
-    ):
+        icon_path: str,
+        text: str,
+        callback: Callable[..., object],
+        enabled_flag: bool = True,
+        add_to_menu: bool = True,
+        add_to_toolbar: bool = True,
+        status_tip: str | None = None,
+        whats_this: str | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ) -> QAction:
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -188,7 +200,7 @@ class EurostatDownloader:
 
         return action
 
-    def initGui(self):
+    def initGui(self) -> None:
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         icon_path = ':/plugins/eurostat_downloader/assets/icon.png'
@@ -202,13 +214,13 @@ class EurostatDownloader:
         # will be set False in run()
         self.first_start = True
 
-    def unload(self):
+    def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(self.tr('&Eurostat Downloader'), action)
             self.iface.removeToolBarIcon(action)
 
-    def run(self):
+    def run(self) -> None:
         """Run method that performs all the real work"""
 
         # Create the dialog with elements (after translation) and keep reference
@@ -228,14 +240,14 @@ class EurostatDownloader:
             pass
 
 
-class Dialog(QtWidgets.QDialog):
-    def __init__(self, eurostat_downloader: EurostatDownloader):
+class Dialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without stubs
+    def __init__(self, eurostat_downloader: EurostatDownloader) -> None:
         super().__init__()
 
         # Init GUI
         self.eurostat_downloader = eurostat_downloader
         self.ui = Ui_EurostatDownloaderDialog()
-        self.ui.setupUi(self)
+        self.ui.setupUi(self)  # type: ignore[no-untyped-call]  # generated UI module not type-checked
         self.set_layer_join_fields()
 
         # Instantiate objects
@@ -245,7 +257,7 @@ class Dialog(QtWidgets.QDialog):
         self.exporter = Exporter(base=self)
         self.converter = QgsConverter(base=self)
         self.dataset: Dataset | None = None
-        self.subset: list[dict[str, Any]] | None = None
+        self.subset: list[TocRow] | None = None
         self.filterer: DataFilterer | None = None
 
         # Search debounce timer
@@ -281,35 +293,35 @@ class Dialog(QtWidgets.QDialog):
             language_check.stateChanged.connect(self.filter_toc)
         self.ui.tabWidget.currentChanged.connect(self.handle_tab_change)
 
-    def handle_tab_change(self, index: int):
+    def handle_tab_change(self, index: int) -> None:
         tab = Tabs(index + 1)
         if tab is Tabs.LAYER:
             ...
         elif tab is Tabs.GISCO:
             self.gisco_handler.add_themes()
 
-    def set_agency_status_tooltip(self):
+    def set_agency_status_tooltip(self) -> None:
         tooltip = ['Agency server accessibility']
         for agency, status in self.database._agency_status.items():
             mark = '[OK]' if status == ConnectionStatus.AVAILABLE else '[X]'
             tooltip.append(f'{agency.name} {mark}')
         self.ui.labelAgencyStatus.setToolTip('\n'.join(tooltip))
 
-    def open_settings_ui(self):
+    def open_settings_ui(self) -> None:
         SettingsDialog(self)
 
-    def set_layer_join_fields(self):
+    def set_layer_join_fields(self) -> None:
         layer = self.ui.qgsComboLayer.currentLayer()
         if not layer:
             return
         self.ui.qgsComboLayerJoinField.setLayer(layer=layer)
 
-    def set_gui_state(self, state: bool):
+    def set_gui_state(self, state: bool) -> None:
         for obj in self.children():
             if isinstance(obj, QtWidgets.QWidget):
                 obj.setEnabled(state)
 
-    def initialize_database(self):
+    def initialize_database(self) -> None:
         self.ui.treeDatabase.clear()
         # Temporarily disconnect the textChanged signal to prevent double population
         self.ui.lineSearch.textChanged.disconnect(self.on_search_text_changed)
@@ -337,8 +349,10 @@ class Dialog(QtWidgets.QDialog):
         initializer.start()
 
     def populate_tree(
-        self, items: list[dict[str, Any]], preserve_expansion: bool = False
-    ):
+        self,
+        items: Sequence[TocRow],
+        preserve_expansion: bool = False,
+    ) -> None:
         """Populate QTreeWidget with hierarchical data.
 
         Args:
@@ -354,7 +368,7 @@ class Dialog(QtWidgets.QDialog):
             traceback.print_stack(limit=5)
 
         # Save expansion state if requested
-        expanded_codes = set()
+        expanded_codes: set[str] = set()
         if preserve_expansion:
             expanded_codes = self._get_expanded_item_codes()
 
@@ -363,7 +377,7 @@ class Dialog(QtWidgets.QDialog):
         # Group items by agency
         from collections import defaultdict
 
-        agency_items = defaultdict(list)
+        agency_items: dict[str, list[TocRow]] = defaultdict(list)
         for item in items:
             agency = item.get('agency', 'EUROSTAT')
             agency_items[agency].append(item)
@@ -380,7 +394,7 @@ class Dialog(QtWidgets.QDialog):
             self.ui.treeDatabase.addTopLevelItem(agency_root)
 
             # Stack to keep track of the last parent at each level
-            parent_stack = [agency_root]
+            parent_stack: list[QtWidgets.QTreeWidgetItem] = [agency_root]
 
             for item in agency_item_list:
                 level = (
@@ -435,7 +449,7 @@ class Dialog(QtWidgets.QDialog):
         # Fix column widths again after expand/collapse with a small delay
         QtCore.QTimer.singleShot(100, self._fix_column_widths)
 
-    def _fix_column_widths(self):
+    def _fix_column_widths(self) -> None:
         """Ensure dataset column is properly sized.
         
         This method can be called multiple times to ensure column widths
@@ -457,9 +471,9 @@ class Dialog(QtWidgets.QDialog):
 
     def _get_expanded_item_codes(self) -> set[str]:
         """Get codes of all currently expanded items (including agency roots)."""
-        expanded = set()
+        expanded: set[str] = set()
 
-        def check_item(item):
+        def check_item(item: QtWidgets.QTreeWidgetItem) -> None:
             if item.isExpanded():
                 item_data = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
                 if item_data and 'code' in item_data:
@@ -479,10 +493,10 @@ class Dialog(QtWidgets.QDialog):
 
         return expanded
 
-    def _restore_expanded_items(self, expanded_codes: set[str]):
+    def _restore_expanded_items(self, expanded_codes: set[str]) -> None:
         """Restore expansion state for items with given codes."""
 
-        def restore_item(item):
+        def restore_item(item: QtWidgets.QTreeWidgetItem) -> None:
             item_data = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
             if item_data and 'code' in item_data:
                 # Regular item with code
@@ -501,12 +515,12 @@ class Dialog(QtWidgets.QDialog):
         for i in range(self.ui.treeDatabase.topLevelItemCount()):
             restore_item(self.ui.treeDatabase.topLevelItem(i))
 
-    def on_search_text_changed(self):
+    def on_search_text_changed(self) -> None:
         """Debounce search input - wait 300ms after user stops typing."""
         self.search_timer.stop()
         self.search_timer.start(300)  # milliseconds
 
-    def filter_toc(self):
+    def filter_toc(self) -> None:
         if not self.database.toc:  # Check if list is empty
             return None
 
@@ -537,8 +551,8 @@ class Dialog(QtWidgets.QDialog):
                 return
 
             # Single pass: Add items and their parents only when we encounter a dataset match
-            filtered_items = []
-            parent_stack = []  # Track current parent chain
+            filtered_items: list[TocRow] = []
+            parent_stack: list[TocRow] = []
 
             for item in self.database.toc:
                 code = item['code']
@@ -578,7 +592,7 @@ class Dialog(QtWidgets.QDialog):
             # Fix again with delay to ensure it's applied after full render
             QtCore.QTimer.singleShot(100, self._fix_column_widths)
 
-    def get_selected_dataset_code(self):
+    def get_selected_dataset_code(self) -> str | None:
         current_item = self.ui.treeDatabase.currentItem()
         if current_item is None:
             return None
@@ -586,15 +600,15 @@ class Dialog(QtWidgets.QDialog):
         # Get the stored item data
         item_data = current_item.data(0, QtCore.Qt.ItemDataRole.UserRole)
         if item_data:
-            return item_data.get('code')
+            return cast('str | None', item_data.get('code'))
 
         # Fallback: parse from the displayed code column
-        return current_item.text(1)
+        return cast(str, current_item.text(1))
 
-    def get_current_table_join_field(self):
-        return self.ui.comboTableJoinField.currentText()
+    def get_current_table_join_field(self) -> str:
+        return cast(str, self.ui.comboTableJoinField.currentText())
 
-    def update_language_check(self):
+    def update_language_check(self) -> None:
         language_checks = [
             self.ui.checkEnglish,
             self.ui.checkFrench,
@@ -611,26 +625,28 @@ class Dialog(QtWidgets.QDialog):
             self.dataset.set_language(lang=selected_language)
         self.database.set_language(lang=selected_language)
 
-    def get_selected_language(self):
+    def get_selected_language(self) -> Language:
         if self.ui.checkFrench.isChecked():
             return Language.FRENCH
         elif self.ui.checkGerman.isChecked():
             return Language.GERMAN
         return Language.ENGLISH
 
-    def set_table_join_fields(self):
+    def set_table_join_fields(self) -> None:
         self.ui.comboTableJoinField.clear()
         assert self.dataset is not None
         self.ui.comboTableJoinField.addItems(self.dataset.params)
 
-    def set_table_join_field_default(self):
+    def set_table_join_field_default(self) -> None:
         items = get_combobox_items(self.ui.comboTableJoinField)
         for idx, item in enumerate(items):
             # Is this supposed to be this weird to iterate through an Enum?
             if item in GeoSectionName._value2member_map_:
                 self.ui.comboTableJoinField.setCurrentIndex(idx)
 
-    def infer_join_field_idx_from_layer(self, layer: QgsMapLayer):
+    def infer_join_field_idx_from_layer(
+        self, layer: QgsMapLayer
+    ) -> int | None:
         assert isinstance(layer, QgsVectorLayer)
         if layer.featureCount() > 100_000:
             # Don't infer join field if there are more than 100k features.
@@ -653,14 +669,14 @@ class Dialog(QtWidgets.QDialog):
                 return col_idx
         return None
 
-    def set_layer_join_field_default(self):
+    def set_layer_join_field_default(self) -> None:
         if not hasattr(self, 'model'):
             return
         if layer := self.ui.qgsComboLayer.currentLayer():
             if idx := self.infer_join_field_idx_from_layer(layer=layer):
                 self.ui.qgsComboLayerJoinField.setCurrentIndex(idx)
 
-    def set_dataset_table(self):
+    def set_dataset_table(self) -> None:
         """Initialize dataset table when a dataset (not folder) is clicked."""
         current_item = self.ui.treeDatabase.currentItem()
         if current_item is None:
@@ -677,9 +693,11 @@ class Dialog(QtWidgets.QDialog):
         if item_type not in ['table', 'dataset']:
             return
 
+        code = self.get_selected_dataset_code()
+        assert code is not None
         self.dataset = Dataset(
             db=self.database,
-            code=self.get_selected_dataset_code(),
+            code=code,
             lang=self.get_selected_language(),
         )
         initializer = DatasetInitializer(self)
@@ -701,7 +719,7 @@ class Dialog(QtWidgets.QDialog):
         initializer.finished.connect(self.gisco_handler.clear)
         initializer.start()
 
-    def set_join_columns(self):
+    def set_join_columns(self) -> None:
         checkable = CheckableComboBox()
         self.ui.verticalLayoutColumnsToJoin.replaceWidget(
             self.ui.comboBoxColumnsToJoin, checkable
@@ -712,7 +730,7 @@ class Dialog(QtWidgets.QDialog):
         self.ui.comboBoxColumnsToJoin.addItems(self.dataset.params)
         self.ui.comboBoxColumnsToJoin.setCurrentIndex(-1)
 
-    def update_model(self):
+    def update_model(self) -> None:
         assert self.dataset is not None
         assert self.filterer is not None
         self.model = DatasetModel(
@@ -720,15 +738,16 @@ class Dialog(QtWidgets.QDialog):
         )
         self.ui.tableDataset.setModel(self.model.table_model)
 
-    def open_section_ui(self, idx: int):
+    def open_section_ui(self, idx: int) -> None:
         assert self.dataset is not None
+        assert self.dataset.data is not None
         section_name = self.dataset.data['columns'][idx]
         if section_name in self.dataset.params:
             ParameterSectionDialog(base=self, name=section_name)
         elif section_name in self.dataset.date_columns:
             TimeSectionDialog(base=self, name=section_name)
 
-    def reset_dataset_table(self):
+    def reset_dataset_table(self) -> None:
         # In case no table was filled and the user presses
         # the "Reset table" button
         if self.filterer is None:
@@ -741,7 +760,7 @@ class Dialog(QtWidgets.QDialog):
 
     def handle_error_ocurred(
         self, exception: Exception, action: Literal['raise', 'print'] = 'raise'
-    ):
+    ) -> None:
         # First 'if' is for debugging reasons.
         if action == 'print':
             print(exception)
@@ -749,16 +768,21 @@ class Dialog(QtWidgets.QDialog):
             raise exception
 
 
-class GISCOUnitDownloader(QtCore.QObject):
+class GISCOUnitDownloader(QtCore.QObject):  # type: ignore[misc]  # QObject is Any without stubs
     finished = QtCore.pyqtSignal()
     unit_finished = QtCore.pyqtSignal(str, str, str)
 
-    def __init__(self, handler: GISCOHandler, units: Units, parent=None):
+    def __init__(
+        self,
+        handler: GISCOHandler,
+        units: Units,
+        parent: QtCore.QObject | None = None,
+    ) -> None:
         super().__init__(parent)
         self.handler = handler
         self.gisco = self.handler.get_theme()
         self.nam = QgsNetworkAccessManager(self)
-        self.features: dict[Unit, QgsFeature] = {}
+        self.features: dict[Unit, list[QgsFeature]] = {}
         self.units: Units = units
         self.replies: list[QtNetwork.QNetworkReply] = []
         self.unit_finished.connect(
@@ -766,12 +790,14 @@ class GISCOUnitDownloader(QtCore.QObject):
         )
         self.add_table_headers()
 
-    def add_table_headers(self):
+    def add_table_headers(self) -> None:
         table = self.handler.base.ui.tableWidgetDownloadUnits
         table.setColumnCount(3)
         table.setHorizontalHeaderLabels(('ID', 'URL', 'Error'))
 
-    def add_unit_to_table(self, url: str, unit_id: str, error_string: str):
+    def add_unit_to_table(
+        self, url: str, unit_id: str, error_string: str
+    ) -> None:
         table = self.handler.base.ui.tableWidgetDownloadUnits
         table.insertRow(0)
         table.setItem(0, 0, get_table_item(unit_id))
@@ -786,7 +812,7 @@ class GISCOUnitDownloader(QtCore.QObject):
         color.setAlpha(50)
         color_row(table, 0, color)
 
-    def request(self):
+    def request(self) -> None:
         self.replies.clear()
         self.handler.clear_download_units_table()
         for unit in self.units:
@@ -801,14 +827,18 @@ class GISCOUnitDownloader(QtCore.QObject):
 
             self.replies.append(reply)
 
-    def _on_finished(self, reply: QtNetwork.QNetworkReply, unit: Unit):
+    def _on_finished(
+        self, reply: QtNetwork.QNetworkReply, unit: Unit
+    ) -> None:
         self.handle_response(reply, unit)
         reply.deleteLater()
         if len(self.features) == len(self.units):
             self.finished.emit()
 
-    def handle_response(self, reply: QtNetwork.QNetworkReply, unit: Unit):
-        features = []
+    def handle_response(
+        self, reply: QtNetwork.QNetworkReply, unit: Unit
+    ) -> None:
+        features: list[QgsFeature] = []
         url = reply.url().url()
         error: int = reply.error()
 
@@ -832,43 +862,44 @@ class GISCOUnitDownloader(QtCore.QObject):
         self.unit_finished.emit(url, unit.id, error_string)
 
 
-class GISCOJoinReport(QtWidgets.QDialog):
+class GISCOJoinReport(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without stubs
     def __init__(
         self,
         report_data: JoinReportData | None = None,
         parent: QtWidgets.QWidget | None = None,
-    ):
+    ) -> None:
         super().__init__(parent)
         self.report_data = report_data
         self.ui = Ui_GISCOJoinReport()
-        self.ui.setupUi(self)
+        self.ui.setupUi(self)  # type: ignore[no-untyped-call]  # generated UI module not type-checked
 
-    def add_headers(self):
+    def add_headers(self) -> None:
         table = self.ui.tableWidgetGISCOJoinReport
         cols = [field.name for field in fields(Unit)]
         cols.insert(0, 'matched')
         table.setColumnCount(len(cols))
         table.setHorizontalHeaderLabels(cols)
 
-    def sort_table(self):
+    def sort_table(self) -> None:
         table = self.ui.tableWidgetGISCOJoinReport
         table.sortByColumn(0, Qt.SortOrder.DescendingOrder)
 
-    def show(self, event):
-        if self.report_data and not getattr(self.report_data, '_shown', False):
+    def show(self, event: bool = False) -> None:
+        if self.report_data and not self.report_data._shown:
             self.reset_table()
             self.populate_table()
             self.sort_table()
             self.report_data._shown = True
         super().show()
 
-    def reset_table(self):
+    def reset_table(self) -> None:
         table = self.ui.tableWidgetGISCOJoinReport
         table.sortByColumn(-1, Qt.SortOrder.AscendingOrder)
         table.clear()
 
-    def populate_table(self):
+    def populate_table(self) -> None:
         table = self.ui.tableWidgetGISCOJoinReport
+        assert self.report_data is not None
         table.setRowCount(self.report_data.total)
         self.add_headers()
 
@@ -893,10 +924,11 @@ class JoinReportData:
     matched: int
     codes: Sequence[str]
     units: Units
+    _shown: bool = False
 
 
 class GISCOHandler:
-    def __init__(self, base: Dialog):
+    def __init__(self, base: Dialog) -> None:
         self.base = base
         self.unit_downloader: GISCOUnitDownloader | None = None
         self.join_report_data: JoinReportData | None = None
@@ -934,13 +966,13 @@ class GISCOHandler:
             lambda: self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(False)
         )
 
-    def show_gisco_dataset_information(self):
+    def show_gisco_dataset_information(self) -> None:
         frame = QDialog(self.base)
         ui = Ui_GISCODatasetInformation()
-        ui.setupUi(frame)
+        ui.setupUi(frame)  # type: ignore[no-untyped-call]  # generated UI module not type-checked
         frame.show()
 
-    def join_handler(self):
+    def join_handler(self) -> None:
         join_report_enabled = (
             self.base.ui.pushButtonGISCOViewJoinReport.isEnabled()
         )
@@ -949,6 +981,7 @@ class GISCOHandler:
         if not join_report_enabled:
             self.validate_join()
         if not join_report_enabled or self.unit_downloader is None:
+            assert self.join_report_data is not None
             units = self.join_report_data.units
             self.unit_downloader = GISCOUnitDownloader(
                 self, units, parent=self.base
@@ -959,11 +992,14 @@ class GISCOHandler:
         else:
             self.join_data()
 
-    def add_callback_to_comboboxes(self, callback: Callable):
+    def add_callback_to_comboboxes(  # type: ignore[explicit-any]  # Callable[..., X] uses `...` which mypy treats as Any; combobox callbacks genuinely accept arbitrary signatures
+        self, callback: Callable[..., object]
+    ) -> None:
         for combobox in self.comboboxes:
             combobox.currentIndexChanged.connect(callback)
 
-    def join_data(self):
+    def join_data(self) -> None:
+        assert self.unit_downloader is not None
         features = list(
             itertools.chain.from_iterable(
                 self.unit_downloader.features.values()
@@ -993,6 +1029,7 @@ class GISCOHandler:
                 },
             )['OUTPUT'],
         )
+        assert self.base.dataset is not None
         processing_result.setName(self.base.dataset.code)
         instance = QgsProject().instance()
         if instance is not None:
@@ -1001,13 +1038,13 @@ class GISCOHandler:
             assert canvas
             canvas.setExtent(processing_result.extent())
 
-    def add_themes(self):
+    def add_themes(self) -> None:
         # Add themes if not already added
         if not self.base.ui.comboBoxGISCOTheme.count():
             subclasses = [class_.__name__ for class_ in GISCO.__subclasses__()]
             self.base.ui.comboBoxGISCOTheme.addItems(subclasses)
 
-    def cache_theme(self, theme: str):
+    def cache_theme(self, theme: str) -> None:
         subclasses = GISCO.__subclasses__()
         for i, class_ in enumerate(subclasses):
             if class_.__name__ == theme:
@@ -1020,17 +1057,17 @@ class GISCOHandler:
         return self.themes[current_theme]
 
     @staticmethod
-    def clear_comboboxes(comboboxes: Iterable[QtWidgets.QComboBox]):
+    def clear_comboboxes(comboboxes: Iterable[QtWidgets.QComboBox]) -> None:
         for combobox in comboboxes:
             with QtCore.QSignalBlocker(combobox):
                 combobox.clear()
 
-    def add_years(self):
+    def add_years(self) -> None:
         self.clear_comboboxes(self.comboboxes[1:])
         initializer = GISCOYearHandler(self.base, self.get_theme())
         initializer.start()
 
-    def add_spatial_types(self, index: int):
+    def add_spatial_types(self, index: int) -> None:
         self.clear_comboboxes(self.comboboxes[2:])
         theme = self.get_theme()
         units = theme.get_units(self.base.ui.comboBoxGISCOYear.itemText(index))
@@ -1043,21 +1080,21 @@ class GISCOHandler:
         return self.get_theme().get_units(self.get_year())
 
     def get_year(self) -> str:
-        return self.base.ui.comboBoxGISCOYear.currentText()
+        return cast(str, self.base.ui.comboBoxGISCOYear.currentText())
 
     def get_projection(self) -> str:
-        return self.base.ui.comboBoxGISCOProjection.currentText()
+        return cast(str, self.base.ui.comboBoxGISCOProjection.currentText())
 
-    def add_fields(self, index: int):
+    def add_fields(self, index: int) -> None:
         self.base.ui.comboBoxGISCOScale.clear()
         self.base.ui.comboBoxGISCOProjection.clear()
-        filters = {
+        filters: Mapping[str, Sequence[str]] = {
             'spatial_type': [
                 self.base.ui.comboBoxGISCOSpatialType.itemText(index)
             ]
         }
         units = self.get_units()
-        filtered = units.filter(filters)  # type: ignore
+        filtered = units.filter(filters)
         field_unique_values = filtered.get_unique_field_values(
             field_names=['scale', 'projection']
         )
@@ -1066,17 +1103,17 @@ class GISCOHandler:
             field_unique_values['projection']
         )
 
-    def clear_download_units_table(self):
+    def clear_download_units_table(self) -> None:
         self.base.ui.tableWidgetDownloadUnits.clearContents()
         self.base.ui.tableWidgetDownloadUnits.setRowCount(0)
 
-    def clear(self):
+    def clear(self) -> None:
         self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(False)
         self.unit_downloader = None
         self.join_report_data = None
         self.clear_download_units_table()
 
-    def validate_join(self):
+    def validate_join(self) -> None:
         if self.base.dataset is None:
             return None
         self.base.ui.pushButtonGISCOViewJoinReport.setEnabled(True)
@@ -1086,10 +1123,14 @@ class GISCOHandler:
         data: DataTableModel = self.base.ui.tableDataset.model()
         geo_column = self.base.ui.comboTableJoinField.currentText()
 
-        # Get unique values from geo column
+        # Get unique values from geo column. Geo cells are codes (strings) in
+        # practice, so coerce to ``str`` to match :class:`JoinReportData.codes`.
+        geo_data: list[str]
         if geo_column in data._columns:
             geo_idx = data._columns.index(geo_column)
-            geo_data = list(set(row[geo_idx] for row in data._data))
+            geo_data = list(
+                {str(row[geo_idx]) for row in data._data if row[geo_idx] is not None}
+            )
         else:
             geo_data = []
 
@@ -1097,7 +1138,7 @@ class GISCOHandler:
         year = self.get_year()
         units = theme.get_units(year)
 
-        filters = {
+        filters: Mapping[str, Sequence[str]] = {
             'spatial_type': [
                 self.base.ui.comboBoxGISCOSpatialType.currentText()
             ],
@@ -1114,25 +1155,25 @@ class GISCOHandler:
         return self.join_report_data
 
 
-class GISCOYearHandler(QtCore.QThread):
-    def __init__(self, base: Dialog, theme: GISCO):
+class GISCOYearHandler(QtCore.QThread):  # type: ignore[misc]  # QThread is Any without stubs
+    def __init__(self, base: Dialog, theme: GISCO) -> None:
         self.base = base
         self.theme = theme
         super().__init__(self.base)
 
-    def run(self):
+    def run(self) -> None:
         years = self.theme.get_years()
         self.base.ui.comboBoxGISCOYear.addItems(years)
 
 
-class DatabaseInitializer(QtCore.QThread):
+class DatabaseInitializer(QtCore.QThread):  # type: ignore[misc]  # QThread is Any without stubs
     error_ocurred = QtCore.pyqtSignal(Exception, name='errorOcurred')
 
-    def __init__(self, base: Dialog):
+    def __init__(self, base: Dialog) -> None:
         self.base = base
         super().__init__(self.base)
 
-    def run(self):
+    def run(self) -> None:
         try:
             self.base.ui.treeDatabase.clear()
             self.base.database.initialize_toc()
@@ -1144,39 +1185,39 @@ class DatabaseInitializer(QtCore.QThread):
             self.error_ocurred.emit(e)
 
 
-class DatasetInitializer(QtCore.QThread):
-    def __init__(self, base: Dialog):
+class DatasetInitializer(QtCore.QThread):  # type: ignore[misc]  # QThread is Any without stubs
+    def __init__(self, base: Dialog) -> None:
         self.base = base
         super().__init__(self.base)
 
-    def run(self):
+    def run(self) -> None:
         assert self.base.dataset is not None
         self.base.dataset.initialize_data()
         self.base.filterer = DataFilterer(dataset=self.base.dataset)
         self.base.update_model()
 
 
-class LoadingLabel(QtCore.QThread):
+class LoadingLabel(QtCore.QThread):  # type: ignore[misc]  # QThread is Any without stubs
     update_label = QtCore.pyqtSignal(str)
 
-    def __init__(self, label: str, base=None):
+    def __init__(self, label: str, base: QtCore.QObject | None = None) -> None:
         self.base = base
         super().__init__(self.base)
         self.label = label
 
-    def spin(self):
+    def spin(self) -> None:
         for char in itertools.cycle('🌏🌍🌎'):
             self.update_label.emit(f'{self.label}\n{char}  ')
             time.sleep(0.5)
             if self.isInterruptionRequested():
                 break
 
-    def run(self):
+    def run(self) -> None:
         self.spin()
 
 
-class LoadingDialog(QtWidgets.QDialog):
-    def __init__(self, base=None):
+class LoadingDialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without stubs
+    def __init__(self, base: QtWidgets.QWidget | None = None) -> None:
         self.base = base
         super().__init__(base)
         self.setWindowTitle(' ')
@@ -1188,17 +1229,17 @@ class LoadingDialog(QtWidgets.QDialog):
         self.qlabel.setFont(QtGui.QFont(self.qlabel.font().family(), 15))
         self.layout().addWidget(self.qlabel)
 
-    def update_loading_label(self, text: str):
+    def update_loading_label(self, text: str) -> None:
         self.qlabel.setText(text)
 
 
-class ParameterSectionDialog(QtWidgets.QDialog):
-    def __init__(self, base: Dialog, name: str):
+class ParameterSectionDialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without stubs
+    def __init__(self, base: Dialog, name: str) -> None:
         super().__init__()
         self.base = base
         self.name = name
         self.ui = Ui_ParametersDialog()
-        self.ui.setupUi(self)
+        self.ui.setupUi(self)  # type: ignore[no-untyped-call]  # generated UI module not type-checked
         self.filter_toc()
         self.select_based_on_filterer()
         self.section_type_handler()
@@ -1210,10 +1251,10 @@ class ParameterSectionDialog(QtWidgets.QDialog):
 
         self.exec()
 
-    def reset_selection(self):
+    def reset_selection(self) -> None:
         self.ui.listItems.clearSelection()
 
-    def filter_toc(self):
+    def filter_toc(self) -> None:
         assert self.base.dataset is not None
         if self.base.dataset.lang is not None:
             names = self.base.dataset.params_info[self.base.dataset.lang][
@@ -1222,21 +1263,30 @@ class ParameterSectionDialog(QtWidgets.QDialog):
             assert names is not None
             items = [f'{abbrev} [{name}]' for abbrev, name in names]
         else:
-            # Get unique values from column
+            # Get unique values from column. Cells in this column are
+            # :data:`DatasetCell` (``float | str | None``); stringify so that
+            # ``QListWidget.addItems`` (which expects ``Iterable[str]``) is
+            # satisfied.
             data_dict = self.base.dataset.data
+            assert data_dict is not None
             if self.name in data_dict['columns']:
                 col_idx = data_dict['columns'].index(self.name)
-                values = set(row[col_idx] for row in data_dict['data'])
+                values = {
+                    str(row[col_idx])
+                    for row in data_dict['data']
+                    if row[col_idx] is not None
+                }
                 items = list(values)
             else:
                 items = []
         self.ui.listItems.addItems(items)
 
-    def get_listitem_text_abbrev(self, item: QtWidgets.QListWidgetItem):
+    def get_listitem_text_abbrev(self, item: QtWidgets.QListWidgetItem) -> str:
         # The string variable inside filter_toc.
-        return item.text().split(' [')[0]
+        return cast(str, item.text().split(' [')[0])
 
-    def select_based_on_filterer(self):
+    def select_based_on_filterer(self) -> None:
+        assert self.base.filterer is not None
         if self.name in self.base.filterer.row:
             for row in range(self.ui.listItems.count()):
                 item = self.ui.listItems.item(row)
@@ -1246,10 +1296,10 @@ class ParameterSectionDialog(QtWidgets.QDialog):
                         in self.base.filterer.row[self.name]
                     )
 
-    def get_line_search_text(self):
-        return self.ui.lineSearch.text()
+    def get_line_search_text(self) -> str:
+        return cast(str, self.ui.lineSearch.text())
 
-    def filter_list_items(self):
+    def filter_list_items(self) -> None:
         search_text = self.get_line_search_text().lower()
         for row in range(self.ui.listItems.count()):
             item = self.ui.listItems.item(row)
@@ -1257,17 +1307,18 @@ class ParameterSectionDialog(QtWidgets.QDialog):
                 item_text = item.text().lower()
                 item.setHidden(search_text not in item_text)
 
-    def get_selected_items(self):
+    def get_selected_items(self) -> list[str]:
         return [
             self.get_listitem_text_abbrev(item)
             for item in self.ui.listItems.selectedItems()
         ]
 
-    def section_type_handler(self):
+    def section_type_handler(self) -> None:
         if self.name == (geo_field := self.base.get_current_table_join_field()):
             GeoParameterSectionDialog(section_dialog=self, name=geo_field)
 
-    def filter_table(self):
+    def filter_table(self) -> None:
+        assert self.base.filterer is not None
         if self.name in self.base.filterer.row:
             self.base.filterer.remove_row_filters(filters=self.name)
         if self.get_selected_items():
@@ -1279,18 +1330,18 @@ class ParameterSectionDialog(QtWidgets.QDialog):
 
 class GeoParameterSectionDialog:
     # TODO: maybe add different behaviour for the GEO column later?
-    def __init__(self, section_dialog: ParameterSectionDialog, name: str):
+    def __init__(self, section_dialog: ParameterSectionDialog, name: str) -> None:
         self.section_dialog = section_dialog
         self.name = name
 
 
-class TimeSectionDialog(QtWidgets.QDialog):
-    def __init__(self, base: Dialog, name: str):
+class TimeSectionDialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without stubs
+    def __init__(self, base: Dialog, name: str) -> None:
         super().__init__()
         self.base = base
         self.name = name
         self.ui = Ui_TimePeriodDialog()
-        self.ui.setupUi(self)
+        self.ui.setupUi(self)  # type: ignore[no-untyped-call]  # generated UI module not type-checked
         self.add_widgets_to_frames()
         self.add_items_to_combobox()
         self.restore()
@@ -1300,7 +1351,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
 
         self.exec()
 
-    def get_frequency_types(self):
+    def get_frequency_types(self) -> list[str]:
         assert self.base.dataset is not None
         freq = self.base.dataset.frequency.lower()
         if freq == FrequencyType.ANNUALLY.value:
@@ -1316,8 +1367,8 @@ class TimeSectionDialog(QtWidgets.QDialog):
         else:
             raise ValueError(f'No frequency column was found. Unknown {freq}.')
 
-    def add_labels_to_frames(self, frequency: str):
-        def _add_label_to_frames(object_name: str, text: str):
+    def add_labels_to_frames(self, frequency: str) -> None:
+        def _add_label_to_frames(object_name: str, text: str) -> None:
             for frame in (self.ui.frameStart, self.ui.frameEnd):
                 widget = QtWidgets.QLabel(parent=frame, text=text)
                 widget.setObjectName(object_name)
@@ -1328,8 +1379,8 @@ class TimeSectionDialog(QtWidgets.QDialog):
         label_object_name = ''.join(['label', frequency])
         _add_label_to_frames(object_name=label_object_name, text=frequency)
 
-    def add_combobox_to_frames(self, frequency: str):
-        def _add_combobox_to_frames(object_name: str):
+    def add_combobox_to_frames(self, frequency: str) -> None:
+        def _add_combobox_to_frames(object_name: str) -> None:
             for frame in (self.ui.frameStart, self.ui.frameEnd):
                 widget = QComboboxCompleter(parent=frame)
                 widget.setObjectName(object_name)
@@ -1340,12 +1391,12 @@ class TimeSectionDialog(QtWidgets.QDialog):
         combo_object_name = ''.join(['combo', frequency])
         _add_combobox_to_frames(object_name=combo_object_name)
 
-    def add_widgets_to_frames(self):
+    def add_widgets_to_frames(self) -> None:
         for frequency in self.get_frequency_types():
             self.add_labels_to_frames(frequency)
             self.add_combobox_to_frames(frequency)
 
-    def add_items_to_start_combobox(self):
+    def add_items_to_start_combobox(self) -> None:
         for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameStart.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1359,7 +1410,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
                     date_parts.add(parts[idx])
             widget.addItems(sorted(date_parts))
 
-    def add_items_to_end_combobox(self):
+    def add_items_to_end_combobox(self) -> None:
         for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameEnd.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1373,18 +1424,18 @@ class TimeSectionDialog(QtWidgets.QDialog):
                     date_parts.add(parts[idx])
             widget.addItems(sorted(date_parts))
 
-    def add_items_to_combobox(self):
+    def add_items_to_combobox(self) -> None:
         self.add_items_to_start_combobox()
         self.add_items_to_end_combobox()
 
-    def add_signals_to_combobox(self):
+    def add_signals_to_combobox(self) -> None:
         for frame in (self.ui.frameStart, self.ui.frameEnd):
             widgets = frame.findChildren(QtWidgets.QComboBox)
             for widget in widgets:
                 widget.currentIndexChanged.connect(self.add_time_filters)
 
-    def get_start_time_combobox(self):
-        times = []
+    def get_start_time_combobox(self) -> str:
+        times: list[str] = []
         for frequency in self.get_frequency_types():
             widget = self.ui.frameStart.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1392,8 +1443,8 @@ class TimeSectionDialog(QtWidgets.QDialog):
             times.append(widget.currentText())
         return '-'.join(times)
 
-    def get_end_time_combobox(self):
-        times = []
+    def get_end_time_combobox(self) -> str:
+        times: list[str] = []
         for frequency in self.get_frequency_types():
             widget = self.ui.frameEnd.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1401,8 +1452,9 @@ class TimeSectionDialog(QtWidgets.QDialog):
             times.append(widget.currentText())
         return '-'.join(times)
 
-    def add_time_filters(self):
+    def add_time_filters(self) -> None:
         assert self.base.dataset is not None
+        assert self.base.filterer is not None
         cols = list(self.base.dataset.date_columns)
         try:
             start = cols.index(self.get_start_time_combobox())
@@ -1417,7 +1469,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
         self.base.filterer.set_column_filters(filters=cols)
         self.base.update_model()
 
-    def set_default_start_combobox(self):
+    def set_default_start_combobox(self) -> None:
         for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameStart.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1434,7 +1486,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
                     if default_index >= 0:
                         widget.setCurrentIndex(default_index)
 
-    def set_default_end_combobox(self):
+    def set_default_end_combobox(self) -> None:
         for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameEnd.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1451,12 +1503,13 @@ class TimeSectionDialog(QtWidgets.QDialog):
                     if default_index >= 0:
                         widget.setCurrentIndex(default_index)
 
-    def set_default(self):
+    def set_default(self) -> None:
         self.set_default_start_combobox()
         self.set_default_end_combobox()
         self.add_time_filters()
 
-    def restore_start_combobox(self):
+    def restore_start_combobox(self) -> None:
+        assert self.base.filterer is not None
         for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameStart.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1468,7 +1521,8 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 )
                 widget.setCurrentIndex(idx)
 
-    def restore_end_combobox(self):
+    def restore_end_combobox(self) -> None:
+        assert self.base.filterer is not None
         for idx, frequency in enumerate(self.get_frequency_types()):
             widget = self.ui.frameEnd.findChild(
                 QtWidgets.QComboBox, ''.join(['combo', frequency])
@@ -1480,20 +1534,20 @@ class TimeSectionDialog(QtWidgets.QDialog):
                 )
                 widget.setCurrentIndex(idx)
 
-    def restore(self):
+    def restore(self) -> None:
         self.restore_start_combobox()
         self.restore_end_combobox()
 
 
-class SettingsDialog(QtWidgets.QDialog):
+class SettingsDialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without stubs
     def __init__(
         self,
         base: Dialog,
-    ):
+    ) -> None:
         super().__init__()
         self.base = base
         self.ui = Ui_SettingsDialog()
-        self.ui.setupUi(self)
+        self.ui.setupUi(self)  # type: ignore[no-untyped-call]  # generated UI module not type-checked
 
         # TODO: maybe make an abstraction instead of
         # hardcoding the checkboxes?
@@ -1515,7 +1569,7 @@ class SettingsDialog(QtWidgets.QDialog):
         ok_btn.clicked.connect(self.update_global_settings)
         self.exec()
 
-    def update_global_settings(self):
+    def update_global_settings(self) -> None:
         # Agencies
         agencies_checkboxes_bool: dict[Agency, bool] = {
             k: v.isChecked() for k, v in self._agencies_checkboxes.items()
@@ -1529,7 +1583,7 @@ class SettingsDialog(QtWidgets.QDialog):
             selected_agencies = list(Agency)
         GLOBAL_SETTINGS.agencies = selected_agencies
 
-    def restore_global_settings(self):
+    def restore_global_settings(self) -> None:
         # Restore agency settings
         if GLOBAL_SETTINGS.agencies:
             for agency, checkbox in self._agencies_checkboxes.items():
@@ -1540,21 +1594,23 @@ class SettingsDialog(QtWidgets.QDialog):
 @dataclass
 class DataFilterer:
     dataset: Dataset
-    row: dict[str, list[Any]] = field(init=False, default_factory=dict)
+    row: dict[str, list[DatasetCell]] = field(init=False, default_factory=dict)
     column: list[str] = field(init=False, default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        assert self.dataset.data is not None
         self.column = list(self.dataset.data['columns'])
 
     @property
-    def data_dict(self):
+    def data_dict(self) -> DatasetPayload:
+        assert self.dataset.data is not None
         return self.dataset.data
 
     @property
     def date_columns(self) -> list[str]:
         return [col for col in self.column if col not in self.dataset.params]
 
-    def apply_filters(self) -> dict[str, Any]:
+    def apply_filters(self) -> DatasetPayload:
         """Apply row and column filters, return filtered data dict."""
         data = self.data_dict
         columns = data['columns']
@@ -1566,7 +1622,7 @@ class DataFilterer:
         ]
 
         # Filter rows based on row filters
-        filtered_rows = []
+        filtered_rows: list[list[DatasetCell]] = []
         for row in rows:
             include = True
             for col, vals in self.row.items():
@@ -1588,22 +1644,31 @@ class DataFilterer:
 
         return {'columns': filtered_columns, 'data': filtered_rows}
 
-    def add_row_filters(self, filters: dict[str, Iterable[Any]]):
+    def add_row_filters(
+        self, filters: Mapping[str, Iterable[DatasetCell]]
+    ) -> None:
         # This is only for the row axis
         for col, values in filters.items():
             for value in values:
                 self.row.setdefault(col, []).append(value)
 
-    def set_column_filters(self, filters: None | str | Iterable[str] = None):
+    def set_column_filters(
+        self, filters: None | str | Iterable[str] = None
+    ) -> None:
         if filters is None:
+            assert self.dataset.data is not None
             filters = list(self.dataset.data['columns'])
         elif isinstance(filters, str):
             filters = [filters]
         self.column = list(filters)
 
     def remove_row_filters(
-        self, filters: None | str | dict[str, Iterable] | Iterable[str] = None
-    ):
+        self,
+        filters: None
+        | str
+        | dict[str, Iterable[DatasetCell]]
+        | Iterable[str] = None,
+    ) -> None:
         if filters is None:
             self.row = {}
         elif isinstance(filters, str):
@@ -1618,7 +1683,7 @@ class DataFilterer:
             for filter_ in filters:
                 self.row[filter_].clear()
 
-    def remove_column_filters(self, filters: str | Iterable[str]):
+    def remove_column_filters(self, filters: str | Iterable[str]) -> None:
         if isinstance(filters, str):
             self.column.remove(filters)
         elif isinstance(filters, Iterable):
@@ -1636,28 +1701,41 @@ class DatasetModel:
         return DataTableModel(data=self.filterer.apply_filters())
 
 
-class DataTableModel(QtCore.QAbstractTableModel):
+class DataTableModel(QtCore.QAbstractTableModel):  # type: ignore[misc]  # QAbstractTableModel is Any without stubs
     """Qt table model using dict data instead of pandas DataFrame."""
 
-    def __init__(self, data: dict[str, Any], parent=None):
+    def __init__(
+        self,
+        data: DatasetPayload,
+        parent: QtCore.QObject | None = None,
+    ) -> None:
         QtCore.QAbstractTableModel.__init__(self, parent)
-        self._columns = data['columns']
-        self._data = data['data']
+        self._columns: list[str] = data['columns']
+        self._data: list[list[DatasetCell]] = data['data']
 
-    def rowCount(self, parent=None):
+    def rowCount(self, parent: object = None) -> int:
         return len(self._data)
 
-    def columnCount(self, parent=None):
+    def columnCount(self, parent: object = None) -> int:
         return len(self._columns)
 
-    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+    def data(
+        self,
+        index: QtCore.QModelIndex,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+    ) -> str | None:
         if index.isValid():
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 value = self._data[index.row()][index.column()]
                 return '' if value is None else str(value)
         return None
 
-    def headerData(self, col, orientation, role):
+    def headerData(
+        self,
+        col: int,
+        orientation: QtCore.Qt.Orientation,
+        role: int,
+    ) -> str | None:
         if (
             orientation == QtCore.Qt.Orientation.Horizontal
             and role == QtCore.Qt.ItemDataRole.DisplayRole
@@ -1673,30 +1751,30 @@ def get_combobox_items(combobox: QtWidgets.QComboBox) -> list[str]:
 class Exporter:
     base: Dialog
 
-    def __init__(self, base: Dialog):
+    def __init__(self, base: Dialog) -> None:
         self.base = base
 
-    def add_table(self):
+    def add_table(self) -> None:
         if self.base.dataset is None:
             return None
         table = self.base.converter.table
         table.setName(self.base.dataset.code)
-        QgsProject.instance().addMapLayer(table)  # type: ignore
+        QgsProject.instance().addMapLayer(table)
 
 
 class JoinHandler:
     base: Dialog
 
-    def __init__(self, base: Dialog):
+    def __init__(self, base: Dialog) -> None:
         self.base = base
 
     @property
-    def join_info(self):
+    def join_info(self) -> QgsVectorLayerJoinInfo:
         return self.get_join_info()
 
-    def get_join_info(self):
+    def get_join_info(self) -> QgsVectorLayerJoinInfo:
         table = self.base.converter.table
-        QgsProject.instance().addMapLayer(table)  # type: ignore
+        QgsProject.instance().addMapLayer(table)
         join_info = QgsVectorLayerJoinInfo()
         join_info.setJoinFieldName(
             self.base.ui.comboTableJoinField.currentText()
@@ -1704,6 +1782,7 @@ class JoinHandler:
         join_info.setTargetFieldName(
             self.base.ui.qgsComboLayerJoinField.currentText()
         )
+        assert self.base.dataset is not None
         join_info.setJoinFieldNamesSubset(
             itertools.chain(
                 self.base.ui.comboBoxColumnsToJoin.currentData(),
@@ -1716,7 +1795,7 @@ class JoinHandler:
         join_info.setPrefix(self.base.ui.linePrefix.text())
         return join_info
 
-    def join_table_to_layer(self):
+    def join_table_to_layer(self) -> None:
         current_layer = self.base.ui.qgsComboLayer.currentLayer()
         if self.base.dataset is None or current_layer is None:
             return None
@@ -1726,18 +1805,20 @@ class JoinHandler:
 class QgsConverter:
     base: Dialog
 
-    def __init__(self, base: Dialog):
+    def __init__(self, base: Dialog) -> None:
         self.base = base
 
     @property
-    def table(self):
+    def table(self) -> QgsVectorLayer:
         return self.from_data_dict(
             self.base.model.table_model._data,
             self.base.model.table_model._columns,
         )
 
     @staticmethod
-    def dtype_mapper(values: list[Any]) -> QtCore.QMetaType.Type:
+    def dtype_mapper(
+        values: Sequence[DatasetCell],
+    ) -> QtCore.QMetaType.Type:
         """Infer QMetaType type from list of values."""
         sample = None
         for val in values:
@@ -1765,27 +1846,31 @@ class QgsConverter:
                 return QtCore.QMetaType.Type.QString
 
     @staticmethod
-    def to_data_dict(layer: QgsVectorLayer) -> dict[str, Any]:
+    def to_data_dict(
+        layer: QgsVectorLayer,
+    ) -> LayerPayload:
         """Convert QGIS vector layer to data dict."""
         columns = [field.name() for field in layer.fields()]
-        data = [
-            feat.attributes()
-            for feat in layer.getFeatures()  # type: ignore
+        data: list[list[object]] = [
+            list(feat.attributes()) for feat in layer.getFeatures()
         ]
         return {'columns': columns, 'data': data}
 
     def from_data_dict(
-        self, data: list[list[Any]], columns: list[str]
+        self,
+        data: Sequence[Sequence[DatasetCell]],
+        columns: Sequence[str],
     ) -> QgsVectorLayer:
         """Method to convert data dict to a qgis table layer."""
+        assert self.base.dataset is not None
         temp = QgsVectorLayer('none', self.base.dataset.code, 'memory')
         temp_data = temp.dataProvider()
         temp.startEditing()
-        attributes = []
+        attributes: list[QgsField] = []
 
         # Transpose data to get columns
         num_cols = len(columns)
-        col_values = [[] for _ in range(num_cols)]
+        col_values: list[list[DatasetCell]] = [[] for _ in range(num_cols)]
         for row in data:
             for col_idx in range(min(len(row), num_cols)):
                 col_values[col_idx].append(row[col_idx])
@@ -1795,15 +1880,15 @@ class QgsConverter:
             field_type = self.dtype_mapper(col_values[col_idx])
             attributes.append(QgsField(col_name, field_type))
 
-        temp_data.addAttributes(attributes)  # type: ignore
+        temp_data.addAttributes(attributes)
         temp.updateFields()
 
         # Add features
-        rows = []
+        rows: list[QgsFeature] = []
         for row_data in data:
             f = QgsFeature()
             f.setAttributes(row_data)
             rows.append(f)
-        temp_data.addFeatures(rows)  # type: ignore
+        temp_data.addFeatures(rows)
         temp.commitChanges()
         return temp
