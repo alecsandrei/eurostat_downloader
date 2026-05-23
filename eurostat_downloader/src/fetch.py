@@ -240,10 +240,10 @@ def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[TocRow]:
                 'code': code,
                 'type': _type,
                 'level': level,
-                'last update of data': last_update or '',
-                'last table structure change': last_struct_change or '',
-                'data start': data_start or '',
-                'data end': data_end or '',
+                'last_update_of_data': last_update or '',
+                'last_table_structure_change': last_struct_change or '',
+                'data_start': data_start or '',
+                'data_end': data_end or '',
                 'values': values or '',
             }
             rows.append(row)
@@ -299,10 +299,10 @@ def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[TocRow]:
                 'code': code,
                 'type': _type,
                 'level': 0,  # Flat structure - all items at root level
-                'last update of data': last_update or '',
-                'last table structure change': last_struct_change or '',
-                'data start': data_start or '',
-                'data end': data_end or '',
+                'last_update_of_data': last_update or '',
+                'last_table_structure_change': last_struct_change or '',
+                'data_start': data_start or '',
+                'data_end': data_end or '',
                 'values': '',
             }
             rows.append(flat_row)
@@ -354,10 +354,10 @@ def get_toc_flat(
                 'title': title,
                 'code': code,
                 'type': _type,
-                'last update of data': last_update,
-                'last table structure change': last_struct_change,
-                'data start': data_start,
-                'data end': data_end,
+                'last_update_of_data': last_update,
+                'last_table_structure_change': last_struct_change,
+                'data_start': data_start,
+                'data_end': data_end,
             }
         )
 

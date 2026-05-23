@@ -56,8 +56,8 @@ class TestFetchModule(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]['code'], 'TEST_DATA')
         self.assertEqual(result[0]['title'], 'Test Dataset')
-        self.assertEqual(result[0]['data start'], '2020')
-        self.assertEqual(result[0]['data end'], '2024')
+        self.assertEqual(result[0]['data_start'], '2020')
+        self.assertEqual(result[0]['data_end'], '2024')
 
     @patch('src.fetch._retry_request')
     def test_get_toc_connection_error(self, mock_retry: MagicMock) -> None:
@@ -487,19 +487,19 @@ class TestGetTocFlat(unittest.TestCase):
             'title',
             'code',
             'type',
-            'last update of data',
-            'last table structure change',
-            'data start',
-            'data end',
+            'last_update_of_data',
+            'last_table_structure_change',
+            'data_start',
+            'data_end',
         }
         self.assertEqual(set(first.keys()), expected_keys)
         self.assertEqual(first['code'], 'POP_REG')
         self.assertEqual(first['title'], 'Population by region')
         self.assertEqual(first['type'], 'dataset')
-        self.assertEqual(first['last update of data'], '2024-03-15')
-        self.assertEqual(first['last table structure change'], '2023-11-02')
-        self.assertEqual(first['data start'], '2000')
-        self.assertEqual(first['data end'], '2023')
+        self.assertEqual(first['last_update_of_data'], '2024-03-15')
+        self.assertEqual(first['last_table_structure_change'], '2023-11-02')
+        self.assertEqual(first['data_start'], '2000')
+        self.assertEqual(first['data_end'], '2023')
 
     @patch('src.fetch._retry_request')
     def test_get_toc_flat_multiple_items(self, mock_retry: MagicMock) -> None:
@@ -512,8 +512,8 @@ class TestGetTocFlat(unittest.TestCase):
 
         codes = [row['code'] for row in result]
         self.assertEqual(codes, ['POP_REG', 'GDP_REG'])
-        self.assertEqual(result[1]['data start'], '1995')
-        self.assertEqual(result[1]['data end'], '2022')
+        self.assertEqual(result[1]['data_start'], '1995')
+        self.assertEqual(result[1]['data_end'], '2022')
 
     @patch('src.fetch._retry_request')
     def test_get_toc_flat_connection_error(self, mock_retry: MagicMock) -> None:
@@ -548,10 +548,10 @@ class TestGetTocFlat(unittest.TestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]['code'], 'MIN_DS')
-        self.assertIsNone(result[0]['last update of data'])
-        self.assertIsNone(result[0]['last table structure change'])
-        self.assertIsNone(result[0]['data start'])
-        self.assertIsNone(result[0]['data end'])
+        self.assertIsNone(result[0]['last_update_of_data'])
+        self.assertIsNone(result[0]['last_table_structure_change'])
+        self.assertIsNone(result[0]['data_start'])
+        self.assertIsNone(result[0]['data_end'])
 
     @patch('src.fetch._retry_request')
     def test_get_toc_flat_uses_agency_base_url(self, mock_retry: MagicMock) -> None:

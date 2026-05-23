@@ -79,10 +79,10 @@ def _make_synthetic_database(code: str = 'TEST_DATA', title: str = 'Test Dataset
         'code': code,
         'type': 'dataset',
         'level': 0,
-        'last update of data': '2024-01-15',
-        'last table structure change': '2023-12-01',
-        'data start': '2020',
-        'data end': '2023',
+        'last_update_of_data': '2024-01-15',
+        'last_table_structure_change': '2023-12-01',
+        'data_start': '2020',
+        'data_end': '2023',
     }
     db._toc = {
         Agency.EUROSTAT: {

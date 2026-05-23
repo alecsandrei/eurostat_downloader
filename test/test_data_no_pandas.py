@@ -30,28 +30,28 @@ def test_database_toc() -> None:
             'title': 'Population by age and sex',
             'code': 'DEMO_POP',
             'type': 'dataset',
-            'last update of data': '2024-01-15',
-            'last table structure change': '2023-12-01',
-            'data start': '2000',
-            'data end': '2023',
+            'last_update_of_data': '2024-01-15',
+            'last_table_structure_change': '2023-12-01',
+            'data_start': '2000',
+            'data_end': '2023',
         },
         {
             'title': 'GDP per capita',
             'code': 'GDP_PC',
             'type': 'dataset',
-            'last update of data': '2024-01-10',
-            'last table structure change': '2023-11-15',
-            'data start': '1995',
-            'data end': '2023',
+            'last_update_of_data': '2024-01-10',
+            'last_table_structure_change': '2023-11-15',
+            'data_start': '1995',
+            'data_end': '2023',
         },
         {
             'title': 'Unemployment rate',
             'code': 'UNEMP_RATE',
             'type': 'dataset',
-            'last update of data': '2024-01-20',
-            'last table structure change': '2023-12-10',
-            'data start': '2005',
-            'data end': '2023',
+            'last_update_of_data': '2024-01-20',
+            'last_table_structure_change': '2023-12-10',
+            'data_start': '2005',
+            'data_end': '2023',
         },
     ]
 
@@ -99,10 +99,10 @@ def test_dataset_operations() -> None:
             'title': 'Test Dataset',
             'code': 'TEST_DATA',
             'type': 'dataset',
-            'last update of data': '2024-01-15',
-            'last table structure change': '2023-12-01',
-            'data start': '2020',
-            'data end': '2023',
+            'last_update_of_data': '2024-01-15',
+            'last_table_structure_change': '2023-12-01',
+            'data_start': '2020',
+            'data_end': '2023',
         }
     ]
 
@@ -178,10 +178,10 @@ def test_caching() -> None:
             'title': 'Cache Test Dataset',
             'code': 'CACHE_TEST',
             'type': 'dataset',
-            'last update of data': '2024-01-15',
-            'last table structure change': '2023-12-01',
-            'data start': '2020',
-            'data end': '2023',
+            'last_update_of_data': '2024-01-15',
+            'last_table_structure_change': '2023-12-01',
+            'data_start': '2020',
+            'data_end': '2023',
         }
     ]
 
@@ -220,10 +220,10 @@ def test_get_subset_edge_cases() -> None:
             'title': 'Population Data',
             'code': 'POP_DATA',
             'type': 'dataset',
-            'last update of data': '2024-01-15',
-            'last table structure change': '2023-12-01',
-            'data start': '2020',
-            'data end': '2023',
+            'last_update_of_data': '2024-01-15',
+            'last_table_structure_change': '2023-12-01',
+            'data_start': '2020',
+            'data_end': '2023',
         }
     ]
 

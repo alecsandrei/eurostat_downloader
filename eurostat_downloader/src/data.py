@@ -21,29 +21,17 @@ from eurostat_downloader.src.enums import Agency, ConnectionStatus, Language, Ta
 from eurostat_downloader.src.settings import GLOBAL_SETTINGS
 
 
-# ``TocRow`` is a row in the Eurostat Table of Contents. Most keys come from
-# :func:`fetch.get_toc`; ``agency`` is added later in
-# :meth:`Database._get_toc` to flag which agency each row originates from.
-# Several keys contain spaces (matching the upstream Eurostat schema), which
-# forces the functional ``TypedDict`` syntax. All keys are optional because
-# different code paths in ``fetch.get_toc`` populate slightly different
-# subsets, and consumers use ``.get(...)``.
-TocRow = t.TypedDict(
-    'TocRow',
-    {
-        'title': str,
-        'code': str,
-        'type': str,
-        'level': int,
-        'agency': str,
-        'values': str,
-        'last update of data': str,
-        'last table structure change': str,
-        'data start': str,
-        'data end': str,
-    },
-    total=False,
-)
+class TocRow(t.TypedDict, total=False):
+    title: str
+    code: str
+    type: str
+    level: int
+    agency: str
+    values: str
+    last_update_of_data: str
+    last_table_structure_change: str
+    data_start: str
+    data_end: str
 
 
 # Cell values from the Eurostat dataset endpoint: numeric values are parsed
