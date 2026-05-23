@@ -1,6 +1,8 @@
 # coding=utf-8
 """Tests for enums module - all enum types."""
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2024-01-30'
 
@@ -26,15 +28,15 @@ from eurostat_downloader.src.enums import (
 class TestTableOfContentsColumn(unittest.TestCase):
     """Test TableOfContentsColumn enum."""
 
-    def test_title_column(self):
+    def test_title_column(self) -> None:
         """Test TITLE column."""
         self.assertEqual(TableOfContentsColumn.TITLE.value, 'title')
 
-    def test_code_column(self):
+    def test_code_column(self) -> None:
         """Test CODE column."""
         self.assertEqual(TableOfContentsColumn.CODE.value, 'code')
 
-    def test_all_columns(self):
+    def test_all_columns(self) -> None:
         """Test all columns are defined."""
         expected_columns = {'TITLE', 'CODE'}
         actual_columns = {col.name for col in TableOfContentsColumn}
@@ -44,25 +46,25 @@ class TestTableOfContentsColumn(unittest.TestCase):
 class TestLanguage(unittest.TestCase):
     """Test Language enum."""
 
-    def test_english(self):
+    def test_english(self) -> None:
         """Test English language code."""
         self.assertEqual(Language.ENGLISH.value, 'en')
 
-    def test_french(self):
+    def test_french(self) -> None:
         """Test French language code."""
         self.assertEqual(Language.FRENCH.value, 'fr')
 
-    def test_german(self):
+    def test_german(self) -> None:
         """Test German language code."""
         self.assertEqual(Language.GERMAN.value, 'de')
 
-    def test_all_languages(self):
+    def test_all_languages(self) -> None:
         """Test all supported languages."""
         expected_languages = {'ENGLISH', 'FRENCH', 'GERMAN'}
         actual_languages = {lang.name for lang in Language}
         self.assertEqual(actual_languages, expected_languages)
 
-    def test_language_values(self):
+    def test_language_values(self) -> None:
         """Test language values are ISO 639-1 codes."""
         for lang in Language:
             self.assertEqual(len(lang.value), 2)
@@ -72,33 +74,33 @@ class TestLanguage(unittest.TestCase):
 class TestAgency(unittest.TestCase):
     """Test Agency enum."""
 
-    def test_eurostat(self):
+    def test_eurostat(self) -> None:
         """Test EUROSTAT agency."""
         self.assertEqual(Agency.EUROSTAT.value, 'EUROSTAT')
 
-    def test_comext(self):
+    def test_comext(self) -> None:
         """Test COMEXT agency."""
         self.assertEqual(Agency.COMEXT.value, 'COMEXT')
 
-    def test_comp(self):
+    def test_comp(self) -> None:
         """Test COMP agency."""
         self.assertEqual(Agency.COMP.value, 'COMP')
 
-    def test_empl(self):
+    def test_empl(self) -> None:
         """Test EMPL agency."""
         self.assertEqual(Agency.EMPL.value, 'EMPL')
 
-    def test_grow(self):
+    def test_grow(self) -> None:
         """Test GROW agency."""
         self.assertEqual(Agency.GROW.value, 'GROW')
 
-    def test_all_agencies(self):
+    def test_all_agencies(self) -> None:
         """Test all agencies are defined."""
         expected_agencies = {'EUROSTAT', 'COMEXT', 'COMP', 'EMPL', 'GROW'}
         actual_agencies = {agency.name for agency in Agency}
         self.assertEqual(actual_agencies, expected_agencies)
 
-    def test_agency_iteration(self):
+    def test_agency_iteration(self) -> None:
         """Test iterating over agencies."""
         agencies = list(Agency)
         self.assertGreater(len(agencies), 0)
@@ -109,21 +111,21 @@ class TestAgency(unittest.TestCase):
 class TestConnectionStatus(unittest.TestCase):
     """Test ConnectionStatus enum."""
 
-    def test_available(self):
+    def test_available(self) -> None:
         """Test AVAILABLE status."""
         self.assertIsNotNone(ConnectionStatus.AVAILABLE)
 
-    def test_unavailable(self):
+    def test_unavailable(self) -> None:
         """Test UNAVAILABLE status."""
         self.assertIsNotNone(ConnectionStatus.UNAVAILABLE)
 
-    def test_all_statuses(self):
+    def test_all_statuses(self) -> None:
         """Test all connection statuses."""
         expected_statuses = {'AVAILABLE', 'UNAVAILABLE'}
         actual_statuses = {status.name for status in ConnectionStatus}
         self.assertEqual(actual_statuses, expected_statuses)
 
-    def test_status_uniqueness(self):
+    def test_status_uniqueness(self) -> None:
         """Test status values are unique."""
         values = [status.value for status in ConnectionStatus]
         self.assertEqual(len(values), len(set(values)))
@@ -132,27 +134,27 @@ class TestConnectionStatus(unittest.TestCase):
 class TestGeoSectionName(unittest.TestCase):
     """Test GeoSectionName enum."""
 
-    def test_geo(self):
+    def test_geo(self) -> None:
         """Test GEO field."""
         self.assertEqual(GeoSectionName.GEO.value, 'geo')
 
-    def test_rep_mar(self):
+    def test_rep_mar(self) -> None:
         """Test REP_MAR field."""
         self.assertEqual(GeoSectionName.REP_MAR.value, 'rep_mar')
 
-    def test_par_mar(self):
+    def test_par_mar(self) -> None:
         """Test PAR_MAR field."""
         self.assertEqual(GeoSectionName.PAR_MAR.value, 'par_mar')
 
-    def test_metroreg(self):
+    def test_metroreg(self) -> None:
         """Test METROREG field."""
         self.assertEqual(GeoSectionName.METROREG.value, 'metroreg')
 
-    def test_all_geo_sections(self):
+    def test_all_geo_sections(self) -> None:
         """Test all geographic section names."""
         self.assertGreaterEqual(len(list(GeoSectionName)), 4)
 
-    def test_geo_section_values_lowercase(self):
+    def test_geo_section_values_lowercase(self) -> None:
         """Test geo section values are lowercase."""
         for section in GeoSectionName:
             self.assertTrue(section.value.islower())
@@ -161,27 +163,27 @@ class TestGeoSectionName(unittest.TestCase):
 class TestFrequencyType(unittest.TestCase):
     """Test FrequencyType enum."""
 
-    def test_annually(self):
+    def test_annually(self) -> None:
         """Test ANNUALLY frequency."""
         self.assertEqual(FrequencyType.ANNUALLY.value, 'a')
 
-    def test_semesterly(self):
+    def test_semesterly(self) -> None:
         """Test SEMESTERLY frequency."""
         self.assertEqual(FrequencyType.SEMESTERLY.value, 's')
 
-    def test_quarterly(self):
+    def test_quarterly(self) -> None:
         """Test QUARTERLY frequency."""
         self.assertEqual(FrequencyType.QUARTERLY.value, 'q')
 
-    def test_monthly(self):
+    def test_monthly(self) -> None:
         """Test MONTHLY frequency."""
         self.assertEqual(FrequencyType.MONTHLY.value, 'm')
 
-    def test_daily(self):
+    def test_daily(self) -> None:
         """Test DAILY frequency."""
         self.assertEqual(FrequencyType.DAILY.value, 'd')
 
-    def test_all_frequencies(self):
+    def test_all_frequencies(self) -> None:
         """Test all frequency types are defined."""
         expected_frequencies = {
             'ANNUALLY',
@@ -193,13 +195,13 @@ class TestFrequencyType(unittest.TestCase):
         actual_frequencies = {freq.name for freq in FrequencyType}
         self.assertEqual(actual_frequencies, expected_frequencies)
 
-    def test_frequency_values_single_char(self):
+    def test_frequency_values_single_char(self) -> None:
         """Test frequency values are single characters."""
         for freq in FrequencyType:
             self.assertEqual(len(freq.value), 1)
             self.assertTrue(freq.value.islower())
 
-    def test_frequency_ordering(self):
+    def test_frequency_ordering(self) -> None:
         """Test frequencies can be compared (useful for time series)."""
         frequencies = list(FrequencyType)
         self.assertIn(FrequencyType.ANNUALLY, frequencies)

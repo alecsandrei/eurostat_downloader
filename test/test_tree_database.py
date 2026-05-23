@@ -12,39 +12,42 @@ from eurostat_downloader.src.enums import Language, Agency  # noqa: E402
 class TestTreeDatabase(unittest.TestCase):
     """Test the tree database structure."""
 
-    def test_toc_hierarchy_preserved(self):
+    def test_toc_hierarchy_preserved(self) -> None:
         """Test that TOC maintains hierarchical order, not sorted by level."""
+        from eurostat_downloader.src.data import TocRow
+        from typing import cast
+
         # Create a database and mock TOC data
         db = Database()
 
         # Simulate hierarchical TOC data (as returned by API)
-        mock_toc_eurostat = [
-            {'code': 'A', 'title': 'Category A', 'level': 0, 'type': 'folder'},
-            {
+        mock_toc_eurostat: list[TocRow] = [
+            cast(TocRow, {'code': 'A', 'title': 'Category A', 'level': 0, 'type': 'folder'}),
+            cast(TocRow, {
                 'code': 'A1',
                 'title': 'Subcategory A1',
                 'level': 1,
                 'type': 'folder',
-            },
-            {
+            }),
+            cast(TocRow, {
                 'code': 'A1a',
                 'title': 'Dataset A1a',
                 'level': 2,
                 'type': 'dataset',
-            },
-            {
+            }),
+            cast(TocRow, {
                 'code': 'A2',
                 'title': 'Subcategory A2',
                 'level': 1,
                 'type': 'folder',
-            },
-            {'code': 'B', 'title': 'Category B', 'level': 0, 'type': 'folder'},
-            {
+            }),
+            cast(TocRow, {'code': 'B', 'title': 'Category B', 'level': 0, 'type': 'folder'}),
+            cast(TocRow, {
                 'code': 'B1',
                 'title': 'Dataset B1',
                 'level': 1,
                 'type': 'dataset',
-            },
+            }),
         ]
 
         # Manually set TOC to avoid network calls

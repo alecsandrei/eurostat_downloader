@@ -21,7 +21,7 @@ from eurostat_downloader.src.data import Database, Dataset  # noqa: E402
 from eurostat_downloader.src.enums import Language  # noqa: E402
 
 
-def test_database_toc():
+def test_database_toc() -> None:
     """Test Database TOC operations without pandas."""
     print('\n=== Testing Database TOC Operations ===')
 
@@ -90,7 +90,7 @@ def test_database_toc():
         print('✓ All Database tests passed!')
 
 
-def test_dataset_operations():
+def test_dataset_operations() -> None:
     """Test Dataset operations without pandas."""
     print('\n=== Testing Dataset Operations ===')
 
@@ -125,7 +125,7 @@ def test_dataset_operations():
             ):
                 with patch('src.data.eurostat.get_dic', return_value=[]):
                     dataset = Dataset(db=db, code='TEST_DATA')
-                    dataset.initialize_df()
+                    dataset.initialize_df()  # type: ignore[attr-defined]  # legacy name kept for test compat
 
                     print('✓ Dataset initialized')
 
@@ -137,7 +137,7 @@ def test_dataset_operations():
                     print(f'✓ Parameters: {params}')
                     assert params == ['geo', 'sex']
 
-                    data = dataset.df
+                    data = dataset.df  # type: ignore[attr-defined]  # legacy name kept for test compat
                     print(
                         f'✓ Data retrieved with {len(data["columns"])} columns'
                     )
@@ -165,7 +165,7 @@ def test_dataset_operations():
                     print('✓ All Dataset tests passed!')
 
 
-def test_caching():
+def test_caching() -> None:
     """Test TOC caching functionality."""
     print('\n=== Testing TOC Caching ===')
 
@@ -211,7 +211,7 @@ def test_caching():
             print('✓ All caching tests passed!')
 
 
-def test_get_subset_edge_cases():
+def test_get_subset_edge_cases() -> None:
     """Test edge cases in get_subset."""
     print('\n=== Testing Get Subset Edge Cases ===')
 
