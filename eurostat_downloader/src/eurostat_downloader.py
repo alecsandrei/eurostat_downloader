@@ -713,6 +713,7 @@ class Dialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without
         initializer.finished.connect(self.set_layer_join_field_default)
         initializer.finished.connect(self.set_join_columns)
         initializer.finished.connect(self.gisco_handler.clear)
+        initializer.error_ocurred.connect(self.handle_error_ocurred)
         initializer.start()
 
     def set_join_columns(self) -> None:
@@ -1182,15 +1183,20 @@ class DatabaseInitializer(QtCore.QThread):  # type: ignore[misc]  # QThread is A
 
 
 class DatasetInitializer(QtCore.QThread):  # type: ignore[misc]  # QThread is Any without stubs
+    error_ocurred = QtCore.pyqtSignal(Exception, name='errorOcurred')
+
     def __init__(self, base: Dialog) -> None:
         self.base = base
         super().__init__(self.base)
 
     def run(self) -> None:
-        assert self.base.dataset is not None
-        self.base.dataset.initialize_data()
-        self.base.filterer = DataFilterer(dataset=self.base.dataset)
-        self.base.update_model()
+        try:
+            assert self.base.dataset is not None
+            self.base.dataset.initialize_data()
+            self.base.filterer = DataFilterer(dataset=self.base.dataset)
+            self.base.update_model()
+        except Exception as e:
+            self.error_ocurred.emit(e)
 
 
 class LoadingLabel(QtCore.QThread):  # type: ignore[misc]  # QThread is Any without stubs

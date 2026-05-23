@@ -279,19 +279,12 @@ class TestDatasetInitializer(unittest.TestCase):
         """Structural: worker must inherit from ``QThread``."""
         self.assertTrue(issubclass(DatasetInitializer, QtCore.QThread))
 
-    def test_class_exposes_no_pyqt_signals(self) -> None:
-        """``DatasetInitializer`` deliberately publishes no signals -- the
-        completion handshake is the default ``finished`` from QThread."""
-        # Walk the class dict (NOT instance) and check no attribute is a
-        # ``pyqtSignal``. ``finished``/``started`` are inherited from
-        # ``QThread`` itself and live on the C++ side, so they won't show
-        # up here.
-        signal_attrs = [
-            name
-            for name, val in vars(DatasetInitializer).items()
-            if type(val).__name__ == 'pyqtSignal'
-        ]
-        self.assertEqual(signal_attrs, [])
+    def test_error_signal_exists_as_pyqtsignal(self) -> None:
+        """``error_ocurred`` must be exposed as a class-level pyqtSignal
+        so callers can connect a handler before ``start()``."""
+        attr = vars(DatasetInitializer).get('error_ocurred')
+        self.assertIsNotNone(attr)
+        self.assertEqual(type(attr).__name__, 'pyqtSignal')
 
     def test_happy_path_initializes_dataset_and_updates_model(self) -> None:
         """``run`` must call ``dataset.initialize_data``, build a real
@@ -328,21 +321,26 @@ class TestDatasetInitializer(unittest.TestCase):
         filterer_cls.assert_called_once_with(dataset=base.dataset)
         self.assertIs(base.filterer, filterer_cls.return_value)
 
-    def test_initialize_data_failure_propagates(self) -> None:
-        """``DatasetInitializer.run`` has no try/except; a raised exception
-        from ``initialize_data`` aborts the thread without firing
-        ``update_model`` and without an error signal (there is none)."""
+    def test_initialize_data_failure_emits_error_signal(self) -> None:
+        """When ``initialize_data`` raises, the worker catches it and
+        emits ``error_ocurred`` with the exception; ``update_model``
+        must not run."""
         base = _make_base_for_dataset_initializer()
-        base.dataset.initialize_data.side_effect = Exception('net down')
+        boom = Exception('net down')
+        base.dataset.initialize_data.side_effect = boom
+
+        captured: list[Exception] = []
 
         worker = DatasetInitializer(cast(Dialog, base))
+        worker.error_ocurred.connect(lambda e: captured.append(e))
         worker.start()
         finished = worker.wait(_WAIT_TIMEOUT_MS)
 
-        # The thread still terminates (the exception is swallowed by Qt's
-        # thread-runner), so ``wait`` returns True. The point is that
-        # downstream side-effects did NOT happen.
         self.assertTrue(finished, 'worker.run() did not finish within timeout')
+        QtCore.QCoreApplication.processEvents()
+
+        self.assertEqual(len(captured), 1)
+        self.assertIs(captured[0], boom)
         base.dataset.initialize_data.assert_called_once_with()
         base.update_model.assert_not_called()
 
