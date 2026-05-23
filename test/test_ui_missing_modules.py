@@ -71,6 +71,8 @@ What I chose NOT to test and why
   the tests to translation churn.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
@@ -87,7 +89,7 @@ QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 class TestMissingModulesDialog(unittest.TestCase):
     """Test the pyuic-generated Ui_MissingModulesDialog under PyQt6."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Setup test fixtures.
 
         Ensures a QApplication exists and builds a fresh QDialog + Ui pair
@@ -101,13 +103,13 @@ class TestMissingModulesDialog(unittest.TestCase):
         self.dialog = QtWidgets.QDialog()
         self.ui = Ui_MissingModulesDialog()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Release the dialog so Qt can clean up between tests."""
         self.dialog.deleteLater()
         self.dialog = None
-        self.ui = None
+        self.ui = None  # type: ignore[assignment]
 
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """``setupUi`` must run cleanly under PyQt6.
 
         This is the minimum bar: the bug we are guarding against
@@ -118,7 +120,7 @@ class TestMissingModulesDialog(unittest.TestCase):
         bindings.
         """
         try:
-            self.ui.setupUi(self.dialog)
+            self.ui.setupUi(self.dialog)  # type: ignore[no-untyped-call]
         except AttributeError as exc:
             self.fail(
                 'Ui_MissingModulesDialog.setupUi raised AttributeError '
@@ -128,14 +130,14 @@ class TestMissingModulesDialog(unittest.TestCase):
         # Sanity-check the dialog identity that setupUi assigned.
         self.assertEqual(self.dialog.objectName(), 'MissingModulesDialog')
 
-    def test_expected_widgets_are_present(self):
+    def test_expected_widgets_are_present(self) -> None:
         """The widgets the rest of the plugin relies on must exist.
 
         Asserting attribute presence catches the case where ``setupUi``
         silently no-ops past a broken section, and also locks in the
         public-ish surface other modules will key off of by name.
         """
-        self.ui.setupUi(self.dialog)
+        self.ui.setupUi(self.dialog)  # type: ignore[no-untyped-call]
 
         self.assertIsInstance(
             self.ui.pushButtonInstall, QtWidgets.QPushButton
@@ -164,7 +166,7 @@ class TestMissingModulesDialog(unittest.TestCase):
         self.assertEqual(self.ui.tabWidgetMain.count(), 2)
         self.assertEqual(self.ui.tabWidgetMain.currentIndex(), 0)
 
-    def test_retranslate_applied(self):
+    def test_retranslate_applied(self) -> None:
         """User-visible strings from retranslateUi must be present.
 
         We only check a couple of representative strings (the window
@@ -172,7 +174,7 @@ class TestMissingModulesDialog(unittest.TestCase):
         because the goal is to prove retranslateUi ran -- not to
         couple the test to copy edits.
         """
-        self.ui.setupUi(self.dialog)
+        self.ui.setupUi(self.dialog)  # type: ignore[no-untyped-call]
 
         self.assertEqual(
             self.dialog.windowTitle(), 'Missing modules warning'

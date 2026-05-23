@@ -79,6 +79,8 @@ What we intentionally do NOT test
 *   Network / agency-status side effects -- ``SettingsDialog`` performs none.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
@@ -107,7 +109,7 @@ from eurostat_downloader.src.settings import GLOBAL_SETTINGS  # noqa: E402
 class TestSettingsDialog(unittest.TestCase):
     """Tests for SettingsDialog construction and basic behaviour."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up a QApplication, mock parent, and snapshot global state."""
         self.app = QtWidgets.QApplication.instance()
         if self.app is None:
@@ -129,7 +131,7 @@ class TestSettingsDialog(unittest.TestCase):
         )
         self._exec_patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Restore GLOBAL_SETTINGS and unpatch QDialog.exec."""
         self._exec_patcher.stop()
         GLOBAL_SETTINGS.agencies = self._original_agencies
@@ -141,7 +143,7 @@ class TestSettingsDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # The bar test: catches the QSizePolicy / unscoped-enum class of bug.
     # ------------------------------------------------------------------
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """SettingsDialog construction must not raise.
 
         Regression guard for the PyQt5 -> PyQt6 migration: unscoped enums
@@ -156,7 +158,7 @@ class TestSettingsDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # Widget existence: did setupUi populate the attributes we expect?
     # ------------------------------------------------------------------
-    def test_agency_checkboxes_exist(self):
+    def test_agency_checkboxes_exist(self) -> None:
         """Every Agency has a corresponding QCheckBox after setupUi."""
         dialog = self._make_dialog()
         expected = (
@@ -183,7 +185,7 @@ class TestSettingsDialog(unittest.TestCase):
         for checkbox in dialog._agencies_checkboxes.values():
             self.assertIsInstance(checkbox, QtWidgets.QCheckBox)
 
-    def test_button_box_has_ok_button(self):
+    def test_button_box_has_ok_button(self) -> None:
         """buttonBox exists and exposes an Ok button.
 
         Uses the same standard-button enum the source uses, so this also
@@ -200,7 +202,7 @@ class TestSettingsDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # Behavioural: restore / update against GLOBAL_SETTINGS.
     # ------------------------------------------------------------------
-    def test_restore_global_settings_reflects_subset(self):
+    def test_restore_global_settings_reflects_subset(self) -> None:
         """Checkboxes for agencies absent from GLOBAL_SETTINGS are unchecked."""
         # Pretend only EUROSTAT and GROW are currently enabled.
         GLOBAL_SETTINGS.agencies = [Agency.EUROSTAT, Agency.GROW]
@@ -218,7 +220,7 @@ class TestSettingsDialog(unittest.TestCase):
                     f'{agency.name} should be unchecked',
                 )
 
-    def test_update_global_settings_reads_back_checkboxes(self):
+    def test_update_global_settings_reads_back_checkboxes(self) -> None:
         """update_global_settings writes selected agencies to GLOBAL_SETTINGS."""
         dialog = self._make_dialog()
 
@@ -232,7 +234,7 @@ class TestSettingsDialog(unittest.TestCase):
             set(GLOBAL_SETTINGS.agencies), {Agency.COMP, Agency.EMPL}
         )
 
-    def test_update_global_settings_empty_selection_falls_back_to_all(self):
+    def test_update_global_settings_empty_selection_falls_back_to_all(self) -> None:
         """If no checkboxes are checked, all agencies become selected.
 
         This documents the fallback in ``update_global_settings``.

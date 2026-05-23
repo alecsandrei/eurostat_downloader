@@ -102,10 +102,13 @@ What we intentionally do NOT test
     related to the PyQt6 migration bug class.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
 import unittest
+from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
 from qgis.PyQt import QtWidgets
@@ -120,7 +123,11 @@ QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 from eurostat_downloader.src.eurostat_downloader import TimeSectionDialog  # noqa: E402
 
 
-def _make_base(frequency: str, date_columns, filterer_columns=None):
+def _make_base(
+    frequency: str,
+    date_columns: Sequence[str],
+    filterer_columns: Sequence[str] | None = None,
+) -> MagicMock:
     """Build a MagicMock ``base`` with just the attributes TimeSectionDialog reads.
 
     ``date_columns`` is the full set of dataset date columns (e.g.
@@ -145,7 +152,7 @@ def _make_base(frequency: str, date_columns, filterer_columns=None):
 class TestTimeDialog(unittest.TestCase):
     """Tests for TimeSectionDialog construction and basic behaviour."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up a QApplication and patch the blocking ``exec`` call."""
         self.app = QtWidgets.QApplication.instance()
         if self.app is None:
@@ -158,14 +165,14 @@ class TestTimeDialog(unittest.TestCase):
         )
         self._exec_patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Restore QDialog.exec."""
         self._exec_patcher.stop()
 
     # ------------------------------------------------------------------
     # The bar test: catches the QSizePolicy / unscoped-enum class of bug.
     # ------------------------------------------------------------------
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """TimeSectionDialog construction must not raise.
 
         Regression guard for the PyQt5 -> PyQt6 migration: the generated
@@ -185,7 +192,7 @@ class TestTimeDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # Widget existence: did setupUi populate the attributes we expect?
     # ------------------------------------------------------------------
-    def test_ui_widgets_exist(self):
+    def test_ui_widgets_exist(self) -> None:
         """frameStart, frameEnd, and buttonReset exist after setupUi.
 
         These are the static widgets defined in the generated UI form. If
@@ -208,7 +215,7 @@ class TestTimeDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # Frequency-driven dynamic widget construction.
     # ------------------------------------------------------------------
-    def test_annual_frequency_adds_one_combobox_per_frame(self):
+    def test_annual_frequency_adds_one_combobox_per_frame(self) -> None:
         """Annual frequency yields a single Year combobox in each frame."""
         base = _make_base(
             frequency='a', date_columns=['2018', '2019', '2020', '2021']
@@ -228,7 +235,7 @@ class TestTimeDialog(unittest.TestCase):
                 items, ['2018', '2019', '2020', '2021']
             )
 
-    def test_monthly_frequency_adds_year_and_month_comboboxes(self):
+    def test_monthly_frequency_adds_year_and_month_comboboxes(self) -> None:
         """Monthly frequency yields two comboboxes (Year, Month) per frame."""
         date_cols = ['2020-01', '2020-02', '2020-03', '2021-01', '2021-02']
         base = _make_base(frequency='m', date_columns=date_cols)
@@ -259,7 +266,7 @@ class TestTimeDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # Behavioural: restore + reset.
     # ------------------------------------------------------------------
-    def test_restore_preselects_filterer_range(self):
+    def test_restore_preselects_filterer_range(self) -> None:
         """restore() pre-selects comboboxes to match filterer.date_columns."""
         date_cols = ['2018', '2019', '2020', '2021', '2022']
         # Filterer is showing a narrower window: 2019..2021.
@@ -279,7 +286,7 @@ class TestTimeDialog(unittest.TestCase):
         self.assertEqual(start_combo.currentText(), '2019')
         self.assertEqual(end_combo.currentText(), '2021')
 
-    def test_set_default_resets_to_full_range(self):
+    def test_set_default_resets_to_full_range(self) -> None:
         """set_default() snaps the comboboxes back to the dataset's range."""
         date_cols = ['2018', '2019', '2020', '2021', '2022']
         base = _make_base(
@@ -300,7 +307,7 @@ class TestTimeDialog(unittest.TestCase):
         self.assertEqual(start_combo.currentText(), '2018')
         self.assertEqual(end_combo.currentText(), '2022')
 
-    def test_unknown_frequency_raises_value_error(self):
+    def test_unknown_frequency_raises_value_error(self) -> None:
         """An unrecognised frequency string must raise ValueError.
 
         Documents the contract of ``get_frequency_types``: the dialog

@@ -60,6 +60,8 @@ What is intentionally NOT tested
   report) -- the other six agents own those.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
@@ -86,18 +88,18 @@ QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 class TestMainDialog(unittest.TestCase):
     """Test the main plugin Dialog construction and default UI state."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Build a fresh plugin + Dialog for each test."""
         self.plugin = EurostatDownloader(IFACE)
         self.dialog = Dialog(self.plugin)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Release the dialog so signal connections don't leak between tests."""
         self.dialog.deleteLater()
-        self.dialog = None
-        self.plugin = None
+        self.dialog = None  # type: ignore[assignment]
+        self.plugin = None  # type: ignore[assignment]
 
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """Dialog instantiates and runs setupUi without raising.
 
         This is the regression test for the PyQt6 unscoped-enum bug
@@ -110,7 +112,7 @@ class TestMainDialog(unittest.TestCase):
         # The dialog stores the plugin reference under this name.
         self.assertIs(self.dialog.eurostat_downloader, self.plugin)
 
-    def test_handlers_are_wired_up(self):
+    def test_handlers_are_wired_up(self) -> None:
         """Auxiliary handlers are constructed and reference the dialog."""
         self.assertIsInstance(self.dialog.gisco_handler, GISCOHandler)
         self.assertIsInstance(self.dialog.join_handler, JoinHandler)
@@ -122,7 +124,7 @@ class TestMainDialog(unittest.TestCase):
         self.assertIs(self.dialog.exporter.base, self.dialog)
         self.assertIs(self.dialog.converter.base, self.dialog)
 
-    def test_key_widgets_exist(self):
+    def test_key_widgets_exist(self) -> None:
         """The widgets the plugin code touches all exist on the dialog UI.
 
         Catches regressions if a widget is renamed/removed in the .ui file.
@@ -159,7 +161,7 @@ class TestMainDialog(unittest.TestCase):
                 )
                 self.assertIsInstance(getattr(self.dialog.ui, name), widget_type)
 
-    def test_default_state(self):
+    def test_default_state(self) -> None:
         """Default state after construction matches what the plugin expects."""
         # No dataset is loaded yet.
         self.assertIsNone(self.dialog.dataset)

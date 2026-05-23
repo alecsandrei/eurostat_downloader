@@ -95,10 +95,13 @@ What we intentionally do NOT test
     the filterer's own tests.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
 import unittest
+from collections.abc import Mapping, Sequence
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -117,13 +120,13 @@ from eurostat_downloader.src.eurostat_downloader import ParameterSectionDialog  
 def _make_base(
     *,
     name: str = 'unit',
-    lang: str = 'en',
-    params_info_items=None,
-    data_columns=None,
-    data_rows=None,
-    filterer_row=None,
+    lang: str | None = 'en',
+    params_info_items: Sequence[tuple[str, str]] | None = None,
+    data_columns: Sequence[str] | None = None,
+    data_rows: Sequence[Sequence[object]] | None = None,
+    filterer_row: Mapping[str, object] | None = None,
     join_field: str = '__no_match__',
-):
+) -> MagicMock:
     """Build a lightweight stand-in for the ``Dialog`` parent.
 
     Only the attributes/methods ``ParameterSectionDialog.__init__`` reads
@@ -164,7 +167,7 @@ def _make_base(
 class TestParametersDialog(unittest.TestCase):
     """Tests for ParameterSectionDialog construction and behaviour."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Ensure a QApplication exists and stub out the blocking exec."""
         self.app = QtWidgets.QApplication.instance()
         if self.app is None:
@@ -179,13 +182,13 @@ class TestParametersDialog(unittest.TestCase):
         )
         self._exec_patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._exec_patcher.stop()
 
     # ------------------------------------------------------------------
     # The bar test: catches the QSizePolicy / unscoped-enum class of bug.
     # ------------------------------------------------------------------
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """Construction must not raise.
 
         Regression guard for the PyQt5 -> PyQt6 migration: unscoped enums
@@ -204,7 +207,7 @@ class TestParametersDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # Widget existence / configured state from the .ui file.
     # ------------------------------------------------------------------
-    def test_key_widgets_exist_with_expected_types(self):
+    def test_key_widgets_exist_with_expected_types(self) -> None:
         """The three controls referenced by handlers must be present."""
         base = _make_base(name='unit')
         dialog = ParameterSectionDialog(base, 'unit')
@@ -223,7 +226,7 @@ class TestParametersDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # filter_toc: both branches.
     # ------------------------------------------------------------------
-    def test_filter_toc_populates_from_params_info_when_lang_set(self):
+    def test_filter_toc_populates_from_params_info_when_lang_set(self) -> None:
         """With ``dataset.lang`` set, items come from ``params_info``."""
         base = _make_base(
             name='geo',
@@ -238,7 +241,7 @@ class TestParametersDialog(unittest.TestCase):
         ]
         self.assertEqual(texts, ['DE [Germany]', 'FR [France]'])
 
-    def test_filter_toc_populates_from_data_when_lang_is_none(self):
+    def test_filter_toc_populates_from_data_when_lang_is_none(self) -> None:
         """With ``dataset.lang`` None, items are unique column values."""
         base = _make_base(
             name='age',
@@ -257,7 +260,7 @@ class TestParametersDialog(unittest.TestCase):
     # ------------------------------------------------------------------
     # Behavioural: search / reset / selection accessor.
     # ------------------------------------------------------------------
-    def test_reset_selection_clears_selection(self):
+    def test_reset_selection_clears_selection(self) -> None:
         """``buttonReset`` handler clears the list's selection."""
         base = _make_base(name='unit')
         dialog = ParameterSectionDialog(base, 'unit')
@@ -269,7 +272,7 @@ class TestParametersDialog(unittest.TestCase):
         dialog.reset_selection()
         self.assertEqual(dialog.ui.listItems.selectedItems(), [])
 
-    def test_filter_list_items_hides_non_matching_rows(self):
+    def test_filter_list_items_hides_non_matching_rows(self) -> None:
         """Typing in ``lineSearch`` hides rows that don't contain the query."""
         base = _make_base(
             name='unit',
@@ -291,7 +294,7 @@ class TestParametersDialog(unittest.TestCase):
         # Only the 'Beta two' row should be hidden.
         self.assertEqual(hidden, [False, True, False])
 
-    def test_get_selected_items_returns_abbreviations(self):
+    def test_get_selected_items_returns_abbreviations(self) -> None:
         """Selected items return just the abbreviation portion."""
         base = _make_base(
             name='unit',

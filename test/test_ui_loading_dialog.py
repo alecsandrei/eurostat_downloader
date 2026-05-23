@@ -65,6 +65,8 @@ What is intentionally NOT tested
 * Visual appearance / paint events.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
@@ -81,19 +83,19 @@ QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 class TestLoadingDialog(unittest.TestCase):
     """Test the hand-written LoadingDialog construction and public API."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Build a fresh LoadingDialog for each test."""
         self.parent = QtWidgets.QWidget()
         self.dialog = LoadingDialog(self.parent)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Release Qt objects so they don't leak between tests."""
         self.dialog.deleteLater()
-        self.dialog = None
+        self.dialog = None  # type: ignore[assignment]
         self.parent.deleteLater()
         self.parent = None
 
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """LoadingDialog instantiates without raising.
 
         Regression guard for the PyQt6 unscoped-enum class of bug. The
@@ -106,7 +108,7 @@ class TestLoadingDialog(unittest.TestCase):
         # The dialog stashes its parent under ``base`` for later access.
         self.assertIs(self.dialog.base, self.parent)
 
-    def test_constructs_without_parent(self):
+    def test_constructs_without_parent(self) -> None:
         """LoadingDialog also constructs with ``base=None`` (the default)."""
         dlg = LoadingDialog()
         try:
@@ -115,7 +117,7 @@ class TestLoadingDialog(unittest.TestCase):
         finally:
             dlg.deleteLater()
 
-    def test_layout_and_label_present(self):
+    def test_layout_and_label_present(self) -> None:
         """The dialog owns a QVBoxLayout containing a centered QLabel.
 
         Catches regressions where ``self.qlabel`` is renamed/removed or
@@ -132,7 +134,7 @@ class TestLoadingDialog(unittest.TestCase):
             self.dialog.layout().itemAt(0).widget(), self.dialog.qlabel
         )
 
-    def test_label_alignment_is_center(self):
+    def test_label_alignment_is_center(self) -> None:
         """The label alignment is the scoped ``AlignCenter`` value.
 
         Verifies the scoped-enum value round-trips through Qt rather than
@@ -143,7 +145,7 @@ class TestLoadingDialog(unittest.TestCase):
             QtCore.Qt.AlignmentFlag.AlignCenter,
         )
 
-    def test_update_loading_label_changes_text(self):
+    def test_update_loading_label_changes_text(self) -> None:
         """``update_loading_label`` mutates the QLabel text.
 
         This is the only public behavior method on ``LoadingDialog``.

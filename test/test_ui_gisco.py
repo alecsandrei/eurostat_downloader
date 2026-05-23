@@ -97,6 +97,8 @@ What we intentionally do NOT test
     unrelated to the PyQt6 migration bug class.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
@@ -121,7 +123,7 @@ from eurostat_downloader.src.ui.gisco_join_report import Ui_GISCOJoinReport  # n
 class TestGISCOJoinReport(unittest.TestCase):
     """Tests for the GISCOJoinReport dialog wrapper."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up a QApplication and a real QWidget to act as parent."""
         self.app = QtWidgets.QApplication.instance()
         if self.app is None:
@@ -131,14 +133,14 @@ class TestGISCOJoinReport(unittest.TestCase):
         # beyond standard Qt ownership wiring.
         self.parent_widget = QtWidgets.QWidget()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Release the parent widget (and any owned children)."""
         self.parent_widget.deleteLater()
 
     # ------------------------------------------------------------------
     # The bar test: catches the QSizePolicy / unscoped-enum class of bug.
     # ------------------------------------------------------------------
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """GISCOJoinReport construction must not raise.
 
         Regression guard for the PyQt5 -> PyQt6 migration: the generated
@@ -153,7 +155,7 @@ class TestGISCOJoinReport(unittest.TestCase):
         self.assertIsNone(dialog.report_data)
         self.assertIsInstance(dialog.ui, Ui_GISCOJoinReport)
 
-    def test_constructs_with_no_arguments(self):
+    def test_constructs_with_no_arguments(self) -> None:
         """The dialog must also be constructible without a parent or data."""
         # No args is a legal construction path -- explicit None defaults.
         dialog = GISCOJoinReport()
@@ -163,7 +165,7 @@ class TestGISCOJoinReport(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
-    def test_table_widget_exists_and_is_empty(self):
+    def test_table_widget_exists_and_is_empty(self) -> None:
         """setupUi must populate the expected child widget with sane defaults."""
         dialog = GISCOJoinReport(parent=self.parent_widget)
         table = dialog.ui.tableWidgetGISCOJoinReport
@@ -173,7 +175,7 @@ class TestGISCOJoinReport(unittest.TestCase):
         # retranslateUi sets the dialog window title.
         self.assertEqual(dialog.windowTitle(), 'Join report')
 
-    def test_add_headers_populates_columns(self):
+    def test_add_headers_populates_columns(self) -> None:
         """add_headers must add 'matched' plus one column per Unit field.
 
         Exercises the table API end-to-end without any I/O or join data.
@@ -188,7 +190,7 @@ class TestGISCOJoinReport(unittest.TestCase):
         self.assertIsNotNone(first_header)
         self.assertEqual(first_header.text(), 'matched')
 
-    def test_accepts_report_data_object(self):
+    def test_accepts_report_data_object(self) -> None:
         """report_data is stored verbatim; __init__ does not inspect it."""
         sentinel = MagicMock(name='JoinReportData')
         dialog = GISCOJoinReport(
@@ -206,21 +208,21 @@ class TestGISCODatasetInformation(unittest.TestCase):
     ``GISCOHandler.show_gisco_dataset_information``). The tests mirror that.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up a QApplication and a host widget for setupUi to populate."""
         self.app = QtWidgets.QApplication.instance()
         if self.app is None:
             self.app = QtWidgets.QApplication([])
         self.host = QtWidgets.QWidget()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Release the host (which owns the widgets created by setupUi)."""
         self.host.deleteLater()
 
     # ------------------------------------------------------------------
     # The bar test: catches the QSizePolicy / unscoped-enum class of bug.
     # ------------------------------------------------------------------
-    def test_constructs_without_error(self):
+    def test_constructs_without_error(self) -> None:
         """Ui_GISCODatasetInformation.setupUi must not raise.
 
         The generated file uses ``QtCore.Qt.RichText`` (unscoped
@@ -228,17 +230,17 @@ class TestGISCODatasetInformation(unittest.TestCase):
         PyQt6 enum scoping). If anything in setupUi explodes, this fires.
         """
         ui = Ui_GISCODatasetInformation()
-        ui.setupUi(self.host)
+        ui.setupUi(self.host)  # type: ignore[no-untyped-call]
         # setupUi mutates the host -- its window title is set by
         # retranslateUi.
         self.assertEqual(
             self.host.windowTitle(), 'GISCO dataset information'
         )
 
-    def test_label_widget_exists(self):
+    def test_label_widget_exists(self) -> None:
         """The information label is the sole expected child after setupUi."""
         ui = Ui_GISCODatasetInformation()
-        ui.setupUi(self.host)
+        ui.setupUi(self.host)  # type: ignore[no-untyped-call]
         self.assertTrue(hasattr(ui, 'label'))
         self.assertIsInstance(ui.label, QtWidgets.QLabel)
         # Rich-text mode is what the generated file sets; verifying it
@@ -248,21 +250,21 @@ class TestGISCODatasetInformation(unittest.TestCase):
         # its job in production.
         self.assertTrue(ui.label.openExternalLinks())
 
-    def test_label_text_contains_gisco_api_url(self):
+    def test_label_text_contains_gisco_api_url(self) -> None:
         """retranslateUi must have populated the label with the API link."""
         ui = Ui_GISCODatasetInformation()
-        ui.setupUi(self.host)
+        ui.setupUi(self.host)  # type: ignore[no-untyped-call]
         self.assertIn(
             'gisco-services.ec.europa.eu/distribution/v2/',
             ui.label.text(),
         )
 
-    def test_setupui_against_qdialog_host(self):
+    def test_setupui_against_qdialog_host(self) -> None:
         """Production uses a QDialog host -- verify that path works too."""
         host_dialog = QtWidgets.QDialog()
         try:
             ui = Ui_GISCODatasetInformation()
-            ui.setupUi(host_dialog)
+            ui.setupUi(host_dialog)  # type: ignore[no-untyped-call]
             self.assertIsInstance(ui.label, QtWidgets.QLabel)
         finally:
             host_dialog.deleteLater()
