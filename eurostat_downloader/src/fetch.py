@@ -5,11 +5,27 @@ import json
 import os
 import xml.etree.ElementTree as ET
 from itertools import product
-from typing import Any
+from typing import cast
 
 from qgis.core import QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QEventLoop, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
+
+# Heterogeneous shape of the ``dims`` field returned by ``_get_dims_info``;
+# the concrete arm depends on the ``detail`` argument (see that function's docstring).
+DimsResult = (
+    list[str | None]
+    | list[tuple[str | None, str | None]]
+    | list[tuple[str | None, str | None, str | None]]
+)
+
+# A single row in a TOC listing. Values are mostly strings, but ``level`` is an
+# int and a few fields are ``None`` before they get coerced to ``''``.
+TocRow = dict[str, str | int | None]
+
+# A parsed TSV value: dimension code (str), numeric observation (float), missing
+# value (None), or a non-numeric textual observation that fell through float().
+DataValue = str | float | None
 
 DEBUG = os.getenv('EUROSTAT_PLUGIN_DEBUG', '0') == '1'
 
@@ -133,7 +149,8 @@ def _blocking_request(url: str, timeout: int = 120000) -> bytes | None:
     loop.exec()
 
     if reply.error() == QNetworkReply.NetworkError.NoError:
-        data = reply.readAll().data()
+        # QGIS PyQt stubs return Any from readAll().data(); cast to bytes
+        data = cast(bytes, reply.readAll().data())
         reply.deleteLater()
         return data
     else:
@@ -158,7 +175,7 @@ def _retry_request(url: str, max_attempts: int = 4) -> bytes | None:
     return None
 
 
-def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[dict[str, Any]]:
+def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[TocRow]:
     """Download table of contents as hierarchical tree structure.
 
     For EUROSTAT, uses the text-based TOC with hierarchy.
@@ -187,7 +204,7 @@ def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[dict[str, Any]]:
             return []
         lines = lines[1:]
 
-        rows = []
+        rows: list[TocRow] = []
         for line in lines:
             parts = line.split('\t')
             if len(parts) < 3:
@@ -218,7 +235,7 @@ def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[dict[str, Any]]:
             data_end = parts[6].strip('"').strip() if len(parts) > 6 else None
             values = parts[7].strip('"').strip() if len(parts) > 7 else None
 
-            row = {
+            row: TocRow = {
                 'title': title,
                 'code': code,
                 'type': _type,
@@ -277,7 +294,7 @@ def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[dict[str, Any]]:
                 elif a.get('type') == 'OBS_PERIOD_OVERALL_LATEST':
                     data_end = a.get('title')
 
-            row = {
+            flat_row: TocRow = {
                 'title': title,
                 'code': code,
                 'type': _type,
@@ -288,7 +305,7 @@ def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[dict[str, Any]]:
                 'data end': data_end or '',
                 'values': '',
             }
-            rows.append(row)
+            rows.append(flat_row)
 
         _debug(f'Converted to {len(rows)} flat items', '✓')
         return rows
@@ -296,7 +313,7 @@ def get_toc(agency: str = 'EUROSTAT', lang: str = 'en') -> list[dict[str, Any]]:
 
 def get_toc_flat(
     agency: str = 'EUROSTAT', lang: str = 'en'
-) -> list[dict[str, Any]]:
+) -> list[TocRow]:
     """Download Eurostat table of contents as flat list (legacy function)."""
     _debug(f'Fetching flat TOC for agency={agency}, lang={lang}', '📋')
     base_url = BASE_URL[agency]
@@ -312,7 +329,7 @@ def get_toc_flat(
     resp_dict = json.loads(resp_txt)
     _debug(f'Found {len(resp_dict["link"]["item"])} items', '✓')
 
-    rows = []
+    rows: list[TocRow] = []
     for el in resp_dict['link']['item']:
         title = el['label']
         code = el['extension']['id']
@@ -347,10 +364,20 @@ def get_toc_flat(
     return rows
 
 
-def _get_dims_info(code: str, detail: str = 'name', lang: str = 'en'):
-    """Get dimension information for a dataset."""
+def _get_dims_info(
+    code: str, detail: str = 'name', lang: str = 'en'
+) -> tuple[str, str, DimsResult]:
+    """Get dimension information for a dataset.
+
+    Returns ``(agency_id, provider, dims)`` where the shape of ``dims``
+    depends on ``detail`` (e.g. ``list[str | None]`` for ``name``,
+    ``list[tuple[...]]`` for the other variants).
+    """
     found = False
     i = 0
+    df_root: ET.Element | None = None
+    provider = ''
+    agency_id = ''
 
     df_tail = (
         '/latest?detail=referencepartial&references=descendants'
@@ -368,15 +395,18 @@ def _get_dims_info(code: str, detail: str = 'name', lang: str = 'en'):
                 df_root = ET.fromstring(data)
                 found = True
                 if detail == 'empty':
-                    return [agency_id, provider, []]
+                    return (agency_id, provider, [])
             except ET.ParseError:
                 pass
         i += 1
 
-    if not found:
+    if not found or df_root is None:
         raise ValueError(f'Dataset not found: {code}')
 
-    dsd_code = df_root.find(dsd_path).get('id')
+    dsd_ref = df_root.find(dsd_path)
+    if dsd_ref is None:
+        raise ValueError(f'DSD reference not found for {code}')
+    dsd_code = dsd_ref.get('id')
     dsd_url = f'{BASE_URL[provider]}datastructure/{agency_id}/{dsd_code}/latest'
 
     data = _retry_request(dsd_url)
@@ -385,13 +415,16 @@ def _get_dims_info(code: str, detail: str = 'name', lang: str = 'en'):
 
     dsd_root = ET.fromstring(data)
 
+    dims: DimsResult
     if detail == 'name':
         dims = [dim.get('id') for dim in dsd_root.findall(dim_path)]
     elif detail == 'basic':
-        dims = [
-            (dim.get('id'), dim.find(ref_path).get('id'))
-            for dim in dsd_root.findall(dim_path)
-        ]
+        basic_dims: list[tuple[str | None, str | None]] = []
+        for dim in dsd_root.findall(dim_path):
+            ref = dim.find(ref_path)
+            ref_id = ref.get('id') if ref is not None else None
+            basic_dims.append((dim.get('id'), ref_id))
+        dims = basic_dims
     elif detail == 'order':
         dims = [
             (dim.get('position'), dim.get('id'))
@@ -399,12 +432,14 @@ def _get_dims_info(code: str, detail: str = 'name', lang: str = 'en'):
         ]
     elif detail == 'descr':
         descr = df_root.findall(codelist_path)
-        dims = []
+        descr_dims: list[tuple[str | None, str | None, str | None]] = []
         for dim1 in dsd_root.findall(dim_path):
-            dimension_id = dim1.find(ref_path).get('id')
+            ref1 = dim1.find(ref_path)
+            dimension_id = ref1.get('id') if ref1 is not None else None
+            full_name: str | None = None
+            description: str | None = None
             for dim in descr:
                 if dim.get('id') == dimension_id:
-                    full_name = None
                     for d in dim.findall(XMLSNS_C + 'Name'):
                         if d.get(XMLSNS_L, None) == lang:
                             full_name = d.text
@@ -412,19 +447,22 @@ def _get_dims_info(code: str, detail: str = 'name', lang: str = 'en'):
                         full_name = dim.findtext(XMLSNS_C + 'Name')
                     description = dim.findtext(XMLSNS_C + 'Description')
                     break
-            dims.append((dim1.get('id'), full_name, description))
+            descr_dims.append((dim1.get('id'), full_name, description))
+        dims = descr_dims
     else:
         dims = []
 
-    return [agency_id, provider, dims]
+    return (agency_id, provider, dims)
 
 
 def get_pars(code: str) -> list[str]:
     """Get parameters (dimensions) for a dataset."""
     _debug(f'Fetching parameters for dataset: {code}', '📊')
-    _, _, dims = _get_dims_info(code, detail='name')
+    _, _, dims_raw = _get_dims_info(code, detail='name')
+    # For detail='name' the concrete arm of the union is list[str | None].
+    dims = cast('list[str | None]', dims_raw)
     _debug(f'Found {len(dims)} parameters: {dims}', '✓')
-    return dims
+    return [d for d in dims if d is not None]
 
 
 def get_dic(
@@ -433,7 +471,11 @@ def get_dic(
     """Get dictionary/codelist for dataset dimensions or parameter values."""
     _debug(f'Fetching dictionary for code={code}, par={par}', '📖')
     if par:
-        agency_id, provider, dims = _get_dims_info(code, detail='basic')
+        agency_id, provider, dims_raw = _get_dims_info(code, detail='basic')
+        # For detail='basic' the concrete arm is list[tuple[str | None, str | None]].
+        # In practice every Dimension element has an ``id``, so we treat the
+        # first tuple slot as a non-None str (matches original behaviour).
+        dims = cast('list[tuple[str, str]]', dims_raw)
         try:
             par_id = [d[1] for d in dims if d[0].lower() == par.lower()][0]
         except IndexError:
@@ -453,7 +495,11 @@ def get_dic(
         _debug('Decompressing and parsing TSV...')
         resp_list = gzip.decompress(data).decode('utf-8').split('\r\n')
         resp_list.pop()
-        tmp_list = [tuple(el.split('\t')) for el in resp_list]
+        tmp_list: list[tuple[str, str]] = []
+        for el in resp_list:
+            split = el.split('\t')
+            if len(split) >= 2:
+                tmp_list.append((split[0], split[1]))
         _debug(f'Parsed {len(tmp_list)} code-label pairs', '✓')
 
         if full:
@@ -464,7 +510,8 @@ def get_dic(
     else:
         _, _, dims_list = _get_dims_info(code, detail='descr', lang=lang)
         _debug(f'Got {len(dims_list)} dimension descriptions', '✓')
-        return dims_list
+        # detail='descr' yields list[tuple[str | None, str | None, str | None]]
+        return cast('list[tuple[str, str]]', dims_list)
 
 
 def get_par_values(code: str, par: str) -> list[str]:
@@ -477,31 +524,41 @@ def get_par_values(code: str, par: str) -> list[str]:
         raise ConnectionError(f'Failed to fetch parameter values for {code}')
 
     root = ET.fromstring(data)
-    par_values = []
+    par_values: list[str] = []
 
     for kv in root.findall(par_path):
-        if kv.get('id').lower() == par.lower():
+        kv_id = kv.get('id')
+        if kv_id is not None and kv_id.lower() == par.lower():
             for v in kv.findall(val_path):
-                par_values.append(v.text)
+                if v.text is not None:
+                    par_values.append(v.text)
 
     return par_values
 
 
 def get_data(
-    code: str, flags: bool = False, filter_pars: dict[str, Any] | None = None
-) -> dict[str, Any] | None:
+    code: str,
+    flags: bool = False,
+    filter_pars: dict[str, str | list[str]] | None = None,
+) -> dict[str, list[str] | list[list[DataValue]]] | None:
     """Download Eurostat dataset as dictionary with columns and data."""
     if filter_pars is None:
         filter_pars = {}
 
-    _, provider, dims = _get_dims_info(code, detail='order')
+    _, provider, dims_raw = _get_dims_info(code, detail='order')
+    # For detail='order' the concrete arm is list[tuple[str | None, str | None]].
+    # In practice both ``position`` and ``id`` are always present on
+    # Dimension elements, so we treat the slots as ``str`` (matches the
+    # original runtime behaviour where ``dict(c).get(j[1], '')`` was called
+    # without a None-guard).
+    dims = cast('list[tuple[str, str]]', dims_raw)
 
     if not filter_pars:
         filt = ['?']
     else:
         start = ''
         end = ''
-        nontime_pars = {}
+        nontime_pars: dict[str, list[str]] = {}
 
         for k, v in filter_pars.items():
             if k == 'startPeriod':
@@ -527,8 +584,8 @@ def get_data(
         else:
             filt = [f'?{start}{end}']
 
-    alldata = []
-    header = None
+    alldata: list[list[DataValue]] = []
+    header: list[str] | None = None
 
     for f_str in filt:
         data_url = (
@@ -563,25 +620,25 @@ def get_data(
 
             parts = row_str.split('\t')
             if len(parts) >= 2:
-                key_parts = parts[0].split(',')
+                key_parts: list[DataValue] = list(parts[0].split(','))
                 values = parts[1:]
 
                 if flags:
-                    row_data = []
+                    row_data_flags: list[DataValue] = []
                     for val in values:
                         val = val.strip()
                         if val == ':' or val == '':
-                            row_data.extend([None, ''])
+                            row_data_flags.extend([None, ''])
                         elif ' ' in val:
                             v, f = val.split(' ', 1)
                             # Convert value to None if it's ":"
-                            v = None if v == ':' else v
-                            row_data.extend([v, f])
+                            v_clean: str | None = None if v == ':' else v
+                            row_data_flags.extend([v_clean, f])
                         else:
-                            row_data.extend([val, ''])
-                    alldata.append(key_parts + row_data)
+                            row_data_flags.extend([val, ''])
+                    alldata.append(key_parts + row_data_flags)
                 else:
-                    row_data = []
+                    row_data: list[DataValue] = []
                     for val in values:
                         val = val.strip()
                         # Handle missing data markers
@@ -609,7 +666,7 @@ def get_data(
     return {'columns': header, 'data': alldata}
 
 
-def setproxy(proxyinfo):
+def setproxy(proxyinfo: object) -> None:
     """Compatibility function for eurostat package interface."""
     pass
 
@@ -631,12 +688,15 @@ def gisco_request_blocking(url: str) -> bytes:
     _debug(f'GISCO blocking request: {url[:100]}...', '🗺')
     request = QNetworkRequest(QUrl(url))
     response = GLOBAL_SETTINGS.network_manager.blockingGet(request)
-    data = response.content().data()
+    # QGIS PyQt stubs return Any from content().data(); cast to bytes
+    data = cast(bytes, response.content().data())
     _debug(f'Received {len(data)} bytes', '✓')
     return data
 
 
-def gisco_request(url: str, manager=None):
+def gisco_request(
+    url: str, manager: QgsNetworkAccessManager | None = None
+) -> QNetworkReply:
     """Make an async HTTP GET request for GISCO data.
 
     Args:
