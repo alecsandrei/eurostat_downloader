@@ -110,12 +110,12 @@ from test.utilities import get_qgis_app
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 
-from eurostat_downloader.src.data import Unit
-from eurostat_downloader.src.eurostat_downloader import GISCOJoinReport
-from eurostat_downloader.src.ui.gisco_dataset_information import (
+from eurostat_downloader.src.data import Unit  # noqa: E402
+from eurostat_downloader.src.eurostat_downloader import GISCOJoinReport  # noqa: E402
+from eurostat_downloader.src.ui.gisco_dataset_information import (  # noqa: E402
     Ui_GISCODatasetInformation,
 )
-from eurostat_downloader.src.ui.gisco_join_report import Ui_GISCOJoinReport
+from eurostat_downloader.src.ui.gisco_join_report import Ui_GISCOJoinReport  # noqa: E402
 
 
 class TestGISCOJoinReport(unittest.TestCase):

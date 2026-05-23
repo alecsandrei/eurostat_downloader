@@ -58,9 +58,9 @@ from test.utilities import get_qgis_app
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 
-from eurostat_downloader.src import data as data_module
-from eurostat_downloader.src.data import Database
-from eurostat_downloader.src.enums import Agency, Language
+from eurostat_downloader.src import data as data_module  # noqa: E402
+from eurostat_downloader.src.data import Database  # noqa: E402
+from eurostat_downloader.src.enums import Agency, Language  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

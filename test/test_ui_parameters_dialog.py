@@ -107,11 +107,11 @@ from qgis.PyQt.QtCore import qVersion
 
 _PYQT5 = qVersion().startswith('5')
 
-from test.utilities import get_qgis_app
+from test.utilities import get_qgis_app  # noqa: E402
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 
-from eurostat_downloader.src.eurostat_downloader import ParameterSectionDialog
+from eurostat_downloader.src.eurostat_downloader import ParameterSectionDialog  # noqa: E402
 
 
 def _make_base(

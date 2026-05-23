@@ -5,8 +5,8 @@ Integration test for data.py without hitting the real Eurostat API.
 Uses mocked responses to test the refactored pandas-free implementation.
 """
 
-import sys
-from unittest.mock import MagicMock, patch
+import sys  # noqa: E402
+from unittest.mock import MagicMock, patch  # noqa: E402
 
 # Mock QGIS modules before importing our code
 sys.modules['qgis'] = MagicMock()
@@ -17,8 +17,8 @@ sys.modules['qgis.PyQt.QtNetwork'] = MagicMock()
 sys.modules['qgis.PyQt.QtWidgets'] = MagicMock()
 sys.modules['qgis.PyQt.QtGui'] = MagicMock()
 
-from eurostat_downloader.src.data import Database, Dataset
-from eurostat_downloader.src.enums import Language
+from eurostat_downloader.src.data import Database, Dataset  # noqa: E402
+from eurostat_downloader.src.enums import Language  # noqa: E402
 
 
 def test_database_toc():

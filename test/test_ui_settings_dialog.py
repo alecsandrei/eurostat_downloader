@@ -90,13 +90,13 @@ from qgis.PyQt.QtCore import qVersion
 
 _PYQT5 = qVersion().startswith('5')
 
-from test.utilities import get_qgis_app
+from test.utilities import get_qgis_app  # noqa: E402
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 
-from eurostat_downloader.src.eurostat_downloader import SettingsDialog
-from eurostat_downloader.src.enums import Agency
-from eurostat_downloader.src.settings import GLOBAL_SETTINGS
+from eurostat_downloader.src.eurostat_downloader import SettingsDialog  # noqa: E402
+from eurostat_downloader.src.enums import Agency  # noqa: E402
+from eurostat_downloader.src.settings import GLOBAL_SETTINGS  # noqa: E402
 
 
 @unittest.skipIf(

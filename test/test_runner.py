@@ -16,14 +16,14 @@ from pathlib import Path
 TEST_DIR = Path(__file__).parent
 sys.path.insert(0, str(TEST_DIR.parent))
 
-from test.utilities import get_qgis_app
+from test.utilities import get_qgis_app  # noqa: E402
 
 # Initialize QGIS application
 QGIS_APP = get_qgis_app()
 
 # Import all test modules
 # Note: test_data and test_integration require pandas and are excluded
-from test import (
+from test import (  # noqa: E402
     test_enums,
     test_init,
     test_qgis_environment,

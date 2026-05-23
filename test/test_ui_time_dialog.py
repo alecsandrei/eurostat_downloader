@@ -113,11 +113,11 @@ from qgis.PyQt.QtCore import qVersion
 
 _PYQT5 = qVersion().startswith('5')
 
-from test.utilities import get_qgis_app
+from test.utilities import get_qgis_app  # noqa: E402
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 
-from eurostat_downloader.src.eurostat_downloader import TimeSectionDialog
+from eurostat_downloader.src.eurostat_downloader import TimeSectionDialog  # noqa: E402
 
 
 def _make_base(frequency: str, date_columns, filterer_columns=None):
