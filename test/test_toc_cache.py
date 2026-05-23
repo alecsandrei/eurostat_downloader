@@ -52,6 +52,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from test.utilities import get_qgis_app
@@ -59,38 +60,38 @@ from test.utilities import get_qgis_app
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 
 from eurostat_downloader.src import data as data_module  # noqa: E402
-from eurostat_downloader.src.data import Database  # noqa: E402
+from eurostat_downloader.src.data import Database, TableOfContents, TocRow  # noqa: E402
 from eurostat_downloader.src.enums import Agency, Language  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
 # Synthetic fixtures
 # ---------------------------------------------------------------------------
-SYNTHETIC_TOC_ROWS = [
+SYNTHETIC_TOC_ROWS: list[TocRow] = [
     {'code': 'A', 'title': 'Category A', 'level': 0, 'type': 'folder'},
     {'code': 'A1', 'title': 'Dataset A1', 'level': 1, 'type': 'dataset'},
 ]
 
 
-def _make_synthetic_toc():
+def _make_synthetic_toc() -> TableOfContents:
     """Return a fresh ``_toc`` dict matching ``TableOfContents`` shape."""
     return {
         Agency.EUROSTAT: {
-            Language.ENGLISH: [dict(row) for row in SYNTHETIC_TOC_ROWS],
+            Language.ENGLISH: [cast(TocRow, dict(row)) for row in SYNTHETIC_TOC_ROWS],
         }
     }
 
 
-def _make_synthetic_cache_json():
+def _make_synthetic_cache_json() -> dict[str, dict[str, list[TocRow]]]:
     """Return the on-disk JSON representation of the synthetic TOC."""
     return {
         Agency.EUROSTAT.name: {
-            Language.ENGLISH.name: [dict(row) for row in SYNTHETIC_TOC_ROWS],
+            Language.ENGLISH.name: [cast(TocRow, dict(row)) for row in SYNTHETIC_TOC_ROWS],
         }
     }
 
 
-class _TempCacheMixin:
+class _TempCacheMixin(unittest.TestCase):
     """Mixin providing a temp dir that mimics ``PACKAGE_DIR.parent`` layout.
 
     Sets ``self.tmp_root`` (acts as ``PACKAGE_DIR.parent``) and
@@ -98,9 +99,13 @@ class _TempCacheMixin:
     ``PACKAGE_DIR.parent / 'assets' / 'eurostat_cache'`` lands inside the
     temp tree. The ``assets`` dir is pre-created because the production
     code uses ``mkdir(exist_ok=True)`` without ``parents=True``.
+
+    Note: inherits from ``TestCase`` so ``addCleanup`` is recognised by
+    static type checkers; subclasses are still plain ``TestCase`` subclasses
+    via Python's MRO.
     """
 
-    def _setup_temp_cache(self):
+    def _setup_temp_cache(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.tmp_root = Path(self._tmp.name)
@@ -109,13 +114,13 @@ class _TempCacheMixin:
         (self.tmp_root / 'assets').mkdir()
 
 
-class TestTocCachePath(_TempCacheMixin, unittest.TestCase):
+class TestTocCachePath(_TempCacheMixin):
     """Path-construction behaviour of ``Database.__post_init__``."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._setup_temp_cache()
 
-    def test_cache_path_uses_today_date(self):
+    def test_cache_path_uses_today_date(self) -> None:
         """Filename is templated with today's date in ISO-8601 form."""
         fixed_today = datetime(2026, 5, 23, 12, 0, 0)
         mock_dt = MagicMock()
@@ -127,7 +132,7 @@ class TestTocCachePath(_TempCacheMixin, unittest.TestCase):
             db._cache_path.name, 'eurostat_toc_2026-05-23.json'
         )
 
-    def test_cache_path_parent_is_created(self):
+    def test_cache_path_parent_is_created(self) -> None:
         """``__post_init__`` ensures the ``eurostat_cache`` dir exists."""
         cache_dir = self.tmp_root / 'assets' / 'eurostat_cache'
         self.assertFalse(cache_dir.exists())
@@ -136,7 +141,7 @@ class TestTocCachePath(_TempCacheMixin, unittest.TestCase):
         self.assertTrue(cache_dir.exists())
         self.assertEqual(db._cache_path.parent, cache_dir)
 
-    def test_cache_path_under_package_parent(self):
+    def test_cache_path_under_package_parent(self) -> None:
         """Cache lives under ``PACKAGE_DIR.parent/assets/eurostat_cache``."""
         with patch.object(data_module, 'PACKAGE_DIR', self.fake_package_dir):
             db = Database()
@@ -146,15 +151,15 @@ class TestTocCachePath(_TempCacheMixin, unittest.TestCase):
         )
 
 
-class TestTocCacheWrite(_TempCacheMixin, unittest.TestCase):
+class TestTocCacheWrite(_TempCacheMixin):
     """``Database.cache_toc`` serialisation behaviour."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._setup_temp_cache()
         with patch.object(data_module, 'PACKAGE_DIR', self.fake_package_dir):
             self.db = Database()
 
-    def test_cache_write_serializes_toc_to_json(self):
+    def test_cache_write_serializes_toc_to_json(self) -> None:
         """A populated ``_toc`` round-trips into a JSON file with enum names."""
         self.db._toc = _make_synthetic_toc()
         self.db.cache_toc()
@@ -173,7 +178,7 @@ class TestTocCacheWrite(_TempCacheMixin, unittest.TestCase):
         rows = parsed[Agency.EUROSTAT.name][Language.ENGLISH.name]
         self.assertEqual(rows, SYNTHETIC_TOC_ROWS)
 
-    def test_cache_write_empty_toc_produces_empty_object(self):
+    def test_cache_write_empty_toc_produces_empty_object(self) -> None:
         """An empty ``_toc`` writes a valid empty-dict JSON file."""
         self.db._toc = {}
         self.db.cache_toc()
@@ -181,7 +186,7 @@ class TestTocCacheWrite(_TempCacheMixin, unittest.TestCase):
             parsed = json.load(f)
         self.assertEqual(parsed, {})
 
-    def test_cache_write_overwrites_existing_file(self):
+    def test_cache_write_overwrites_existing_file(self) -> None:
         """Writing replaces any prior contents at the cache path."""
         self.db._cache_path.write_text('stale garbage', encoding='utf-8')
         self.db._toc = _make_synthetic_toc()
@@ -191,19 +196,19 @@ class TestTocCacheWrite(_TempCacheMixin, unittest.TestCase):
         self.assertIn(Agency.EUROSTAT.name, parsed)
 
 
-class TestTocCacheRead(_TempCacheMixin, unittest.TestCase):
+class TestTocCacheRead(_TempCacheMixin):
     """``Database._load_toc_from_cache`` deserialisation behaviour."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._setup_temp_cache()
         with patch.object(data_module, 'PACKAGE_DIR', self.fake_package_dir):
             self.db = Database()
 
-    def _write_cache(self, payload):
+    def _write_cache(self, payload: dict[str, dict[str, list[TocRow]]]) -> None:
         with open(self.db._cache_path, 'w', encoding='utf-8') as f:
             json.dump(payload, f)
 
-    def test_cache_read_reconstructs_enum_keys(self):
+    def test_cache_read_reconstructs_enum_keys(self) -> None:
         """JSON string keys become ``Agency`` / ``Language`` enum members."""
         self._write_cache(_make_synthetic_cache_json())
         self.db._load_toc_from_cache()
@@ -213,7 +218,7 @@ class TestTocCacheRead(_TempCacheMixin, unittest.TestCase):
         rows = self.db._toc[Agency.EUROSTAT][Language.ENGLISH]
         self.assertEqual(rows, SYNTHETIC_TOC_ROWS)
 
-    def test_cache_read_missing_file_raises_file_not_found(self):
+    def test_cache_read_missing_file_raises_file_not_found(self) -> None:
         """Reading a non-existent cache file raises ``FileNotFoundError``.
 
         The production code does not guard inside ``_load_toc_from_cache``;
@@ -223,13 +228,13 @@ class TestTocCacheRead(_TempCacheMixin, unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.db._load_toc_from_cache()
 
-    def test_cache_read_malformed_json_raises(self):
+    def test_cache_read_malformed_json_raises(self) -> None:
         """Malformed JSON propagates ``json.JSONDecodeError``."""
         self.db._cache_path.write_text('{not valid json', encoding='utf-8')
         with self.assertRaises(json.JSONDecodeError):
             self.db._load_toc_from_cache()
 
-    def test_cache_read_unknown_agency_raises_key_error(self):
+    def test_cache_read_unknown_agency_raises_key_error(self) -> None:
         """Unknown enum names cause a ``KeyError`` during reconstruction."""
         self._write_cache(
             {'NOT_AN_AGENCY': {Language.ENGLISH.name: []}}
@@ -237,14 +242,14 @@ class TestTocCacheRead(_TempCacheMixin, unittest.TestCase):
         with self.assertRaises(KeyError):
             self.db._load_toc_from_cache()
 
-    def test_cache_read_unknown_language_raises_key_error(self):
+    def test_cache_read_unknown_language_raises_key_error(self) -> None:
         self._write_cache(
             {Agency.EUROSTAT.name: {'NOT_A_LANG': []}}
         )
         with self.assertRaises(KeyError):
             self.db._load_toc_from_cache()
 
-    def test_cache_round_trip(self):
+    def test_cache_round_trip(self) -> None:
         """Write then read yields the original in-memory structure."""
         self.db._toc = _make_synthetic_toc()
         self.db.cache_toc()
@@ -258,15 +263,15 @@ class TestTocCacheRead(_TempCacheMixin, unittest.TestCase):
         self.assertEqual(other._toc, _make_synthetic_toc())
 
 
-class TestTocCacheDebugGating(_TempCacheMixin, unittest.TestCase):
+class TestTocCacheDebugGating(_TempCacheMixin):
     """``Database.initialize_toc`` interaction with the ``DEBUG`` flag."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._setup_temp_cache()
         with patch.object(data_module, 'PACKAGE_DIR', self.fake_package_dir):
             self.db = Database()
 
-    def test_debug_mode_loads_from_cache_when_exists(self):
+    def test_debug_mode_loads_from_cache_when_exists(self) -> None:
         """With DEBUG on and a cache file present, ``initialize_toc`` reads it.
 
         Network fetches must NOT happen in this code path; we assert by
@@ -281,7 +286,7 @@ class TestTocCacheDebugGating(_TempCacheMixin, unittest.TestCase):
             side_effect=AssertionError('fetch.get_toc must not be called')
         )
         with patch.object(data_module, 'DEBUG', True), \
-                patch.object(data_module.fetch, 'get_toc', fake_fetch):
+                patch('eurostat_downloader.src.data.fetch.get_toc', fake_fetch):
             self.db.initialize_toc()
 
         fake_fetch.assert_not_called()
@@ -291,13 +296,13 @@ class TestTocCacheDebugGating(_TempCacheMixin, unittest.TestCase):
             SYNTHETIC_TOC_ROWS,
         )
 
-    def test_debug_mode_writes_cache_when_missing(self):
+    def test_debug_mode_writes_cache_when_missing(self) -> None:
         """With DEBUG on but no cache file, fetches run and write_cache happens."""
         self.assertFalse(self.db._cache_path.exists())
 
         fake_fetch = MagicMock(return_value=list(SYNTHETIC_TOC_ROWS))
         with patch.object(data_module, 'DEBUG', True), \
-                patch.object(data_module.fetch, 'get_toc', fake_fetch):
+                patch('eurostat_downloader.src.data.fetch.get_toc', fake_fetch):
             self.db.initialize_toc()
 
         self.assertTrue(fake_fetch.called)
@@ -310,13 +315,13 @@ class TestTocCacheDebugGating(_TempCacheMixin, unittest.TestCase):
         # Every (language, agency) pair attempted should have produced a key.
         self.assertIn(Agency.EUROSTAT.name, on_disk)
 
-    def test_non_debug_does_not_write_cache(self):
+    def test_non_debug_does_not_write_cache(self) -> None:
         """With DEBUG off, fetches run but no cache file is written."""
         self.assertFalse(self.db._cache_path.exists())
 
         fake_fetch = MagicMock(return_value=list(SYNTHETIC_TOC_ROWS))
         with patch.object(data_module, 'DEBUG', False), \
-                patch.object(data_module.fetch, 'get_toc', fake_fetch):
+                patch('eurostat_downloader.src.data.fetch.get_toc', fake_fetch):
             self.db.initialize_toc()
 
         self.assertTrue(fake_fetch.called)
@@ -325,7 +330,7 @@ class TestTocCacheDebugGating(_TempCacheMixin, unittest.TestCase):
             'Non-DEBUG mode must not write a cache file',
         )
 
-    def test_non_debug_ignores_existing_cache(self):
+    def test_non_debug_ignores_existing_cache(self) -> None:
         """With DEBUG off, an existing cache file is not consulted."""
         # Pre-populate a sentinel cache that, if loaded, would set _toc.
         with open(self.db._cache_path, 'w', encoding='utf-8') as f:
@@ -346,7 +351,7 @@ class TestTocCacheDebugGating(_TempCacheMixin, unittest.TestCase):
         fetched_rows = [{'code': 'FROM_FETCH', 'title': 'fresh'}]
         fake_fetch = MagicMock(return_value=list(fetched_rows))
         with patch.object(data_module, 'DEBUG', False), \
-                patch.object(data_module.fetch, 'get_toc', fake_fetch):
+                patch('eurostat_downloader.src.data.fetch.get_toc', fake_fetch):
             self.db.initialize_toc()
 
         # Network path was taken.

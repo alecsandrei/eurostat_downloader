@@ -11,7 +11,7 @@ from src import fetch
 class TestFetchModule(unittest.TestCase):
     """Test cases for the fetch module."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_toc_data = {
             'link': {
@@ -43,7 +43,7 @@ class TestFetchModule(unittest.TestCase):
         }
 
     @patch('src.fetch._retry_request')
-    def test_get_toc_success(self, mock_retry):
+    def test_get_toc_success(self, mock_retry: MagicMock) -> None:
         """Test successful TOC retrieval."""
         compressed_data = gzip.compress(
             json.dumps(self.mock_toc_data).encode('utf-8')
@@ -60,7 +60,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertEqual(result[0]['data end'], '2024')
 
     @patch('src.fetch._retry_request')
-    def test_get_toc_connection_error(self, mock_retry):
+    def test_get_toc_connection_error(self, mock_retry: MagicMock) -> None:
         """Test TOC retrieval with connection error."""
         mock_retry.return_value = None
 
@@ -68,7 +68,7 @@ class TestFetchModule(unittest.TestCase):
             fetch.get_toc(agency='EUROSTAT', lang='en')
 
     @patch('src.fetch._retry_request')
-    def test_get_pars_success(self, mock_retry):
+    def test_get_pars_success(self, mock_retry: MagicMock) -> None:
         """Test getting dataset parameters."""
         mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
@@ -123,7 +123,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertIn('time', pars)
 
     @patch('src.fetch._retry_request')
-    def test_get_pars_dataset_not_found(self, mock_retry):
+    def test_get_pars_dataset_not_found(self, mock_retry: MagicMock) -> None:
         """Test get_pars with non-existent dataset."""
         mock_retry.return_value = None
 
@@ -131,7 +131,7 @@ class TestFetchModule(unittest.TestCase):
             fetch.get_pars('NONEXISTENT')
 
     @patch('src.fetch._retry_request')
-    def test_get_dic_success(self, mock_retry):
+    def test_get_dic_success(self, mock_retry: MagicMock) -> None:
         """Test getting dimension dictionary."""
         mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
@@ -183,7 +183,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertEqual(dic[1], ('FR', 'France'))
 
     @patch('src.fetch._retry_request')
-    def test_get_dic_invalid_parameter(self, mock_retry):
+    def test_get_dic_invalid_parameter(self, mock_retry: MagicMock) -> None:
         """Test get_dic with invalid parameter name."""
         mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
@@ -229,7 +229,7 @@ class TestFetchModule(unittest.TestCase):
             )
 
     @patch('src.fetch._retry_request')
-    def test_get_data_success(self, mock_retry):
+    def test_get_data_success(self, mock_retry: MagicMock) -> None:
         """Test downloading dataset."""
         mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
@@ -281,7 +281,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertGreater(len(result['data']), 0)
 
     @patch('src.fetch._retry_request')
-    def test_get_data_with_filters(self, mock_retry):
+    def test_get_data_with_filters(self, mock_retry: MagicMock) -> None:
         """Test downloading dataset with filters."""
         mock_df_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
         <message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
@@ -334,7 +334,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertIn('data', result)
 
     @patch('src.fetch.QgsNetworkAccessManager')
-    def test_blocking_request_success(self, mock_qgs_manager):
+    def test_blocking_request_success(self, mock_qgs_manager: MagicMock) -> None:
         """Test successful blocking request."""
         mock_manager = MagicMock()
         mock_reply = MagicMock()
@@ -350,7 +350,7 @@ class TestFetchModule(unittest.TestCase):
         mock_reply.deleteLater.assert_called_once()
 
     @patch('src.fetch.QgsNetworkAccessManager')
-    def test_blocking_request_error(self, mock_qgs_manager):
+    def test_blocking_request_error(self, mock_qgs_manager: MagicMock) -> None:
         """Test blocking request with network error."""
         mock_manager = MagicMock()
         mock_reply = MagicMock()
@@ -365,7 +365,7 @@ class TestFetchModule(unittest.TestCase):
         mock_reply.deleteLater.assert_called_once()
 
     @patch('src.fetch._blocking_request')
-    def test_retry_request_success_first_attempt(self, mock_blocking):
+    def test_retry_request_success_first_attempt(self, mock_blocking: MagicMock) -> None:
         """Test retry succeeds on first attempt."""
         mock_blocking.return_value = b'success'
 
@@ -375,7 +375,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertEqual(mock_blocking.call_count, 1)
 
     @patch('src.fetch._blocking_request')
-    def test_retry_request_success_after_retries(self, mock_blocking):
+    def test_retry_request_success_after_retries(self, mock_blocking: MagicMock) -> None:
         """Test retry succeeds after multiple attempts."""
         mock_blocking.side_effect = [None, None, b'success']
 
@@ -385,7 +385,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertEqual(mock_blocking.call_count, 3)
 
     @patch('src.fetch._blocking_request')
-    def test_retry_request_max_attempts_exceeded(self, mock_blocking):
+    def test_retry_request_max_attempts_exceeded(self, mock_blocking: MagicMock) -> None:
         """Test retry fails after max attempts."""
         mock_blocking.return_value = None
 
@@ -395,7 +395,7 @@ class TestFetchModule(unittest.TestCase):
         self.assertEqual(mock_blocking.call_count, 4)
 
     @patch('src.fetch._blocking_request')
-    def test_retry_request_server_unavailable(self, mock_blocking):
+    def test_retry_request_server_unavailable(self, mock_blocking: MagicMock) -> None:
         """Test retry with server unavailable error."""
         mock_blocking.return_value = b'https://sorry.ec.europa.eu/'
 
@@ -404,7 +404,7 @@ class TestFetchModule(unittest.TestCase):
 
         self.assertIn('temporarily unavailable', str(ctx.exception))
 
-    def test_compatibility_functions(self):
+    def test_compatibility_functions(self) -> None:
         """Test compatibility functions for eurostat package interface."""
         fetch.set_requests_args(timeout=60, verify=False)
         args = fetch.get_requests_args()
@@ -416,7 +416,7 @@ class TestFetchModule(unittest.TestCase):
 class TestGetTocFlat(unittest.TestCase):
     """Test cases for the legacy flat TOC parser (`get_toc_flat`)."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Build a synthetic JSON TOC payload like the SDMX dataflow endpoint."""
         self.mock_toc_data = {
             'link': {
@@ -470,7 +470,7 @@ class TestGetTocFlat(unittest.TestCase):
         }
 
     @patch('src.fetch._retry_request')
-    def test_get_toc_flat_success(self, mock_retry):
+    def test_get_toc_flat_success(self, mock_retry: MagicMock) -> None:
         """Returns a flat list of dicts with the legacy 7-field shape."""
         mock_retry.return_value = gzip.compress(
             json.dumps(self.mock_toc_data).encode('utf-8')
@@ -502,7 +502,7 @@ class TestGetTocFlat(unittest.TestCase):
         self.assertEqual(first['data end'], '2023')
 
     @patch('src.fetch._retry_request')
-    def test_get_toc_flat_multiple_items(self, mock_retry):
+    def test_get_toc_flat_multiple_items(self, mock_retry: MagicMock) -> None:
         """Every item from the payload is preserved in order."""
         mock_retry.return_value = gzip.compress(
             json.dumps(self.mock_toc_data).encode('utf-8')
@@ -516,7 +516,7 @@ class TestGetTocFlat(unittest.TestCase):
         self.assertEqual(result[1]['data end'], '2022')
 
     @patch('src.fetch._retry_request')
-    def test_get_toc_flat_connection_error(self, mock_retry):
+    def test_get_toc_flat_connection_error(self, mock_retry: MagicMock) -> None:
         """`None` from the network layer surfaces as ConnectionError."""
         mock_retry.return_value = None
 
@@ -524,7 +524,7 @@ class TestGetTocFlat(unittest.TestCase):
             fetch.get_toc_flat(agency='EUROSTAT', lang='en')
 
     @patch('src.fetch._retry_request')
-    def test_get_toc_flat_missing_annotations(self, mock_retry):
+    def test_get_toc_flat_missing_annotations(self, mock_retry: MagicMock) -> None:
         """Annotations are optional fields; missing ones stay as None."""
         sparse_payload = {
             'link': {
@@ -554,7 +554,7 @@ class TestGetTocFlat(unittest.TestCase):
         self.assertIsNone(result[0]['data end'])
 
     @patch('src.fetch._retry_request')
-    def test_get_toc_flat_uses_agency_base_url(self, mock_retry):
+    def test_get_toc_flat_uses_agency_base_url(self, mock_retry: MagicMock) -> None:
         """The agency parameter selects the matching BASE_URL entry."""
         mock_retry.return_value = gzip.compress(
             json.dumps({'link': {'item': []}}).encode('utf-8')
@@ -574,8 +574,8 @@ class TestGiscoRequestBlocking(unittest.TestCase):
 
     @patch('src.settings.GLOBAL_SETTINGS')
     def test_gisco_request_blocking_returns_payload_bytes(
-        self, mock_global_settings
-    ):
+        self, mock_global_settings: MagicMock
+    ) -> None:
         """Returns the raw bytes from response.content().data()."""
         payload = b'{"type":"FeatureCollection","features":[]}'
         mock_response = MagicMock()
@@ -592,8 +592,8 @@ class TestGiscoRequestBlocking(unittest.TestCase):
 
     @patch('src.settings.GLOBAL_SETTINGS')
     def test_gisco_request_blocking_calls_blocking_get_once(
-        self, mock_global_settings
-    ):
+        self, mock_global_settings: MagicMock
+    ) -> None:
         """blockingGet is called exactly once with a QNetworkRequest."""
         from qgis.PyQt.QtNetwork import QNetworkRequest
 
@@ -615,7 +615,7 @@ class TestGiscoRequestBlocking(unittest.TestCase):
         )
 
     @patch('src.settings.GLOBAL_SETTINGS')
-    def test_gisco_request_blocking_empty_body(self, mock_global_settings):
+    def test_gisco_request_blocking_empty_body(self, mock_global_settings: MagicMock) -> None:
         """An empty response body still returns bytes (no crash)."""
         mock_response = MagicMock()
         mock_response.content.return_value.data.return_value = b''
@@ -629,8 +629,8 @@ class TestGiscoRequestBlocking(unittest.TestCase):
 
     @patch('src.settings.GLOBAL_SETTINGS')
     def test_gisco_request_blocking_propagates_manager_exception(
-        self, mock_global_settings
-    ):
+        self, mock_global_settings: MagicMock
+    ) -> None:
         """If the QGIS manager raises, the exception bubbles up.
 
         `gisco_request_blocking` has no try/except — failures from the
@@ -648,7 +648,7 @@ class TestGiscoRequest(unittest.TestCase):
     """Test cases for the GISCO async wrapper."""
 
     @patch('src.settings.GLOBAL_SETTINGS')
-    def test_gisco_request_returns_manager_reply(self, mock_global_settings):
+    def test_gisco_request_returns_manager_reply(self, mock_global_settings: MagicMock) -> None:
         """The QNetworkReply returned by manager.get() is passed through."""
         mock_reply = MagicMock(name='QNetworkReply')
         mock_global_settings.network_manager.get.return_value = mock_reply
@@ -658,7 +658,7 @@ class TestGiscoRequest(unittest.TestCase):
         self.assertIs(result, mock_reply)
 
     @patch('src.settings.GLOBAL_SETTINGS')
-    def test_gisco_request_uses_default_manager(self, mock_global_settings):
+    def test_gisco_request_uses_default_manager(self, mock_global_settings: MagicMock) -> None:
         """When no manager is provided, GLOBAL_SETTINGS.network_manager is used."""
         from qgis.PyQt.QtNetwork import QNetworkRequest
 
@@ -676,7 +676,7 @@ class TestGiscoRequest(unittest.TestCase):
         )
 
     @patch('src.settings.GLOBAL_SETTINGS')
-    def test_gisco_request_uses_custom_manager(self, mock_global_settings):
+    def test_gisco_request_uses_custom_manager(self, mock_global_settings: MagicMock) -> None:
         """A caller-supplied manager bypasses GLOBAL_SETTINGS entirely."""
         custom_manager = MagicMock(name='CustomManager')
         custom_reply = MagicMock(name='CustomReply')
@@ -692,8 +692,8 @@ class TestGiscoRequest(unittest.TestCase):
 
     @patch('src.settings.GLOBAL_SETTINGS')
     def test_gisco_request_propagates_manager_exception(
-        self, mock_global_settings
-    ):
+        self, mock_global_settings: MagicMock
+    ) -> None:
         """`gisco_request` has no error handling; exceptions bubble up."""
         mock_global_settings.network_manager.get.side_effect = RuntimeError(
             'manager unavailable'

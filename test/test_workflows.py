@@ -30,6 +30,8 @@ Covered workflows
   ``QgsVectorLayer`` is produced with attributes from both sides.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2026-05-23'
 
@@ -52,6 +54,8 @@ from qgis.core import (  # noqa: E402
 from eurostat_downloader.src.data import (  # noqa: E402
     Database,
     Dataset,
+    DatasetPayload,
+    TocRow,
     Unit,
 )
 from eurostat_downloader.src.enums import Agency, Language  # noqa: E402
@@ -67,23 +71,22 @@ from eurostat_downloader.src.eurostat_downloader import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
-def _make_synthetic_database(code: str = 'TEST_DATA', title: str = 'Test Dataset'):
+def _make_synthetic_database(code: str = 'TEST_DATA', title: str = 'Test Dataset') -> Database:
     """Build a ``Database`` with a single synthetic TOC entry, no I/O."""
     db = Database(lang=Language.ENGLISH)
+    toc_row: TocRow = {
+        'title': title,
+        'code': code,
+        'type': 'dataset',
+        'level': 0,
+        'last update of data': '2024-01-15',
+        'last table structure change': '2023-12-01',
+        'data start': '2020',
+        'data end': '2023',
+    }
     db._toc = {
         Agency.EUROSTAT: {
-            Language.ENGLISH: [
-                {
-                    'title': title,
-                    'code': code,
-                    'type': 'dataset',
-                    'level': 0,
-                    'last update of data': '2024-01-15',
-                    'last table structure change': '2023-12-01',
-                    'data start': '2020',
-                    'data end': '2023',
-                }
-            ]
+            Language.ENGLISH: [toc_row]
         }
     }
     return db
@@ -92,7 +95,7 @@ def _make_synthetic_database(code: str = 'TEST_DATA', title: str = 'Test Dataset
 def _make_synthetic_dataset(
     db: Database,
     code: str = 'TEST_DATA',
-    data: dict | None = None,
+    data: DatasetPayload | None = None,
     params: list[str] | None = None,
 ) -> Dataset:
     """Construct a ``Dataset`` and directly populate its internal fields.
@@ -117,7 +120,7 @@ def _make_synthetic_dataset(
 
 
 def _make_synthetic_dialog(
-    dataset_data: dict | None = None,
+    dataset_data: DatasetPayload | None = None,
     dataset_params: list[str] | None = None,
     dataset_code: str = 'TEST_DATA',
 ) -> tuple[EurostatDownloader, Dialog, Database, Dataset]:
@@ -152,7 +155,7 @@ def _make_synthetic_dialog(
 class TestDatasetSelectionWorkflow(unittest.TestCase):
     """Dataset -> Dialog -> preview table / join-field combo end-to-end."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Guard against any code path that might pop a modal dialog.
         # Dialog.__init__ never calls exec(), but defensive patching is
         # cheap and prevents a stray dialog from blocking the test process.
@@ -168,13 +171,13 @@ class TestDatasetSelectionWorkflow(unittest.TestCase):
             self.dataset,
         ) = _make_synthetic_dialog()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._exec_patcher.stop()
         self.dialog.deleteLater()
-        self.dialog = None
-        self.plugin = None
+        self.dialog = None  # type: ignore[assignment]
+        self.plugin = None  # type: ignore[assignment]
 
-    def test_update_model_populates_preview_table(self):
+    def test_update_model_populates_preview_table(self) -> None:
         """``Dialog.update_model`` must wire the synthetic data into the
         ``tableDataset`` view via ``DatasetModel.table_model``."""
         self.dialog.update_model()
@@ -191,7 +194,7 @@ class TestDatasetSelectionWorkflow(unittest.TestCase):
 
         self.assertIsNotNone(self.dialog.ui.tableDataset.model())
 
-    def test_set_table_join_fields_populates_combo(self):
+    def test_set_table_join_fields_populates_combo(self) -> None:
         """The join-field combo is populated from ``dataset.params``."""
         # Mirror the production flow: the DatasetInitializer's
         # ``finished`` signal calls ``set_table_join_fields`` once the
@@ -202,7 +205,7 @@ class TestDatasetSelectionWorkflow(unittest.TestCase):
         items = [combo.itemText(i) for i in range(combo.count())]
         self.assertEqual(items, ['geo', 'sex'])
 
-    def test_get_current_table_join_field_returns_selection(self):
+    def test_get_current_table_join_field_returns_selection(self) -> None:
         """The dialog's ``get_current_table_join_field`` helper returns
         whatever the combo currently shows -- needed for downstream join."""
         self.dialog.set_table_join_fields()
@@ -210,11 +213,12 @@ class TestDatasetSelectionWorkflow(unittest.TestCase):
         self.dialog.set_table_join_field_default()
         self.assertEqual(self.dialog.get_current_table_join_field(), 'geo')
 
-    def test_preview_model_reads_filtered_data(self):
+    def test_preview_model_reads_filtered_data(self) -> None:
         """When ``update_model`` runs, the filterer's ``apply_filters``
         result is what feeds the table model -- so applying a row filter
         on ``geo`` must shrink the visible rows."""
         # Limit to just Belgium.
+        assert self.dialog.filterer is not None
         self.dialog.filterer.add_row_filters({'geo': ['BE']})
         self.dialog.update_model()
 
@@ -232,7 +236,7 @@ class TestDatasetSelectionWorkflow(unittest.TestCase):
 class TestConvertToLayerWorkflow(unittest.TestCase):
     """``QgsConverter.from_data_dict`` for the shapes the plugin sees."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._exec_patcher = patch(
             'qgis.PyQt.QtWidgets.QDialog.exec', return_value=0
         )
@@ -245,16 +249,16 @@ class TestConvertToLayerWorkflow(unittest.TestCase):
             self.dataset,
         ) = _make_synthetic_dialog()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._exec_patcher.stop()
         self.dialog.deleteLater()
-        self.dialog = None
-        self.plugin = None
+        self.dialog = None  # type: ignore[assignment]
+        self.plugin = None  # type: ignore[assignment]
 
-    def _field_types(self, layer: QgsVectorLayer) -> list:
+    def _field_types(self, layer: QgsVectorLayer) -> list[int]:
         return [layer.fields().at(i).type() for i in range(layer.fields().count())]
 
-    def test_numeric_data_produces_int_and_double_fields(self):
+    def test_numeric_data_produces_int_and_double_fields(self) -> None:
         """Int + float columns get inferred as Int + Double respectively."""
         columns = ['geo_id', 'value']
         rows = [[1, 2.5], [3, 4.0], [5, 6.0]]
@@ -270,7 +274,7 @@ class TestConvertToLayerWorkflow(unittest.TestCase):
         self.assertEqual(types[0], QtCore.QMetaType.Type.Int)
         self.assertEqual(types[1], QtCore.QMetaType.Type.Double)
 
-    def test_all_string_data_crash_repro_produces_qstring_fields(self):
+    def test_all_string_data_crash_repro_produces_qstring_fields(self) -> None:
         """Regression: all-string columns must produce ``QString`` fields.
 
         This is the exact path that hit ``QgsConverter.dtype_mapper``'s
@@ -296,7 +300,7 @@ class TestConvertToLayerWorkflow(unittest.TestCase):
         self.assertEqual(feats[0].attributes(), ['A', 'X'])
         self.assertEqual(feats[2].attributes(), ['C', 'Z'])
 
-    def test_eurostat_style_mixed_columns(self):
+    def test_eurostat_style_mixed_columns(self) -> None:
         """Eurostat data shape: geo codes (str) + sex codes (str) + yearly
         values (numeric-as-string -> inferred as Int by ``dtype_mapper``)."""
         columns = ['geo', 'sex', '2020', '2021']
@@ -320,7 +324,7 @@ class TestConvertToLayerWorkflow(unittest.TestCase):
         self.assertEqual(types[2], QtCore.QMetaType.Type.Int)
         self.assertEqual(types[3], QtCore.QMetaType.Type.Int)
 
-    def test_layer_name_matches_dataset_code(self):
+    def test_layer_name_matches_dataset_code(self) -> None:
         """``from_data_dict`` names the layer after the bound dataset code
         (used in ``Exporter.add_table`` when registering the layer in QGIS)."""
         layer = self.dialog.converter.from_data_dict(
@@ -339,7 +343,7 @@ class TestConvertToLayerWorkflow(unittest.TestCase):
 class TestGISCOJoinWorkflow(unittest.TestCase):
     """``GISCOHandler.join_data`` end-to-end with synthetic features."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._exec_patcher = patch(
             'qgis.PyQt.QtWidgets.QDialog.exec', return_value=0
         )
@@ -348,7 +352,7 @@ class TestGISCOJoinWorkflow(unittest.TestCase):
         # Eurostat dataset bound to the dialog -- this is the *attribute*
         # side of the join. Geo codes BE/FR/DE align with the synthetic
         # GISCO polygons built below.
-        eurostat_data = {
+        eurostat_data: DatasetPayload = {
             'columns': ['geo', '2020'],
             'data': [
                 ['BE', '100'],
@@ -373,17 +377,17 @@ class TestGISCOJoinWorkflow(unittest.TestCase):
         self.dialog.set_table_join_fields()
         self.dialog.set_table_join_field_default()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._exec_patcher.stop()
         # Clear project state to avoid leaking layers between tests.
         instance = QgsProject.instance()
         if instance is not None:
             instance.removeAllMapLayers()
         self.dialog.deleteLater()
-        self.dialog = None
-        self.plugin = None
+        self.dialog = None  # type: ignore[assignment]
+        self.plugin = None  # type: ignore[assignment]
 
-    def _build_synthetic_features(self) -> dict:
+    def _build_synthetic_features(self) -> dict[Unit, list[QgsFeature]]:
         """Build a dict[Unit, list[QgsFeature]] that bypasses the network.
 
         ``GISCOHandler.join_data`` calls
@@ -430,7 +434,7 @@ class TestGISCOJoinWorkflow(unittest.TestCase):
         )
         return {unit: list(gisco_layer.getFeatures())}
 
-    def test_join_data_produces_layer_with_joined_attributes(self):
+    def test_join_data_produces_layer_with_joined_attributes(self) -> None:
         """End-to-end: synthetic features + bound dataset + ``join_data``
         must yield a joined ``QgsVectorLayer`` with attributes from both
         sides and a feature for each matching geo code."""
@@ -486,13 +490,15 @@ class TestGISCOJoinWorkflow(unittest.TestCase):
             f'Joined layer is missing Eurostat-side columns; got {field_names}',
         )
 
-    def test_join_data_with_no_features_returns_none(self):
+    def test_join_data_with_no_features_returns_none(self) -> None:
         """When ``unit_downloader.features`` is empty, ``join_data`` is a
         no-op (returns None) -- documented early-return contract."""
         self.dialog.gisco_handler.unit_downloader = MagicMock()
         self.dialog.gisco_handler.unit_downloader.features = {}
 
-        result = self.dialog.gisco_handler.join_data()
+        # ``join_data`` is typed ``-> None`` so mypy flags reading its value;
+        # the test asserts the side-effect-free early-return contract.
+        result = self.dialog.gisco_handler.join_data()  # type: ignore[func-returns-value]
         self.assertIsNone(result)
 
 
