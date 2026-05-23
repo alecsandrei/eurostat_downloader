@@ -198,7 +198,7 @@ def test_caching():
             assert cache_path.exists()
 
             with open(cache_path, 'r') as f:
-                cached_data = json.load(f)
+                json.load(f)
             print(f'✓ Cache file readable')
 
             db2 = Database(lang=Language.ENGLISH)

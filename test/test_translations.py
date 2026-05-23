@@ -52,7 +52,6 @@ class SafeTranslationsTest(unittest.TestCase):
 
         QCoreApplication.installTranslator(translator)
 
-        expected_message = 'Goeie more'
         real_message = QCoreApplication.translate('@default', 'Good morning')
         # Translation may not work in test environment, just verify it doesn't crash
         self.assertIsNotNone(real_message)
