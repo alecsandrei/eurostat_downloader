@@ -56,6 +56,6 @@ class EurostatDownloaderDialogTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    suite = unittest.makeSuite(EurostatDownloaderResourcesTest)
+    suite = unittest.makeSuite(EurostatDownloaderDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
