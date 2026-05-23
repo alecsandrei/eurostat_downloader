@@ -6,6 +6,7 @@ import concurrent.futures
 import json
 import typing as t
 from collections import UserList, defaultdict
+from typing import Self
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import cached_property
@@ -318,11 +319,11 @@ class Unit:
     year: str
 
     @classmethod
-    def from_filename(cls: t.Type[t.Self], filename: str) -> t.Self:
+    def from_filename(cls: type[Self], filename: str) -> Self:
         split = filename.replace('.geojson', '').split('-')
         if split[1] == 'label':
             try:
-                split.insert(2, None)  # type: ignore
+                split.insert(2, None)  # type: ignore[arg-type]
             except Exception as e:
                 raise e
         return cls(*split)
@@ -353,8 +354,8 @@ class Units(UserList[Unit]):
 
     @classmethod
     def from_json(
-        cls: t.Type[t.Self], json: c.Mapping[str, c.Iterable[str]]
-    ) -> t.Self:
+        cls: type[Self], json: c.Mapping[str, c.Iterable[str]]
+    ) -> Self:
         items: list[Unit] = []
         for name, units in json.items():
             for unit in units:

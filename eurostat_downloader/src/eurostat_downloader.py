@@ -596,7 +596,7 @@ class Dialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without
         # Get the stored item data
         item_data = current_item.data(0, QtCore.Qt.ItemDataRole.UserRole)
         if item_data:
-            return cast('str | None', item_data.get('code'))
+            return cast(str | None, item_data.get('code'))
 
         # Fallback: parse from the displayed code column
         return cast(str, current_item.text(1))
@@ -1044,7 +1044,7 @@ class GISCOHandler:
         subclasses = GISCO.__subclasses__()
         for i, class_ in enumerate(subclasses):
             if class_.__name__ == theme:
-                self.themes[theme] = subclasses[i]()  # type: ignore
+                self.themes[theme] = subclasses[i]()  # type: ignore[abstract]
 
     def get_theme(self) -> GISCO:
         current_theme = self.base.ui.comboBoxGISCOTheme.currentText()

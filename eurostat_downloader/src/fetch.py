@@ -454,7 +454,7 @@ def get_pars(code: str) -> list[str]:
     _debug(f'Fetching parameters for dataset: {code}', '📊')
     _, _, dims_raw = _get_dims_info(code, detail='name')
     # For detail='name' the concrete arm of the union is list[str | None].
-    dims = cast('list[str | None]', dims_raw)
+    dims = cast(list[str | None], dims_raw)
     _debug(f'Found {len(dims)} parameters: {dims}', '✓')
     return [d for d in dims if d is not None]
 
@@ -469,7 +469,7 @@ def get_dic(
         # For detail='basic' the concrete arm is list[tuple[str | None, str | None]].
         # In practice every Dimension element has an ``id``, so we treat the
         # first tuple slot as a non-None str (matches original behaviour).
-        dims = cast('list[tuple[str, str]]', dims_raw)
+        dims = cast(list[tuple[str, str]],dims_raw)
         try:
             par_id = [d[1] for d in dims if d[0].lower() == par.lower()][0]
         except IndexError:
@@ -505,7 +505,7 @@ def get_dic(
         _, _, dims_list = _get_dims_info(code, detail='descr', lang=lang)
         _debug(f'Got {len(dims_list)} dimension descriptions', '✓')
         # detail='descr' yields list[tuple[str | None, str | None, str | None]]
-        return cast('list[tuple[str, str]]', dims_list)
+        return cast(list[tuple[str, str]],dims_list)
 
 
 def get_par_values(code: str, par: str) -> list[str]:
@@ -545,7 +545,7 @@ def get_data(
     # Dimension elements, so we treat the slots as ``str`` (matches the
     # original runtime behaviour where ``dict(c).get(j[1], '')`` was called
     # without a None-guard).
-    dims = cast('list[tuple[str, str]]', dims_raw)
+    dims = cast(list[tuple[str, str]],dims_raw)
 
     if not filter_pars:
         filt = ['?']
