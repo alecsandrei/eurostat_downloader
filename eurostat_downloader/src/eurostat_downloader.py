@@ -293,11 +293,11 @@ class Dialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without
         self.ui.tabWidget.currentChanged.connect(self.handle_tab_change)
 
     def handle_tab_change(self, index: int) -> None:
-        tab = Tabs(index + 1)
-        if tab is Tabs.LAYER:
-            ...
-        elif tab is Tabs.GISCO:
-            self.gisco_handler.add_themes()
+        match Tabs(index + 1):
+            case Tabs.LAYER:
+                ...
+            case Tabs.GISCO:
+                self.gisco_handler.add_themes()
 
     def set_agency_status_tooltip(self) -> None:
         tooltip = ['Agency server accessibility']
@@ -1353,18 +1353,19 @@ class TimeSectionDialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is 
     def get_frequency_types(self) -> list[str]:
         assert self.base.dataset is not None
         freq = self.base.dataset.frequency.lower()
-        if freq == FrequencyType.ANNUALLY.value:
-            return ['Year']
-        elif freq == FrequencyType.SEMESTERLY.value:
-            return ['Year', 'Semester']
-        elif freq == FrequencyType.QUARTERLY.value:
-            return ['Year', 'Quarter']
-        elif freq == FrequencyType.MONTHLY.value:
-            return ['Year', 'Month']
-        elif freq == FrequencyType.DAILY.value:
-            return ['Year', 'Month', 'Day']
-        else:
-            raise ValueError(f'No frequency column was found. Unknown {freq}.')
+        match freq:
+            case FrequencyType.ANNUALLY.value:
+                return ['Year']
+            case FrequencyType.SEMESTERLY.value:
+                return ['Year', 'Semester']
+            case FrequencyType.QUARTERLY.value:
+                return ['Year', 'Quarter']
+            case FrequencyType.MONTHLY.value:
+                return ['Year', 'Month']
+            case FrequencyType.DAILY.value:
+                return ['Year', 'Month', 'Day']
+            case _:
+                raise ValueError(f'No frequency column was found. Unknown {freq}.')
 
     def add_labels_to_frames(self, frequency: str) -> None:
         def _add_label_to_frames(object_name: str, text: str) -> None:
