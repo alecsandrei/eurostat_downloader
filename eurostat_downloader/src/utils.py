@@ -1,22 +1,25 @@
 from __future__ import annotations
 
 import collections.abc as c
-import typing as t
 
 from qgis.core import Qgis, QgsFeature, QgsField, QgsVectorLayer, edit
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 
 
-class CheckableComboBox(QtWidgets.QComboBox):
+class CheckableComboBox(QtWidgets.QComboBox):  # type: ignore[misc]  # QGIS/PyQt lacks stubs
     # source code: https://gis.stackexchange.com/questions/350148/qcombobox-multiple-selection-pyqt5
     # Subclass Delegate to increase item height
-    class Delegate(QtWidgets.QStyledItemDelegate):
-        def sizeHint(self, option, index):
-            size = super().sizeHint(option, index)
+    class Delegate(QtWidgets.QStyledItemDelegate):  # type: ignore[misc]  # QGIS/PyQt lacks stubs
+        def sizeHint(
+            self,
+            option: QtWidgets.QStyleOptionViewItem,
+            index: QtCore.QModelIndex,
+        ) -> QtCore.QSize:
+            size: QtCore.QSize = super().sizeHint(option, index)
             size.setHeight(20)
             return size
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
 
         # Make the combo editable to set a custom text, but readonly
@@ -36,12 +39,12 @@ class CheckableComboBox(QtWidgets.QComboBox):
         # Prevent popup from closing when clicking on an item
         self.view().viewport().installEventFilter(self)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         # Recompute text to elide as needed
         self.updateText()
         super().resizeEvent(event)
 
-    def eventFilter(self, object, event):
+    def eventFilter(self, object: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if object == self.lineEdit():
             if event.type() == QtCore.QEvent.Type.MouseButtonRelease:
                 if self.closeOnLineEditClick:
@@ -63,25 +66,25 @@ class CheckableComboBox(QtWidgets.QComboBox):
                 return True
         return False
 
-    def showPopup(self):
+    def showPopup(self) -> None:
         super().showPopup()
         # When the popup is displayed, a click on the lineedit should close it
         self.closeOnLineEditClick = True
 
-    def hidePopup(self):
+    def hidePopup(self) -> None:
         super().hidePopup()
         # Used to prevent immediate reopening when clicking on the lineEdit
         self.startTimer(100)
         # Refresh the display text when closing
         self.updateText()
 
-    def timerEvent(self, event):
+    def timerEvent(self, event: QtCore.QTimerEvent) -> None:
         # After timeout, kill timer, and reenable click on line edit
         self.killTimer(event.timerId())
         self.closeOnLineEditClick = False
 
-    def updateText(self):
-        texts = []
+    def updateText(self) -> None:
+        texts: list[str] = []
         for i in range(self.model().rowCount()):
             if (
                 self.model().item(i).checkState()
@@ -97,11 +100,11 @@ class CheckableComboBox(QtWidgets.QComboBox):
         )
         self.lineEdit().setText(elidedText)
 
-    def deselect_items(self):
+    def deselect_items(self) -> None:
         for i in range(self.model().rowCount()):
             self.model().item(i).setCheckState(QtCore.Qt.CheckState.Unchecked)
 
-    def addItem(self, text, data=None):
+    def addItem(self, text: str, data: object = None) -> None:
         item = QtGui.QStandardItem()
         item.setText(text)
         if data is None:
@@ -118,17 +121,21 @@ class CheckableComboBox(QtWidgets.QComboBox):
         )
         self.model().appendRow(item)
 
-    def addItems(self, texts, datalist=None):
+    def addItems(
+        self,
+        texts: c.Iterable[str],
+        datalist: c.Sequence[object] | None = None,
+    ) -> None:
         for i, text in enumerate(texts):
             try:
-                data = datalist[i]
+                data = datalist[i]  # type: ignore[index]  # caught by except below
             except (TypeError, IndexError):
                 data = None
             self.addItem(text, data)
 
-    def currentData(self):
+    def currentData(self) -> list[object]:
         # Return the list of selected items data
-        res = []
+        res: list[object] = []
         for i in range(self.model().rowCount()):
             if (
                 self.model().item(i).checkState()
@@ -138,8 +145,8 @@ class CheckableComboBox(QtWidgets.QComboBox):
         return res
 
 
-class QComboboxCompleter(QtWidgets.QComboBox):
-    def __init__(self, parent):
+class QComboboxCompleter(QtWidgets.QComboBox):  # type: ignore[misc]  # QGIS/PyQt lacks stubs
+    def __init__(self, parent: QtWidgets.QWidget | None) -> None:
         super().__init__(parent=parent)
         self.setEditable(True)
         self.setInsertPolicy(QtWidgets.QComboBox.InsertPolicy.NoInsert)
@@ -169,14 +176,14 @@ def layer_from_features(
 
 
 def add_field_to_layer(
-    layer: QgsVectorLayer, field: QgsField, values: c.Iterable[t.Any]
+    layer: QgsVectorLayer, field: QgsField, values: c.Iterable[object]
 ) -> None:
     provider = layer.dataProvider()
     provider.addAttributes([[field, value] for value in values])
     layer.updateFields()
 
 
-def get_table_item(value: t.Any) -> QtWidgets.QTableWidgetItem:
+def get_table_item(value: object) -> QtWidgets.QTableWidgetItem:
     item = QtWidgets.QTableWidgetItem(str(value))
     item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
     item.setFlags(QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled)
@@ -184,7 +191,9 @@ def get_table_item(value: t.Any) -> QtWidgets.QTableWidgetItem:
     return item
 
 
-def color_row(table: QtWidgets.QTableWidget, row: int, color: QtGui.QColor):
+def color_row(
+    table: QtWidgets.QTableWidget, row: int, color: QtGui.QColor
+) -> None:
     for col in range(table.columnCount()):
         item = table.item(row, col)
         if not item:
