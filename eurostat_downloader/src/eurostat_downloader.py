@@ -30,29 +30,29 @@ from qgis.PyQt import QtCore, QtGui, QtNetwork, QtWidgets
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QAction, QDialog
 
-from .. import resources  # noqa: F401
-from .data import (
+from eurostat_downloader import resources  # noqa: F401
+from eurostat_downloader.src.data import (
     GISCO,
     Database,
     Dataset,
     Unit,
     Units,
 )
-from .enums import (
+from eurostat_downloader.src.enums import (
     Agency,
     ConnectionStatus,
     FrequencyType,
     GeoSectionName,
     Language,
 )
-from .settings import GLOBAL_SETTINGS
-from .ui.eurostat_downloader_dialog import Ui_EurostatDownloaderDialog
-from .ui.gisco_dataset_information import Ui_GISCODatasetInformation
-from .ui.gisco_join_report import Ui_GISCOJoinReport
-from .ui.section_dialog_params import Ui_ParametersDialog
-from .ui.section_dialog_time import Ui_TimePeriodDialog
-from .ui.settings_dialog import Ui_SettingsDialog
-from .utils import (
+from eurostat_downloader.src.settings import GLOBAL_SETTINGS
+from eurostat_downloader.src.ui.eurostat_downloader_dialog import Ui_EurostatDownloaderDialog
+from eurostat_downloader.src.ui.gisco_dataset_information import Ui_GISCODatasetInformation
+from eurostat_downloader.src.ui.gisco_join_report import Ui_GISCOJoinReport
+from eurostat_downloader.src.ui.section_dialog_params import Ui_ParametersDialog
+from eurostat_downloader.src.ui.section_dialog_time import Ui_TimePeriodDialog
+from eurostat_downloader.src.ui.settings_dialog import Ui_SettingsDialog
+from eurostat_downloader.src.utils import (
     CheckableComboBox,
     QComboboxCompleter,
     color_row,
@@ -345,7 +345,7 @@ class Dialog(QtWidgets.QDialog):
             items: List of TOC items to populate
             preserve_expansion: If True, preserve the current expansion state
         """
-        from . import DEBUG
+        from eurostat_downloader.src import DEBUG
 
         if DEBUG:
             print(f'🌳 populate_tree() called with {len(items)} items')

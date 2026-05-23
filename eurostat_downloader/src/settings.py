@@ -5,7 +5,7 @@ from typing import NamedTuple
 
 from qgis.core import QgsNetworkAccessManager, QgsSettings
 
-from .enums import Agency
+from eurostat_downloader.src.enums import Agency
 
 
 class ProxySettings(NamedTuple):

@@ -7,6 +7,6 @@ def classFactory(iface):
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    from .src.eurostat_downloader import EurostatDownloader
+    from eurostat_downloader.src.eurostat_downloader import EurostatDownloader
 
     return EurostatDownloader(iface)

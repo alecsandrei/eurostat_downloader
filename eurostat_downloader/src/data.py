@@ -13,9 +13,9 @@ from itertools import product
 from pathlib import Path
 from urllib.parse import urljoin
 
-from . import DEBUG, PACKAGE_DIR, fetch
-from .enums import Agency, ConnectionStatus, Language, TableOfContentsColumn
-from .settings import GLOBAL_SETTINGS
+from eurostat_downloader.src import DEBUG, PACKAGE_DIR, fetch
+from eurostat_downloader.src.enums import Agency, ConnectionStatus, Language, TableOfContentsColumn
+from eurostat_downloader.src.settings import GLOBAL_SETTINGS
 
 
 def _debug(msg: str, prefix: str = '🔍') -> None:

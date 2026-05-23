@@ -26,7 +26,7 @@ def get_qgis_app():
         from qgis.PyQt import QtCore, QtWidgets
         from qgis.core import QgsApplication
         from qgis.gui import QgsMapCanvas
-        from .qgis_interface import QgisInterface
+        from test.qgis_interface import QgisInterface
     except ImportError:
         return None, None, None, None
 

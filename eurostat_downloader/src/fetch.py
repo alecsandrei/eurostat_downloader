@@ -624,7 +624,7 @@ def gisco_request_blocking(url: str) -> bytes:
     Returns:
         Response data as bytes
     """
-    from .settings import GLOBAL_SETTINGS
+    from eurostat_downloader.src.settings import GLOBAL_SETTINGS
     from qgis.PyQt.QtCore import QUrl
     from qgis.PyQt.QtNetwork import QNetworkRequest
 
@@ -646,7 +646,7 @@ def gisco_request(url: str, manager=None):
     Returns:
         QNetworkReply object
     """
-    from .settings import GLOBAL_SETTINGS
+    from eurostat_downloader.src.settings import GLOBAL_SETTINGS
     from qgis.PyQt.QtCore import QUrl
     from qgis.PyQt.QtNetwork import QNetworkRequest
 
