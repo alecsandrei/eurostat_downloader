@@ -24,6 +24,8 @@ from eurostat_downloader import resources_rc  # noqa: F401
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 
+from eurostat_downloader.src.eurostat_downloader import EurostatDownloader  # noqa: E402
+
 
 class EurostatDownloaderDialogTest(unittest.TestCase):
     """Test rerources work."""
@@ -44,10 +46,6 @@ class EurostatDownloaderDialogTest(unittest.TestCase):
 
     def test_initgui_action_has_non_null_icon(self) -> None:
         """The QAction created by ``initGui`` must have a loaded icon."""
-        from eurostat_downloader.src.eurostat_downloader import (
-            EurostatDownloader,
-        )
-
         plugin = EurostatDownloader(IFACE)
         try:
             plugin.initGui()

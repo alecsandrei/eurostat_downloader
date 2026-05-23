@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import unittest
+from typing import cast
+
 from test.utilities import get_qgis_app
 
 QGIS_APP = get_qgis_app()
 
-from eurostat_downloader.src.data import Database  # noqa: E402
+from eurostat_downloader.src.data import Database, TocRow  # noqa: E402
 from eurostat_downloader.src.enums import Language, Agency  # noqa: E402
 
 
@@ -14,9 +16,6 @@ class TestTreeDatabase(unittest.TestCase):
 
     def test_toc_hierarchy_preserved(self) -> None:
         """Test that TOC maintains hierarchical order, not sorted by level."""
-        from eurostat_downloader.src.data import TocRow
-        from typing import cast
-
         # Create a database and mock TOC data
         db = Database()
 

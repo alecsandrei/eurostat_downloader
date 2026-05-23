@@ -5,7 +5,11 @@ Integration test for data.py without hitting the real Eurostat API.
 Uses mocked responses to test the refactored pandas-free implementation.
 """
 
+import json  # noqa: E402
 import sys  # noqa: E402
+import tempfile  # noqa: E402
+import traceback  # noqa: E402
+from pathlib import Path  # noqa: E402
 from unittest.mock import MagicMock, patch  # noqa: E402
 
 # Mock QGIS modules before importing our code
@@ -169,10 +173,6 @@ def test_caching() -> None:
     """Test TOC caching functionality."""
     print('\n=== Testing TOC Caching ===')
 
-    import tempfile
-    import json
-    from pathlib import Path
-
     mock_toc_data = [
         {
             'title': 'Cache Test Dataset',
@@ -268,7 +268,5 @@ if __name__ == '__main__':
         sys.exit(1)
     except Exception as e:
         print(f'\n❌ Unexpected error: {e}')
-        import traceback
-
         traceback.print_exc()
         sys.exit(1)

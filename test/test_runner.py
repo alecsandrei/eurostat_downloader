@@ -10,6 +10,7 @@ from __future__ import annotations
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2024-01-30'
 
+import argparse
 import sys
 import unittest
 from pathlib import Path
@@ -212,8 +213,6 @@ def print_test_summary() -> None:
 
 def main() -> int:
     """Main entry point for test runner."""
-    import argparse
-
     parser = argparse.ArgumentParser(
         description='Run tests for Eurostat Downloader QGIS Plugin'
     )

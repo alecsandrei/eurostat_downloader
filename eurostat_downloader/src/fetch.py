@@ -11,6 +11,8 @@ from qgis.core import QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QEventLoop, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
+from eurostat_downloader.src.settings import GLOBAL_SETTINGS
+
 DimsResult = (
     list[str | None]
     | list[tuple[str | None, str | None]]
@@ -675,10 +677,6 @@ def gisco_request_blocking(url: str) -> bytes:
     Returns:
         Response data as bytes
     """
-    from eurostat_downloader.src.settings import GLOBAL_SETTINGS
-    from qgis.PyQt.QtCore import QUrl
-    from qgis.PyQt.QtNetwork import QNetworkRequest
-
     _debug(f'GISCO blocking request: {url[:100]}...', '🗺')
     request = QNetworkRequest(QUrl(url))
     response = GLOBAL_SETTINGS.network_manager.blockingGet(request)
@@ -700,10 +698,6 @@ def gisco_request(
     Returns:
         QNetworkReply object
     """
-    from eurostat_downloader.src.settings import GLOBAL_SETTINGS
-    from qgis.PyQt.QtCore import QUrl
-    from qgis.PyQt.QtNetwork import QNetworkRequest
-
     _debug(f'GISCO async request: {url[:100]}...', '🗺')
     request = QNetworkRequest(QUrl(url))
     if manager is None:

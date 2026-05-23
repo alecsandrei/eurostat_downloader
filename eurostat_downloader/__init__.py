@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from qgis.gui import QgisInterface
 
-if TYPE_CHECKING:
-    from qgis.gui import QgisInterface
-
-    from eurostat_downloader.src.eurostat_downloader import EurostatDownloader
+from eurostat_downloader.src.eurostat_downloader import EurostatDownloader
 
 
 def classFactory(iface: QgisInterface) -> EurostatDownloader:
@@ -16,6 +13,4 @@ def classFactory(iface: QgisInterface) -> EurostatDownloader:
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    from eurostat_downloader.src.eurostat_downloader import EurostatDownloader
-
     return EurostatDownloader(iface)

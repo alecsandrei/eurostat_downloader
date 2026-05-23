@@ -3,7 +3,9 @@ from __future__ import annotations
 import itertools
 import os.path
 import time
+import traceback
 import typing as t
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import astuple, dataclass, field, fields
 from enum import Enum, auto
@@ -31,6 +33,7 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from eurostat_downloader import resources  # noqa: F401
+from eurostat_downloader.src import DEBUG
 from eurostat_downloader.src.data import (
     GISCO,
     Database,
@@ -355,12 +358,8 @@ class Dialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without
             items: List of TOC items to populate
             preserve_expansion: If True, preserve the current expansion state
         """
-        from eurostat_downloader.src import DEBUG
-
         if DEBUG:
             print(f'🌳 populate_tree() called with {len(items)} items')
-            import traceback
-
             traceback.print_stack(limit=5)
 
         # Save expansion state if requested
@@ -371,8 +370,6 @@ class Dialog(QtWidgets.QDialog):  # type: ignore[misc]  # QDialog is Any without
         self.ui.treeDatabase.clear()
 
         # Group items by agency
-        from collections import defaultdict
-
         agency_items: dict[str, list[TocRow]] = defaultdict(list)
         for item in items:
             agency = item.get('agency', 'EUROSTAT')

@@ -5,6 +5,8 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
+from qgis.PyQt.QtNetwork import QNetworkRequest
+
 from src import fetch
 
 
@@ -595,8 +597,6 @@ class TestGiscoRequestBlocking(unittest.TestCase):
         self, mock_global_settings: MagicMock
     ) -> None:
         """blockingGet is called exactly once with a QNetworkRequest."""
-        from qgis.PyQt.QtNetwork import QNetworkRequest
-
         mock_response = MagicMock()
         mock_response.content.return_value.data.return_value = b'ok'
         mock_global_settings.network_manager.blockingGet.return_value = (
@@ -660,8 +660,6 @@ class TestGiscoRequest(unittest.TestCase):
     @patch('src.settings.GLOBAL_SETTINGS')
     def test_gisco_request_uses_default_manager(self, mock_global_settings: MagicMock) -> None:
         """When no manager is provided, GLOBAL_SETTINGS.network_manager is used."""
-        from qgis.PyQt.QtNetwork import QNetworkRequest
-
         mock_global_settings.network_manager.get.return_value = MagicMock()
 
         fetch.gisco_request('https://example.test/default')
