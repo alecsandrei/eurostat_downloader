@@ -55,7 +55,7 @@ class GlobalSettings:
     verify_ssl: bool = True
     network_manager: QgsNetworkAccessManager = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.agencies = list(Agency)
         self.proxy = _get_qgis_proxy()
         self.network_manager = QgsNetworkAccessManager()
