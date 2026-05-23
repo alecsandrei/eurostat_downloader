@@ -59,7 +59,7 @@ def test_database_toc():
         db = Database(lang=Language.ENGLISH)
         db.initialize_toc()
 
-        print(f'✓ Database initialized')
+        print('✓ Database initialized')
         print(f'  TOC size: {db.toc_size}')
         # Note: toc_size will be 3 entries × number of agencies that succeed
         assert db.toc_size >= 3, f'Expected at least 3, got {db.toc_size}'
@@ -127,7 +127,7 @@ def test_dataset_operations():
                     dataset = Dataset(db=db, code='TEST_DATA')
                     dataset.initialize_df()
 
-                    print(f'✓ Dataset initialized')
+                    print('✓ Dataset initialized')
 
                     title = dataset.title
                     print(f'✓ Title: {title}')
@@ -146,7 +146,7 @@ def test_dataset_operations():
                     # Check TIME_PERIOD was removed
                     assert 'sex' in data['columns'][1]
                     assert '\\TIME_PERIOD' not in data['columns'][1]
-                    print(f'✓ TIME_PERIOD removed from column names')
+                    print('✓ TIME_PERIOD removed from column names')
 
                     date_cols = dataset.date_columns
                     print(f'✓ Date columns: {date_cols}')
@@ -199,12 +199,12 @@ def test_caching():
 
             with open(cache_path, 'r') as f:
                 json.load(f)
-            print(f'✓ Cache file readable')
+            print('✓ Cache file readable')
 
             db2 = Database(lang=Language.ENGLISH)
             db2._cache_path = cache_path
             db2._load_toc_from_cache()
-            print(f'✓ TOC loaded from cache')
+            print('✓ TOC loaded from cache')
 
             assert db2.toc_size >= 1
             assert any(row['code'] == 'CACHE_TEST' for row in db2.toc)
