@@ -8,6 +8,8 @@
 
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2023-12-28'
 __copyright__ = 'Copyright 2023, Cuvuliuc Alex-Andrei'
@@ -26,21 +28,21 @@ QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
 class EurostatDownloaderDialogTest(unittest.TestCase):
     """Test rerources work."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Runs before each test."""
         pass
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Runs after each test."""
         pass
 
-    def test_icon_png(self):
+    def test_icon_png(self) -> None:
         """Test we can click OK."""
         path = ':/plugins/eurostat_downloader/assets/icon.png'
         icon = QIcon(path)
         self.assertFalse(icon.isNull())
 
-    def test_initgui_action_has_non_null_icon(self):
+    def test_initgui_action_has_non_null_icon(self) -> None:
         """The QAction created by ``initGui`` must have a loaded icon."""
         from eurostat_downloader.src.eurostat_downloader import (
             EurostatDownloader,

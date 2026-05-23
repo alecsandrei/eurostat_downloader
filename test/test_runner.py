@@ -5,6 +5,8 @@ Comprehensive test runner for Eurostat Downloader QGIS Plugin.
 This module runs all tests in the test suite and provides detailed reporting.
 """
 
+from __future__ import annotations
+
 __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2024-01-30'
 
@@ -46,7 +48,7 @@ from test import (  # noqa: E402
 )
 
 
-def run_all_tests(verbosity=2):
+def run_all_tests(verbosity: int = 2) -> unittest.TestResult:
     """
     Run all tests in the test suite.
 
@@ -93,7 +95,9 @@ def run_all_tests(verbosity=2):
     return result
 
 
-def run_category_tests(category, verbosity=2):
+def run_category_tests(
+    category: str, verbosity: int = 2
+) -> unittest.TestResult | None:
     """
     Run tests for a specific category.
 
@@ -151,7 +155,7 @@ def run_category_tests(category, verbosity=2):
     return result
 
 
-def print_test_summary():
+def print_test_summary() -> None:
     """Print a summary of all available tests."""
     print('=' * 70)
     print('EUROSTAT DOWNLOADER QGIS PLUGIN - TEST SUITE')
@@ -206,7 +210,7 @@ def print_test_summary():
     print()
 
 
-def main():
+def main() -> int:
     """Main entry point for test runner."""
     import argparse
 
@@ -244,6 +248,7 @@ def main():
     print_test_summary()
     print(f'\nRunning {args.category} tests...\n')
 
+    result: unittest.TestResult | None
     if args.category == 'all':
         result = run_all_tests(verbosity=args.verbosity)
     else:

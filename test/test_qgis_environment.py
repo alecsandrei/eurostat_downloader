@@ -9,6 +9,8 @@
 
 """
 
+from __future__ import annotations
+
 __author__ = 'tim@linfiniti.com'
 __date__ = '20/01/2011'
 __copyright__ = (
@@ -32,7 +34,7 @@ QGIS_APP = get_qgis_app()
 class QGISTest(unittest.TestCase):
     """Test the QGIS Environment"""
 
-    def test_qgis_environment(self):
+    def test_qgis_environment(self) -> None:
         """QGIS environment has the expected providers"""
 
         r = QgsProviderRegistry.instance()
@@ -40,7 +42,7 @@ class QGISTest(unittest.TestCase):
         self.assertIn('ogr', r.providerList())
         # postgres is optional and may not be available in all environments
 
-    def test_projection(self):
+    def test_projection(self) -> None:
         """Test that QGIS properly parses a wkt string."""
         crs = QgsCoordinateReferenceSystem()
         wkt = (

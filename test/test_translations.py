@@ -8,6 +8,8 @@
 
 """
 
+from __future__ import annotations
+
 from test.utilities import get_qgis_app
 
 __author__ = 'ismailsunni@yahoo.co.id'
@@ -26,17 +28,17 @@ QGIS_APP = get_qgis_app()
 class SafeTranslationsTest(unittest.TestCase):
     """Test translations work."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Runs before each test."""
         if 'LANG' in iter(os.environ.keys()):
             os.environ.__delitem__('LANG')
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Runs after each test."""
         if 'LANG' in iter(os.environ.keys()):
             os.environ.__delitem__('LANG')
 
-    def test_qgis_translations(self):
+    def test_qgis_translations(self) -> None:
         """Test that translations work."""
         parent_path = os.path.join(__file__, os.path.pardir, os.path.pardir)
         dir_path = os.path.abspath(parent_path)

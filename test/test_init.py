@@ -1,6 +1,8 @@
 # coding=utf-8
 """Tests QGIS plugin init."""
 
+from __future__ import annotations
+
 __author__ = 'Tim Sutton <tim@linfiniti.com>'
 __revision__ = '$Format:%H$'
 __date__ = '17/10/2010'
@@ -27,7 +29,7 @@ class TestInit(unittest.TestCase):
 
     """
 
-    def test_read_init(self):
+    def test_read_init(self) -> None:
         """Test that the plugin __init__ will validate on plugins.qgis.org."""
 
         # You should update this list according to the latest in
@@ -54,7 +56,9 @@ class TestInit(unittest.TestCase):
         LOGGER.info(file_path)
         metadata = []
         parser = configparser.ConfigParser()
-        parser.optionxform = str
+        # configparser.optionxform is typed as Callable[[str], str] but the
+        # documented idiom is to assign str directly for case-sensitive keys.
+        parser.optionxform = str  # type: ignore[method-assign,assignment]
         parser.read(file_path)
         message = 'Cannot find a section named "general" in %s' % file_path
         assert parser.has_section('general'), message
