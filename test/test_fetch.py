@@ -413,5 +413,295 @@ class TestFetchModule(unittest.TestCase):
         fetch.setproxy({'https': ['user', 'pass', 'http://proxy:8080']})
 
 
+class TestGetTocFlat(unittest.TestCase):
+    """Test cases for the legacy flat TOC parser (`get_toc_flat`)."""
+
+    def setUp(self):
+        """Build a synthetic JSON TOC payload like the SDMX dataflow endpoint."""
+        self.mock_toc_data = {
+            'link': {
+                'item': [
+                    {
+                        'label': 'Population by region',
+                        'class': 'dataset',
+                        'extension': {
+                            'id': 'POP_REG',
+                            'annotation': [
+                                {'type': 'UPDATE_DATA', 'date': '2024-03-15'},
+                                {
+                                    'type': 'UPDATE_STRUCTURE',
+                                    'date': '2023-11-02',
+                                },
+                                {
+                                    'type': 'OBS_PERIOD_OVERALL_OLDEST',
+                                    'title': '2000',
+                                },
+                                {
+                                    'type': 'OBS_PERIOD_OVERALL_LATEST',
+                                    'title': '2023',
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        'label': 'GDP by region',
+                        'class': 'dataset',
+                        'extension': {
+                            'id': 'GDP_REG',
+                            'annotation': [
+                                {'type': 'UPDATE_DATA', 'date': '2024-02-01'},
+                                {
+                                    'type': 'UPDATE_STRUCTURE',
+                                    'date': '2023-10-01',
+                                },
+                                {
+                                    'type': 'OBS_PERIOD_OVERALL_OLDEST',
+                                    'title': '1995',
+                                },
+                                {
+                                    'type': 'OBS_PERIOD_OVERALL_LATEST',
+                                    'title': '2022',
+                                },
+                            ],
+                        },
+                    },
+                ]
+            }
+        }
+
+    @patch('src.fetch._retry_request')
+    def test_get_toc_flat_success(self, mock_retry):
+        """Returns a flat list of dicts with the legacy 7-field shape."""
+        mock_retry.return_value = gzip.compress(
+            json.dumps(self.mock_toc_data).encode('utf-8')
+        )
+
+        result = fetch.get_toc_flat(agency='EUROSTAT', lang='en')
+
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 2)
+
+        first = result[0]
+        # Legacy shape: no 'level' / 'values' fields.
+        expected_keys = {
+            'title',
+            'code',
+            'type',
+            'last update of data',
+            'last table structure change',
+            'data start',
+            'data end',
+        }
+        self.assertEqual(set(first.keys()), expected_keys)
+        self.assertEqual(first['code'], 'POP_REG')
+        self.assertEqual(first['title'], 'Population by region')
+        self.assertEqual(first['type'], 'dataset')
+        self.assertEqual(first['last update of data'], '2024-03-15')
+        self.assertEqual(first['last table structure change'], '2023-11-02')
+        self.assertEqual(first['data start'], '2000')
+        self.assertEqual(first['data end'], '2023')
+
+    @patch('src.fetch._retry_request')
+    def test_get_toc_flat_multiple_items(self, mock_retry):
+        """Every item from the payload is preserved in order."""
+        mock_retry.return_value = gzip.compress(
+            json.dumps(self.mock_toc_data).encode('utf-8')
+        )
+
+        result = fetch.get_toc_flat(agency='EUROSTAT', lang='en')
+
+        codes = [row['code'] for row in result]
+        self.assertEqual(codes, ['POP_REG', 'GDP_REG'])
+        self.assertEqual(result[1]['data start'], '1995')
+        self.assertEqual(result[1]['data end'], '2022')
+
+    @patch('src.fetch._retry_request')
+    def test_get_toc_flat_connection_error(self, mock_retry):
+        """`None` from the network layer surfaces as ConnectionError."""
+        mock_retry.return_value = None
+
+        with self.assertRaises(ConnectionError):
+            fetch.get_toc_flat(agency='EUROSTAT', lang='en')
+
+    @patch('src.fetch._retry_request')
+    def test_get_toc_flat_missing_annotations(self, mock_retry):
+        """Annotations are optional fields; missing ones stay as None."""
+        sparse_payload = {
+            'link': {
+                'item': [
+                    {
+                        'label': 'Minimal dataset',
+                        'class': 'dataset',
+                        'extension': {
+                            'id': 'MIN_DS',
+                            'annotation': [],
+                        },
+                    }
+                ]
+            }
+        }
+        mock_retry.return_value = gzip.compress(
+            json.dumps(sparse_payload).encode('utf-8')
+        )
+
+        result = fetch.get_toc_flat(agency='EUROSTAT', lang='en')
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['code'], 'MIN_DS')
+        self.assertIsNone(result[0]['last update of data'])
+        self.assertIsNone(result[0]['last table structure change'])
+        self.assertIsNone(result[0]['data start'])
+        self.assertIsNone(result[0]['data end'])
+
+    @patch('src.fetch._retry_request')
+    def test_get_toc_flat_uses_agency_base_url(self, mock_retry):
+        """The agency parameter selects the matching BASE_URL entry."""
+        mock_retry.return_value = gzip.compress(
+            json.dumps({'link': {'item': []}}).encode('utf-8')
+        )
+
+        fetch.get_toc_flat(agency='COMP', lang='fr')
+
+        self.assertEqual(mock_retry.call_count, 1)
+        called_url = mock_retry.call_args[0][0]
+        self.assertTrue(called_url.startswith(fetch.BASE_URL['COMP']))
+        self.assertIn('lang=fr', called_url)
+        self.assertIn('format=JSON', called_url)
+
+
+class TestGiscoRequestBlocking(unittest.TestCase):
+    """Test cases for the GISCO synchronous wrapper."""
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_blocking_returns_payload_bytes(
+        self, mock_global_settings
+    ):
+        """Returns the raw bytes from response.content().data()."""
+        payload = b'{"type":"FeatureCollection","features":[]}'
+        mock_response = MagicMock()
+        mock_response.content.return_value.data.return_value = payload
+        mock_global_settings.network_manager.blockingGet.return_value = (
+            mock_response
+        )
+
+        result = fetch.gisco_request_blocking(
+            'https://gisco-services.ec.europa.eu/distribution/v2/test.geojson'
+        )
+
+        self.assertEqual(result, payload)
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_blocking_calls_blocking_get_once(
+        self, mock_global_settings
+    ):
+        """blockingGet is called exactly once with a QNetworkRequest."""
+        from qgis.PyQt.QtNetwork import QNetworkRequest
+
+        mock_response = MagicMock()
+        mock_response.content.return_value.data.return_value = b'ok'
+        mock_global_settings.network_manager.blockingGet.return_value = (
+            mock_response
+        )
+
+        fetch.gisco_request_blocking('https://example.test/file')
+
+        mock_global_settings.network_manager.blockingGet.assert_called_once()
+        sent_request = (
+            mock_global_settings.network_manager.blockingGet.call_args[0][0]
+        )
+        self.assertIsInstance(sent_request, QNetworkRequest)
+        self.assertEqual(
+            sent_request.url().toString(), 'https://example.test/file'
+        )
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_blocking_empty_body(self, mock_global_settings):
+        """An empty response body still returns bytes (no crash)."""
+        mock_response = MagicMock()
+        mock_response.content.return_value.data.return_value = b''
+        mock_global_settings.network_manager.blockingGet.return_value = (
+            mock_response
+        )
+
+        result = fetch.gisco_request_blocking('https://example.test/empty')
+
+        self.assertEqual(result, b'')
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_blocking_propagates_manager_exception(
+        self, mock_global_settings
+    ):
+        """If the QGIS manager raises, the exception bubbles up.
+
+        `gisco_request_blocking` has no try/except — failures from the
+        network layer must surface to the caller rather than be swallowed.
+        """
+        mock_global_settings.network_manager.blockingGet.side_effect = (
+            RuntimeError('network down')
+        )
+
+        with self.assertRaises(RuntimeError):
+            fetch.gisco_request_blocking('https://example.test/boom')
+
+
+class TestGiscoRequest(unittest.TestCase):
+    """Test cases for the GISCO async wrapper."""
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_returns_manager_reply(self, mock_global_settings):
+        """The QNetworkReply returned by manager.get() is passed through."""
+        mock_reply = MagicMock(name='QNetworkReply')
+        mock_global_settings.network_manager.get.return_value = mock_reply
+
+        result = fetch.gisco_request('https://example.test/async')
+
+        self.assertIs(result, mock_reply)
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_uses_default_manager(self, mock_global_settings):
+        """When no manager is provided, GLOBAL_SETTINGS.network_manager is used."""
+        from qgis.PyQt.QtNetwork import QNetworkRequest
+
+        mock_global_settings.network_manager.get.return_value = MagicMock()
+
+        fetch.gisco_request('https://example.test/default')
+
+        mock_global_settings.network_manager.get.assert_called_once()
+        sent_request = (
+            mock_global_settings.network_manager.get.call_args[0][0]
+        )
+        self.assertIsInstance(sent_request, QNetworkRequest)
+        self.assertEqual(
+            sent_request.url().toString(), 'https://example.test/default'
+        )
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_uses_custom_manager(self, mock_global_settings):
+        """A caller-supplied manager bypasses GLOBAL_SETTINGS entirely."""
+        custom_manager = MagicMock(name='CustomManager')
+        custom_reply = MagicMock(name='CustomReply')
+        custom_manager.get.return_value = custom_reply
+
+        result = fetch.gisco_request(
+            'https://example.test/custom', manager=custom_manager
+        )
+
+        self.assertIs(result, custom_reply)
+        custom_manager.get.assert_called_once()
+        mock_global_settings.network_manager.get.assert_not_called()
+
+    @patch('src.settings.GLOBAL_SETTINGS')
+    def test_gisco_request_propagates_manager_exception(
+        self, mock_global_settings
+    ):
+        """`gisco_request` has no error handling; exceptions bubble up."""
+        mock_global_settings.network_manager.get.side_effect = RuntimeError(
+            'manager unavailable'
+        )
+
+        with self.assertRaises(RuntimeError):
+            fetch.gisco_request('https://example.test/boom')
+
+
 if __name__ == '__main__':
     unittest.main()

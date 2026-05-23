@@ -111,6 +111,83 @@ class TestGetQGISProxy(unittest.TestCase):
         self.assertEqual(result.port, '1080')
 
     @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
+    def test_http_caching_proxy_enabled(self, mock_qgs_settings):
+        """HttpCachingProxy is in the accepted-types list and must return a
+        ProxySettings instance just like HttpProxy / Socks5Proxy.
+
+        Regression guard: if the accepted-types list in ``_get_qgis_proxy``
+        is ever pruned without thought, users on a QGIS install configured
+        with an HttpCachingProxy would silently fall through to ``None``
+        (no proxy) instead of having their proxy honoured.
+        """
+
+        def settings_value(key, default='', type=str):
+            values = {
+                'proxy/proxyEnabled': 'true',
+                'proxy/proxyType': 'HttpCachingProxy',
+                'proxy/proxyHost': 'cache.example.com',
+                'proxy/proxyPort': '3128',
+                'proxy/proxyUser': '',
+                'proxy/proxyPassword': '',
+            }
+            return values.get(key, default)
+
+        mock_qgs_settings.value.side_effect = settings_value
+
+        result = _get_qgis_proxy()
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.host, 'cache.example.com')
+        self.assertEqual(result.port, '3128')
+
+    @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
+    def test_unknown_proxy_type_returns_none(self, mock_qgs_settings):
+        """Proxy enabled with an unrecognised proxy type returns ``None``.
+
+        ``_get_qgis_proxy`` only honours a small set of proxy types
+        (Default/Socks5/Http/HttpCaching). Anything else -- e.g. an
+        ``FtpCachingProxy`` value or an empty string -- must yield ``None``
+        so the caller doesn't construct a half-populated ProxySettings.
+        """
+
+        def settings_value(key, default='', type=str):
+            values = {
+                'proxy/proxyEnabled': 'true',
+                'proxy/proxyType': 'FtpCachingProxy',
+                'proxy/proxyHost': 'ftp.example.com',
+                'proxy/proxyPort': '21',
+                'proxy/proxyUser': '',
+                'proxy/proxyPassword': '',
+            }
+            return values.get(key, default)
+
+        mock_qgs_settings.value.side_effect = settings_value
+
+        result = _get_qgis_proxy()
+
+        self.assertIsNone(result)
+
+    @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
+    def test_proxy_enabled_empty_string_returns_none(self, mock_qgs_settings):
+        """When ``proxy/proxyEnabled`` is the empty string (key unset in
+        QgsSettings), ``_get_qgis_proxy`` must return ``None``.
+
+        The check is ``proxy_enabled == 'true'`` -- any other value (the
+        default empty string, ``'false'``, or anything truthy-but-not-'true')
+        means "no proxy". This test pins the default-unset path explicitly.
+        """
+
+        def settings_value(key, default='', type=str):
+            # Every key returns its default ''.
+            return default
+
+        mock_qgs_settings.value.side_effect = settings_value
+
+        result = _get_qgis_proxy()
+
+        self.assertIsNone(result)
+
+    @patch('eurostat_downloader.src.settings.QGS_SETTINGS')
     @patch('eurostat_downloader.src.settings.QgsNetworkAccessManager')
     def test_default_proxy(self, mock_network_manager, mock_qgs_settings):
         """Test when using default proxy."""

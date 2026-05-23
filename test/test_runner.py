@@ -31,6 +31,7 @@ from test import (
     test_qgs_converter,
     test_resources,
     test_settings,
+    test_toc_cache,
     test_translations,
     test_tree_database,
     test_ui_gisco,
@@ -41,6 +42,7 @@ from test import (
     test_ui_settings_dialog,
     test_ui_time_dialog,
     test_utils,
+    test_workers,
     test_workflows,
 )
 
@@ -67,6 +69,7 @@ def run_all_tests(verbosity=2):
         test_qgs_converter,
         test_resources,
         test_settings,
+        test_toc_cache,
         test_translations,
         test_tree_database,
         test_ui_gisco,
@@ -77,6 +80,7 @@ def run_all_tests(verbosity=2):
         test_ui_settings_dialog,
         test_ui_time_dialog,
         test_utils,
+        test_workers,
         test_workflows,
     ]
 
