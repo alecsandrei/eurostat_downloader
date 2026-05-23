@@ -90,7 +90,7 @@ class EurostatDownloader:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QtCore.QSettings().value('locale/userLocale')[0:2]
+        locale = (QtCore.QSettings().value('locale/userLocale') or 'en')[0:2]
         locale_path = os.path.join(
             self.plugin_dir, 'i18n', 'EurostatDownloader_{}.qm'.format(locale)
         )
