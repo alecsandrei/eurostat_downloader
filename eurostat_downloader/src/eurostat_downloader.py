@@ -219,7 +219,7 @@ class EurostatDownloader:
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.dlg.exec()
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and
@@ -1207,7 +1207,7 @@ class ParameterSectionDialog(QtWidgets.QDialog):
         self.ui.buttonReset.clicked.connect(self.reset_selection)
         self.ui.listItems.itemSelectionChanged.connect(self.filter_table)
 
-        self.exec_()
+        self.exec()
 
     def reset_selection(self):
         self.ui.listItems.clearSelection()
@@ -1297,7 +1297,7 @@ class TimeSectionDialog(QtWidgets.QDialog):
         self.add_signals_to_combobox()
         self.ui.buttonReset.clicked.connect(self.set_default)
 
-        self.exec_()
+        self.exec()
 
     def get_frequency_types(self):
         assert self.base.dataset is not None
@@ -1512,7 +1512,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.restore_global_settings()
         ok_btn = self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
         ok_btn.clicked.connect(self.update_global_settings)
-        self.exec_()
+        self.exec()
 
     def update_global_settings(self):
         # Agencies

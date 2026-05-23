@@ -130,9 +130,9 @@ def _blocking_request(url: str, timeout: int = 120000) -> bytes | None:
     loop = QEventLoop()
     reply = manager.get(request)
     reply.finished.connect(loop.quit)
-    loop.exec_()
+    loop.exec()
 
-    if reply.error() == QNetworkReply.NoError:
+    if reply.error() == QNetworkReply.NetworkError.NoError:
         data = reply.readAll().data()
         reply.deleteLater()
         return data
