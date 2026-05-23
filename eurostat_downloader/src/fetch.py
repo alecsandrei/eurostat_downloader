@@ -388,7 +388,7 @@ def _get_dims_info(
         data = _retry_request(df_url)
         if data is not None:
             try:
-                df_root = ET.fromstring(data)
+                df_root = ET.fromstring(data)  # nosec B314 - Eurostat HTTPS API; stdlib ET (Py3.7.1+) does not resolve external entities
                 found = True
                 if detail == 'empty':
                     return (agency_id, provider, [])
@@ -409,7 +409,7 @@ def _get_dims_info(
     if data is None:
         raise ConnectionError(f'Failed to fetch DSD for {code}')
 
-    dsd_root = ET.fromstring(data)
+    dsd_root = ET.fromstring(data)  # nosec B314 - Eurostat HTTPS API; stdlib ET (Py3.7.1+) does not resolve external entities
 
     dims: DimsResult
     if detail == 'name':
@@ -519,7 +519,7 @@ def get_par_values(code: str, par: str) -> list[str]:
     if data is None:
         raise ConnectionError(f'Failed to fetch parameter values for {code}')
 
-    root = ET.fromstring(data)
+    root = ET.fromstring(data)  # nosec B314 - Eurostat HTTPS API; stdlib ET (Py3.7.1+) does not resolve external entities
     par_values: list[str] = []
 
     for kv in root.findall(par_path):
