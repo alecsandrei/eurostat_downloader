@@ -5,10 +5,12 @@ qgisMaximumVersion=4.99
 supportsQt6=True
 description=This plugin can be used to get data using the Eurostat API.
 about=Eurostat Downloader can be used to add Eurostat datasets as tables in QGIS and join them with vector layers. For a guide on how to use the package, check the homepage. No external Python dependencies required - all functionality is implemented using QGIS's built-in libraries.
-version=0.5.0
+version=0.6.0
 author=Alex-Andrei Cuvuliuc
 email=cuvuliucalexandrei@gmail.com
 changelog=
+      0.6.0
+        * Added support for QGIS 4 / PyQt6 - the plugin now runs on both Qt5 and Qt6.
       0.5.0
         * Removed pandas and requests dependencies - uses only QGIS built-in libraries;
         * Database is now displayed in a hierarchical structure.
@@ -35,4 +37,4 @@ tracker=https://github.com/alecsandrei/eurostat_downloader/issues
 repository=https://github.com/alecsandrei/eurostat_downloader
 icon=assets/icon.png
 deprecated=False
-experimental=True
+experimental=False
