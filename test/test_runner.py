@@ -28,11 +28,20 @@ from test import (
     test_enums,
     test_init,
     test_qgis_environment,
+    test_qgs_converter,
     test_resources,
     test_settings,
     test_translations,
     test_tree_database,
+    test_ui_gisco,
+    test_ui_loading_dialog,
+    test_ui_main_dialog,
+    test_ui_missing_modules,
+    test_ui_parameters_dialog,
+    test_ui_settings_dialog,
+    test_ui_time_dialog,
     test_utils,
+    test_workflows,
 )
 
 
@@ -55,11 +64,20 @@ def run_all_tests(verbosity=2):
         test_enums,
         test_init,
         test_qgis_environment,
+        test_qgs_converter,
         test_resources,
         test_settings,
         test_translations,
         test_tree_database,
+        test_ui_gisco,
+        test_ui_loading_dialog,
+        test_ui_main_dialog,
+        test_ui_missing_modules,
+        test_ui_parameters_dialog,
+        test_ui_settings_dialog,
+        test_ui_time_dialog,
         test_utils,
+        test_workflows,
     ]
 
     for module in test_modules_list:
@@ -104,6 +122,15 @@ def run_category_tests(category, verbosity=2):
             test_resources,
             test_qgis_environment,
             test_translations,
+        ],
+        'ui': [
+            test_ui_gisco,
+            test_ui_loading_dialog,
+            test_ui_main_dialog,
+            test_ui_missing_modules,
+            test_ui_parameters_dialog,
+            test_ui_settings_dialog,
+            test_ui_time_dialog,
         ],
     }
 
@@ -186,7 +213,7 @@ def main():
     parser.add_argument(
         'category',
         nargs='?',
-        choices=['all', 'tree', 'utils', 'config', 'core'],
+        choices=['all', 'tree', 'utils', 'config', 'core', 'ui'],
         default='all',
         help='Category of tests to run (default: all)',
     )

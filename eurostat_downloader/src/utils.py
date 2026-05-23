@@ -142,8 +142,8 @@ class QComboboxCompleter(QtWidgets.QComboBox):
     def __init__(self, parent):
         super().__init__(parent=parent)
         self.setEditable(True)
-        self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
-        self.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        self.setInsertPolicy(QtWidgets.QComboBox.InsertPolicy.NoInsert)
+        self.completer().setCompletionMode(QtWidgets.QCompleter.CompletionMode.PopupCompletion)
 
 
 def layer_from_features(
@@ -178,9 +178,9 @@ def add_field_to_layer(
 
 def get_table_item(value: t.Any) -> QtWidgets.QTableWidgetItem:
     item = QtWidgets.QTableWidgetItem(str(value))
-    item.setTextAlignment(QtCore.Qt.AlignCenter)
-    item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-    item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+    item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+    item.setFlags(QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled)
+    item.setFlags(QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled)
     return item
 
 

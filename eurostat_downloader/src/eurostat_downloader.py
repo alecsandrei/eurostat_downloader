@@ -30,6 +30,7 @@ from qgis.PyQt import QtCore, QtGui, QtNetwork, QtWidgets
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QAction, QDialog
 
+from .. import resources  # noqa: F401
 from .data import (
     GISCO,
     Database,
@@ -818,7 +819,7 @@ class GISCOUnitDownloader(QtCore.QObject):
             parsed_features = QgsJsonUtils.stringToFeatureList(data, fields)
 
             # We need to add the _UNIT_ID field which will be used for join
-            field_id = QgsField('_UNIT_ID', type=QtCore.QVariant.String)
+            field_id = QgsField('_UNIT_ID', type=QtCore.QMetaType.Type.QString)
             fields.append(field_id)
             for parsed_feature in parsed_features:
                 feature = QgsFeature(fields)
@@ -1510,7 +1511,7 @@ class SettingsDialog(QtWidgets.QDialog):
         )
 
         self.restore_global_settings()
-        ok_btn = self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
+        ok_btn = self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
         ok_btn.clicked.connect(self.update_global_settings)
         self.exec()
 
@@ -1736,9 +1737,8 @@ class QgsConverter:
         )
 
     @staticmethod
-    def dtype_mapper(values: list[Any]) -> QtCore.QVariant.Type:
-        """Infer QVariant type from list of values."""
-        # Sample first non-None value
+    def dtype_mapper(values: list[Any]) -> QtCore.QMetaType.Type:
+        """Infer QMetaType type from list of values."""
         sample = None
         for val in values:
             if val is not None and val != '':
@@ -1746,25 +1746,23 @@ class QgsConverter:
                 break
 
         if sample is None:
-            return QtCore.QVariant.Type.String
+            return QtCore.QMetaType.Type.QString
 
-        # Try to infer type
         if isinstance(sample, bool):
-            return QtCore.QVariant.Type.Bool
+            return QtCore.QMetaType.Type.Bool
         elif isinstance(sample, int):
-            return QtCore.QVariant.Type.Int
+            return QtCore.QMetaType.Type.Int
         elif isinstance(sample, float):
-            return QtCore.QVariant.Type.Double
+            return QtCore.QMetaType.Type.Double
         else:
-            # Try to parse as number
             try:
                 float(str(sample))
                 if '.' in str(sample):
-                    return QtCore.QVariant.Type.Double
+                    return QtCore.QMetaType.Type.Double
                 else:
-                    return QtCore.QVariant.Type.Int
+                    return QtCore.QMetaType.Type.Int
             except (ValueError, TypeError):
-                return QtCore.QVariant.Type.String
+                return QtCore.QMetaType.Type.QString
 
     @staticmethod
     def to_data_dict(layer: QgsVectorLayer) -> dict[str, Any]:

@@ -16,6 +16,12 @@ import unittest
 
 from qgis.PyQt.QtGui import QIcon
 
+from test.utilities import get_qgis_app
+
+from eurostat_downloader import resources_rc  # noqa: F401
+
+QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
+
 
 class EurostatDownloaderDialogTest(unittest.TestCase):
     """Test rerources work."""
@@ -30,9 +36,23 @@ class EurostatDownloaderDialogTest(unittest.TestCase):
 
     def test_icon_png(self):
         """Test we can click OK."""
-        path = ':/plugins/EurostatDownloader/icon.png'
+        path = ':/plugins/eurostat_downloader/assets/icon.png'
         icon = QIcon(path)
         self.assertFalse(icon.isNull())
+
+    def test_initgui_action_has_non_null_icon(self):
+        """The QAction created by ``initGui`` must have a loaded icon."""
+        from eurostat_downloader.src.eurostat_downloader import (
+            EurostatDownloader,
+        )
+
+        plugin = EurostatDownloader(IFACE)
+        try:
+            plugin.initGui()
+            self.assertGreaterEqual(len(plugin.actions), 1)
+            self.assertFalse(plugin.actions[0].icon().isNull())
+        finally:
+            plugin.unload()
 
 
 if __name__ == '__main__':

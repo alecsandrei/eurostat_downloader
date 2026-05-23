@@ -142,11 +142,11 @@ class TestQComboboxCompleter(unittest.TestCase):
         """Test QComboboxCompleter initializes correctly."""
         self.assertTrue(self.combo.isEditable())
         self.assertEqual(
-            self.combo.insertPolicy(), QtWidgets.QComboBox.NoInsert
+            self.combo.insertPolicy(), QtWidgets.QComboBox.InsertPolicy.NoInsert
         )
         self.assertEqual(
             self.combo.completer().completionMode(),
-            QtWidgets.QCompleter.PopupCompletion,
+            QtWidgets.QCompleter.CompletionMode.PopupCompletion,
         )
 
 
@@ -204,9 +204,9 @@ class TestGetTableItem(unittest.TestCase):
         item = get_table_item('Test Value')
 
         self.assertEqual(item.text(), 'Test Value')
-        self.assertTrue(item.flags() & QtCore.Qt.ItemIsSelectable)
-        self.assertTrue(item.flags() & QtCore.Qt.ItemIsEnabled)
-        self.assertFalse(item.flags() & QtCore.Qt.ItemIsEditable)
+        self.assertTrue(item.flags() & QtCore.Qt.ItemFlag.ItemIsSelectable)
+        self.assertTrue(item.flags() & QtCore.Qt.ItemFlag.ItemIsEnabled)
+        self.assertFalse(item.flags() & QtCore.Qt.ItemFlag.ItemIsEditable)
 
     def test_get_table_item_number(self):
         """Test creating table item from number."""
@@ -218,7 +218,7 @@ class TestGetTableItem(unittest.TestCase):
         """Test table item is center-aligned."""
         item = get_table_item('Test')
 
-        self.assertTrue(item.textAlignment() & QtCore.Qt.AlignCenter)
+        self.assertTrue(item.textAlignment() & QtCore.Qt.AlignmentFlag.AlignCenter)
 
 
 class TestColorRow(unittest.TestCase):
