@@ -64,10 +64,6 @@ from eurostat_downloader.src.utils import (
 )
 
 
-# ``LayerPayload`` mirrors :class:`DatasetPayload` but for QGIS vector layer
-# attributes, whose cell values can be any Python object emitted by QGIS
-# (strings, ints, floats, booleans, ``None``, ``QVariant``...). Defined
-# locally here because it is only consumed by :class:`QgsConverter`.
 class LayerPayload(t.TypedDict):
     columns: list[str]
     data: list[list[object]]

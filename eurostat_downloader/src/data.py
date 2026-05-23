@@ -34,22 +34,15 @@ class TocRow(t.TypedDict, total=False):
     data_end: str
 
 
-# Cell values from the Eurostat dataset endpoint: numeric values are parsed
-# as ``float``, missing data is ``None``, and the leading key columns plus
-# any flag columns are ``str``.
 DatasetCell = float | str | None
 
 
 class DatasetPayload(t.TypedDict):
-    """Shape of the dict returned by :func:`fetch.get_data`."""
-
     columns: list[str]
     data: list[list[DatasetCell]]
 
 
 class UnitDict(t.TypedDict):
-    """Serialized form of :class:`Unit` (matches its dataclass fields)."""
-
     id: str
     spatial_type: str
     scale: str | None
@@ -73,9 +66,6 @@ GISCO_URL = {
     ),
     'unit': urljoin(GISCO_BASE, 'distribution/{filename}'),
 }
-# GISCO ``datasets.json`` is a mapping of dataset id -> heterogeneous metadata
-# object (mixed strings, lists, nested dicts). We only ever read keys/iterate,
-# never inspect the values, so ``object`` is precise enough.
 Datasets = dict[str, object]
 TableOfContents = dict[Agency, dict[Language, list[TocRow]]]
 AgencyStatus = dict[Agency, ConnectionStatus]

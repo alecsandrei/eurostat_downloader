@@ -11,20 +11,14 @@ from qgis.core import QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QEventLoop, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
-# Heterogeneous shape of the ``dims`` field returned by ``_get_dims_info``;
-# the concrete arm depends on the ``detail`` argument (see that function's docstring).
 DimsResult = (
     list[str | None]
     | list[tuple[str | None, str | None]]
     | list[tuple[str | None, str | None, str | None]]
 )
 
-# A single row in a TOC listing. Values are mostly strings, but ``level`` is an
-# int and a few fields are ``None`` before they get coerced to ``''``.
 TocRow = dict[str, str | int | None]
 
-# A parsed TSV value: dimension code (str), numeric observation (float), missing
-# value (None), or a non-numeric textual observation that fell through float().
 DataValue = str | float | None
 
 DEBUG = os.getenv('EUROSTAT_PLUGIN_DEBUG', '0') == '1'
