@@ -1,17 +1,30 @@
 # coding=utf-8
 """Common functionality used by regression tests."""
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qgis.PyQt.QtWidgets import QWidget
+    from qgis.core import QgsApplication
+    from qgis.gui import QgsMapCanvas
+
+    from test.qgis_interface import QgisInterface as QgisInterfaceStub
 
 
 LOGGER = logging.getLogger('QGIS')
-QGIS_APP = None  # Static variable used to hold hand to running QGIS app
-CANVAS = None
-PARENT = None
-IFACE = None
+QGIS_APP: QgsApplication | None = None
+CANVAS: QgsMapCanvas | None = None
+PARENT: QWidget | None = None
+IFACE: QgisInterfaceStub | None = None
 
 
-def get_qgis_app():
+def get_qgis_app() -> (
+    tuple[QgsApplication, QgsMapCanvas, QgisInterfaceStub, QWidget]
+    | tuple[None, None, None, None]
+):
     """Start one QGIS application to test against.
 
     :returns: Handle to QGIS app, canvas, iface and parent. If there are any
