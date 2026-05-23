@@ -5,7 +5,7 @@ __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2024-01-30'
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from qgis.core import QgsSettings, QgsNetworkAccessManager
 
 from eurostat_downloader.src.settings import ProxySettings, GlobalSettings, _get_qgis_proxy

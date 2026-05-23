@@ -10,7 +10,6 @@ __date__ = '2024-01-30'
 
 import sys
 import unittest
-import os
 from pathlib import Path
 
 # Add parent directory to path to import modules

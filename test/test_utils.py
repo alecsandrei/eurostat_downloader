@@ -5,11 +5,8 @@ __author__ = 'cuvuliucalexandrei@gmail.com'
 __date__ = '2024-01-30'
 
 import unittest
-from unittest.mock import Mock, MagicMock, patch
 from qgis.core import (
     QgsFeature,
-    QgsField,
-    QgsVectorLayer,
     Qgis,
     QgsGeometry,
     QgsPointXY,
@@ -20,7 +17,6 @@ from eurostat_downloader.src.utils import (
     CheckableComboBox,
     QComboboxCompleter,
     layer_from_features,
-    add_field_to_layer,
     get_table_item,
     color_row,
 )
